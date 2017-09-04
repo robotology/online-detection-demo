@@ -1,0 +1,104 @@
+{Reference to non-existent field 'annotation'.
+
+Error in <a href="matlab:matlab.internal.language.introspective.errorDocCallback('VOCreadrecxml', '/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/datasets/iCubWorld-Transformations_devkit/VOCcode/VOCreadrecxml.m', 9)" style="font-weight:bold">VOCreadrecxml</a> (<a href="matlab: opentoline('/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/datasets/iCubWorld-Transformations_devkit/VOCcode/VOCreadrecxml.m',9,0)">line 9</a>)
+rec.source.annotation=x.source.annotation;
+
+Error in <a href="matlab:matlab.internal.language.introspective.errorDocCallback('PASreadrecord', '/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/datasets/iCubWorld-Transformations_devkit/VOCcode/PASreadrecord.m', 10)" style="font-weight:bold">PASreadrecord</a> (<a href="matlab: opentoline('/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/datasets/iCubWorld-Transformations_devkit/VOCcode/PASreadrecord.m',10,0)">line 10</a>)
+    rec=VOCreadrecxml(path);
+
+Error in <a href="matlab:matlab.internal.language.introspective.errorDocCallback('VOCevaldet', '/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/datasets/iCubWorld-Transformations_devkit/VOCcode/VOCevaldet.m', 20)" style="font-weight:bold">VOCevaldet</a> (<a href="matlab: opentoline('/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/datasets/iCubWorld-Transformations_devkit/VOCcode/VOCevaldet.m',20,0)">line 20</a>)
+        recs(i)=PASreadrecord(sprintf(VOCopts.annopath,gtids{i}));
+
+Error in <a href="matlab:matlab.internal.language.introspective.errorDocCallback('imdb_eval_icub', '/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/imdb/imdb_eval_icub.m', 78)" style="font-weight:bold">imdb_eval_icub</a> (<a href="matlab: opentoline('/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/imdb/imdb_eval_icub.m',78,0)">line 78</a>)
+  [recall, prec, ap] = VOCevaldet(ICUBopts, res_id, cls, draw_curve);
+
+Error in <a href="matlab:matlab.internal.language.introspective.errorDocCallback('fast_rcnn_test', '/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/functions/fast_rcnn/fast_rcnn_test.m', 171)" style="font-weight:bold">fast_rcnn_test</a> (<a href="matlab: opentoline('/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/functions/fast_rcnn/fast_rcnn_test.m',171,0)">line 171</a>)
+          res(model_ind) = imdb.eval_func(cls, aboxes{model_ind}, imdb, opts.cache_name, opts.suffix);
+
+Error in <a href="matlab:matlab.internal.language.introspective.errorDocCallback('Faster_RCNN_Train.do_fast_rcnn_test', '/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/experiments/+Faster_RCNN_Train/do_fast_rcnn_test.m', 6)" style="font-weight:bold">Faster_RCNN_Train.do_fast_rcnn_test</a> (<a href="matlab: opentoline('/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/experiments/+Faster_RCNN_Train/do_fast_rcnn_test.m',6,0)">line 6</a>)
+    mAP                         = fast_rcnn_test(conf, imdb, roidb, ...
+
+Error in <a href="matlab:matlab.internal.language.introspective.errorDocCallback('script_faster_rcnn_ICUB_ZF', '/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/experiments/script_faster_rcnn_ICUB_ZF.m', 88)" style="font-weight:bold">script_faster_rcnn_ICUB_ZF</a> (<a href="matlab: opentoline('/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/experiments/script_faster_rcnn_ICUB_ZF.m',88,0)">line 88</a>)
+opts.final_mAP              = Faster_RCNN_Train.do_fast_rcnn_test(conf_fast_rcnn, model.stage2_fast_rcnn, dataset.imdb_test,
+dataset.roidb_test);
+} 
+script_faster_rcnn_ICUB_ZF
+fast_rcnn startup done
+GPU 1: free memory 7110656000
+GPU 2: free memory 9380823040
+GPU 3: free memory 9116581888
+GPU 4: free memory 8273526784
+Use GPU 4
+[Warning: Specified caffe folder (/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/external/caffe/matlab/caffe_faster_rcnn) is not exist,
+change to default one (/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/external/caffe/matlab)] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('active_caffe_mex', '/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/utils/active_caffe_mex.m', 19)" style="font-weight:bold">active_caffe_mex</a> (<a href="matlab: opentoline('/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/utils/active_caffe_mex.m',19,0)">line 19</a>)
+  In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('script_faster_rcnn_ICUB_ZF', '/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/experiments/script_faster_rcnn_ICUB_ZF.m', 18)" style="font-weight:bold">script_faster_rcnn_ICUB_ZF</a> (<a href="matlab: opentoline('/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/experiments/script_faster_rcnn_ICUB_ZF.m',18,0)">line 18</a>)] 
+proposal_config
+fast_rcnn_config
+Faster_RCNN_Train.set_cache_folder
+
+------------------------------------------------------------------------
+              abort() detected at Fri Sep  1 14:43:48 2017
+------------------------------------------------------------------------
+
+Configuration:
+  Crash Decoding      : Disabled - No sandbox or build area path
+  Crash Mode          : continue (default)
+  Current Graphics Driver: Unknown software 
+  Current Visual      : 0x21 (class 4, depth 24)
+  Default Encoding    : US-ASCII
+  Deployed            : false
+  GNU C Library       : 2.23 stable
+  Host Name           : iiticubsrv017
+  MATLAB Architecture : glnxa64
+  MATLAB Entitlement ID: 1824318
+  MATLAB Root         : /usr/local/MATLAB/R2017a
+  MATLAB Version      : 9.2.0.556344 (R2017a)
+  OpenGL              : software
+  Operating System    : Linux 4.4.0-93-generic #116-Ubuntu SMP Fri Aug 11 21:17:51 UTC 2017 x86_64
+  Processor ID        : x86 Family 6 Model 79 Stepping 1, GenuineIntel
+  Virtual Machine     : Java 1.7.0_60-b19 with Oracle Corporation Java HotSpot(TM) 64-Bit Server VM mixed mode
+  Window System       : The X.Org Foundation (11701000), display localhost:10.0
+
+Fault Count: 1
+
+
+Abnormal termination:
+abort()
+
+Register State (from fault):
+  RAX = 0000000000000000  RBX = 00007f709a780420
+  RCX = 00007f722071d428  RDX = 0000000000000006
+  RSP = 00007f71feea0c28  RBP = 00007f71feea0f00
+  RSI = 000000000000bdad  RDI = 000000000000bd75
+
+   R8 = 0000000000000081   R9 = 0000000000000000
+  R10 = 0000000000000008  R11 = 0000000000000202
+  R12 = 00007f709a780480  R13 = 0000000000000089
+  R14 = 00007f709a780420  R15 = 00007f709a787de0
+
+  RIP = 00007f722071d428  EFL = 0000000000000202
+
+   CS = 0033   FS = 0000   GS = 0000
+
+Stack Trace (from fault):
+[  0] 0x00007f722071d428                    /lib/x86_64-linux-gnu/libc.so.6+00218152 gsignal+00000056
+[  1] 0x00007f722071f02a                    /lib/x86_64-linux-gnu/libc.so.6+00225322 abort+00000362
+[  2] 0x00007f709a56be49             /usr/lib/x86_64-linux-gnu/libglog.so.0+00040521
+[  3] 0x00007f709a56d5cd             /usr/lib/x86_64-linux-gnu/libglog.so.0+00046541
+[  4] 0x00007f709a56f433             /usr/lib/x86_64-linux-gnu/libglog.so.0+00054323 _ZN6google10LogMessage9SendToLogEv+00000643
+[  5] 0x00007f709a56d15b             /usr/lib/x86_64-linux-gnu/libglog.so.0+00045403 _ZN6google10LogMessage5FlushEv+00000187
+[  6] 0x00007f709a56fe1e             /usr/lib/x86_64-linux-gnu/libglog.so.0+00056862 _ZN6google15LogMessageFatalD2Ev+00000014
+[  7] 0x00007f709a96055e /home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/external/caffe/matlab/+caffe/private/caffe_.mexa64+01897822
+[  8] 0x00007f709a8b44e6 /home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/external/caffe/matlab/+caffe/private/caffe_.mexa64+01193190
+[  9] 0x00007f709a97cb08 /home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/external/caffe/matlab/+caffe/private/caffe_.mexa64+02013960
+[ 10] 0x00007f709a94cca2 /home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/external/caffe/matlab/+caffe/private/caffe_.mexa64+01817762
+[ 11] 0x00007f709a94cec6 /home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/external/caffe/matlab/+caffe/private/caffe_.mexa64+01818310
+[ 12] 0x00007f709a7c819b /home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/external/caffe/matlab/+caffe/private/caffe_.mexa64+00225691
+[ 13] 0x00007f709a7c988b /home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/external/caffe/matlab/+caffe/private/caffe_.mexa64+00231563 mexFunction+00000163
+[ 14] 0x00007f7211b7d6a7                              bin/glnxa64/libmex.so+00186023 mexRunMexFile+00000439
+[ 15] 0x00007f7211b754a3                              bin/glnxa64/libmex.so+00152739
+[ 16] 0x00007f7211b76295                              bin/glnxa64/libmex.so+00156309
+[ 17] 0x00007f7210e681f3                   bin/glnxa64/libmwm_dispatcher.so+00782835 _ZN8Mfh_file16dispatch_fh_implEMS_FviPP11mxArray_tagiS2_EiS2_iS2_+00000947
+[ 18] 0x00007f7210e68abe                   bin/glnxa64/libmwm_dispatcher.so+00785086 _ZN8Mfh_file11dispatch_fhEiPP11mxArray_tagiS2_+00000030
+[ 19] 0x00007f720d18d4a0                          bin/glnxa64/l

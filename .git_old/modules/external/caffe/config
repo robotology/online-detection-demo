@@ -1,0 +1,12 @@
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = false
+	logallrefupdates = true
+	worktree = ../../../../external/caffe
+[remote "origin"]
+	url = https://github.com/ShaoqingRen/caffe.git
+	fetch = +refs/heads/*:refs/remotes/origin/*
+[branch "faster-R-CNN"]
+	remote = origin
+	merge = refs/heads/faster-R-CNN

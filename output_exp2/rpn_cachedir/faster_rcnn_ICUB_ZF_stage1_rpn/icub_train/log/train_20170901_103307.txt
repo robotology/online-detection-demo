@@ -1,0 +1,160 @@
+conf:
+                      batch_size: 256
+                    bg_thresh_hi: 0.3000
+                    bg_thresh_lo: 0
+                       bg_weight: 1
+         drop_boxes_runoff_image: 1
+                     feat_stride: 16
+                     fg_fraction: 0.5000
+                       fg_thresh: 0.7000
+                     image_means: [2242243 single]
+                   ims_per_batch: 1
+                        max_size: 1000
+                        rng_seed: 6
+                          scales: 600
+                  target_only_gt: 1
+                     test_binary: 0
+    test_drop_boxes_runoff_image: 0
+                   test_max_size: 1000
+               test_min_box_size: 16
+                        test_nms: 0.3000
+                     test_scales: 600
+                     use_flipped: 1
+                         use_gpu: 1
+                         anchors: [94 double]
+                output_width_map: [9011 containers.Map]
+               output_height_map: [9011 containers.Map]
+
+opts:
+           cache_name: 'faster_rcnn_ICUB_ZF_stage1_rpn'
+                 conf: [11 struct]
+               do_val: 0
+           imdb_train: {[11 struct]}
+             imdb_val: [11 struct]
+             net_file: '/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/models/pre_trained_models/ZF/ZF.caffemodel'
+          roidb_train: {[11 struct]}
+            roidb_val: [11 struct]
+    snapshot_interval: 10000
+      solver_def_file: '/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/models/rpn_prototxts/ZF/solver_40k40k.prototxt'
+         val_interval: 2000
+            val_iters: 500
+
+Preparing training data...Starting parallel pool (parpool) using the 'local' profile ...
+connected to 12 workers.
+{Error using <a href="matlab:matlab.internal.language.introspective.errorDocCallback('proposal_prepare_image_roidb>scale_rois', '/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/functions/rpn/proposal_prepare_image_roidb.m', 110)" style="font-weight:bold">proposal_prepare_image_roidb>scale_rois</a> (<a href="matlab: opentoline('/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/functions/rpn/proposal_prepare_image_roidb.m',110,0)">line 110</a>)
+Non-singleton dimensions of the two input arrays must match each other.
+
+Error in <a href="matlab:matlab.internal.language.introspective.errorDocCallback('proposal_prepare_image_roidb>@(x,y)compute_targets(conf,scale_rois(gt_rois,im_size,y),gt_labels,x,image_roidb_cell{i},y)', '/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/functions/rpn/proposal_prepare_image_roidb.m', 61)" style="font-weight:bold">proposal_prepare_image_roidb>@(x,y)compute_targets(conf,scale_rois(gt_rois,im_size,y),gt_labels,x,image_roidb_cell{i},y)</a> (<a href="matlab: opentoline('/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/functions/rpn/proposal_prepare_image_roidb.m',61,0)">line 61</a>)
+           compute_targets(conf, scale_rois(gt_rois, im_size, y), gt_labels,  x, image_roidb_cell{i}, y), ...
+
+Error in <a href="matlab:matlab.internal.language.introspective.errorDocCallback('proposal_prepare_image_roidb>append_bbox_regression_targets', '/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/functions/rpn/proposal_prepare_image_roidb.m', 53)" style="font-weight:bold">proposal_prepare_image_roidb>append_bbox_regression_targets</a> (<a href="matlab: opentoline('/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/functions/rpn/proposal_prepare_image_roidb.m',53,0)">line 53</a>)
+    parfor i = 1:num_images
+
+Error in <a href="matlab:matlab.internal.language.introspective.errorDocCallback('proposal_prepare_image_roidb', '/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/functions/rpn/proposal_prepare_image_roidb.m', 43)" style="font-weight:bold">proposal_prepare_image_roidb</a> (<a href="matlab: opentoline('/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/functions/rpn/proposal_prepare_image_roidb.m',43,0)">line 43</a>)
+    [image_roidb, bbox_means, bbox_stds] = append_bbox_regression_targets(conf, image_roidb, bbox_means, bbox_stds);
+
+Error in <a href="matlab:matlab.internal.language.introspective.errorDocCallback('proposal_train', '/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/functions/rpn/proposal_train.m', 77)" style="font-weight:bold">proposal_train</a> (<a href="matlab: opentoline('/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/functions/rpn/proposal_train.m',77,0)">line 77</a>)
+                            = proposal_prepare_image_roidb(conf, opts.imdb_train, opts.roidb_train);
+
+Error in <a href="matlab:matlab.internal.language.introspective.errorDocCallback('Faster_RCNN_Train.do_proposal_train', '/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/experiments/+Faster_RCNN_Train/do_proposal_train.m', 7)" style="font-weight:bold">Faster_RCNN_Train.do_proposal_train</a> (<a href="matlab: opentoline('/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/experiments/+Faster_RCNN_Train/do_proposal_train.m',7,0)">line 7</a>)
+    model_stage.output_model_file = proposal_train(conf, dataset.imdb_train, dataset.roidb_train, ...
+
+Error in <a href="matlab:matlab.internal.language.introspective.errorDocCallback('script_faster_rcnn_ICUB_ZF', '/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/experiments/script_faster_rcnn_ICUB_ZF.m', 51)" style="font-weight:bold">script_faster_rcnn_ICUB_ZF</a> (<a href="matlab: opentoline('/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/experiments/script_faster_rcnn_ICUB_ZF.m',51,0)">line 51</a>)
+model.stage1_rpn            = Faster_RCNN_Train.do_proposal_train(conf_proposal, dataset, model.stage1_rpn, opts.do_val);
+} 
+load('/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/imdb/cache/roidb_icub_train_easy.mat')
+script_faster_rcnn_ICUB_ZF
+fast_rcnn startup done
+GPU 1: free memory 7110656000
+GPU 2: free memory 9380823040
+GPU 3: free memory 9116581888
+GPU 4: free memory 8273526784
+Use GPU 4
+[Warning: Specified caffe folder (/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/external/caffe/matlab/caffe_faster_rcnn) is not exist, change to default
+one (/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/external/caffe/matlab)] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('active_caffe_mex', '/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/utils/active_caffe_mex.m', 19)" style="font-weight:bold">active_caffe_mex</a> (<a href="matlab: opentoline('/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/utils/active_caffe_mex.m',19,0)">line 19</a>)
+  In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('script_faster_rcnn_ICUB_ZF', '/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/experiments/script_faster_rcnn_ICUB_ZF.m', 18)" style="font-weight:bold">script_faster_rcnn_ICUB_ZF</a> (<a href="matlab: opentoline('/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/experiments/script_faster_rcnn_ICUB_ZF.m',18,0)">line 18</a>)] 
+proposal_config
+fast_rcnn_config
+Faster_RCNN_Train.set_cache_folder
+
+------------------------------------------------------------------------
+       Segmentation violation detected at Fri Sep  1 10:34:25 2017
+------------------------------------------------------------------------
+
+Configuration:
+  Crash Decoding      : Disabled - No sandbox or build area path
+  Crash Mode          : continue (default)
+  Current Graphics Driver: Unknown software 
+  Current Visual      : 0x21 (class 4, depth 24)
+  Default Encoding    : US-ASCII
+  Deployed            : false
+  GNU C Library       : 2.23 stable
+  Host Name           : iiticubsrv017
+  MATLAB Architecture : glnxa64
+  MATLAB Entitlement ID: 1824318
+  MATLAB Root         : /usr/local/MATLAB/R2017a
+  MATLAB Version      : 9.2.0.556344 (R2017a)
+  OpenGL              : software
+  Operating System    : Linux 4.4.0-93-generic #116-Ubuntu SMP Fri Aug 11 21:17:51 UTC 2017 x86_64
+  Processor ID        : x86 Family 6 Model 79 Stepping 1, GenuineIntel
+  Virtual Machine     : Java 1.7.0_60-b19 with Oracle Corporation Java HotSpot(TM) 64-Bit Server VM mixed mode
+  Window System       : The X.Org Foundation (11701000), display localhost:10.0
+
+Fault Count: 1
+
+
+Abnormal termination:
+Segmentation violation
+
+Register State (from fault):
+  RAX = 0000000000000000  RBX = 00007f6d3131c270
+  RCX = 00007f6d307b8c10  RDX = 00007f6d70899400
+  RSP = 00007f6ed16f4a38  RBP = 0000000002517900
+  RSI = 0000000000000000  RDI = 0000000d00000000
+
+   R8 = 00007f6d3185d928   R9 = 0000000000000491
+  R10 = 0000000000000002  R11 = 000000000000001d
+  R12 = 0000000000000000  R13 = 0000000000000000
+  R14 = 00007f6d3131c270  R15 = 00007f6ed16f4d40
+
+  RIP = 00007f6d6fc2891a  EFL = 0000000000010206
+
+   CS = 0033   FS = 0000   GS = 0000
+
+Stack Trace (from fault):
+[  0] 0x00007f6d6fc2891a             /usr/lib/x86_64-linux-gnu/libcuda.so.1+01866010
+[  1] 0x00007f6d6fb4311d             /usr/lib/x86_64-linux-gnu/libcuda.so.1+00925981
+[  2] 0x00007f6d6fc89af2             /usr/lib/x86_64-linux-gnu/libcuda.so.1+02263794 cuEventQuery+00000082
+[  3] 0x00007f6ef18288ae         /usr/local/cuda-8.0/lib64/libcublas.so.8.0+03664046
+[  4] 0x00007f6ef1864694         /usr/local/cuda-8.0/lib64/libcublas.so.8.0+03909268
+[  5] 0x00007f6ef14e1d97         /usr/local/cuda-8.0/lib64/libcublas.so.8.0+00228759
+[  6] 0x00007f6ef173b772         /usr/local/cuda-8.0/lib64/libcublas.so.8.0+02692978
+[  7] 0x00007f6ef15e8b8c         /usr/local/cuda-8.0/lib64/libcublas.so.8.0+01305484
+[  8] 0x00007f6ef15e9e1d         /usr/local/cuda-8.0/lib64/libcublas.so.8.0+01310237
+[  9] 0x00007f6d68d6c3fc /home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/external/caffe/matlab/+caffe/private/caffe_.mexa64+01897468
+[ 10] 0x00007f6d68cc04e6 /home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/external/caffe/matlab/+caffe/private/caffe_.mexa64+01193190
+[ 11] 0x00007f6d68d88b08 /home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/external/caffe/matlab/+caffe/private/caffe_.mexa64+02013960
+[ 12] 0x00007f6d68d58ca2 /home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/external/caffe/matlab/+caffe/private/caffe_.mexa64+01817762
+[ 13] 0x00007f6d68d58ec6 /home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/external/caffe/matlab/+caffe/private/caffe_.mexa64+01818310
+[ 14] 0x00007f6d68bd419b /home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/external/caffe/matlab/+caffe/private/caffe_.mexa64+00225691
+[ 15] 0x00007f6d68bd588b /home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/external/caffe/matlab/+caffe/private/caffe_.mexa64+00231563 mexFunction+00000163
+[ 16] 0x00007f6ee024d6a7                              bin/glnxa64/libmex.so+00186023 mexRunMexFile+00000439
+[ 17] 0x00007f6ee02454a3                              bin/glnxa64/libmex.so+00152739
+[ 18] 0x00007f6ee0246295                              bin/glnxa64/libmex.so+00156309
+[ 19] 0x00007f6edf5381f3                   bin/glnxa64/libmwm_dispatcher.so+00782835 _ZN8Mfh_file16dispatch_fh_implEMS_FviPP11mxArray_tagiS2_EiS2_iS2_+00000947
+[ 20] 0x00007f6edf538abe                   bin/glnxa64/libmwm_dispatcher.so+00785086 _ZN8Mfh_file11dispatch_fhEiPP11mxArray_tagiS2_+00000030
+[ 21] 0x00007f6edb85d4a0                          bin/glnxa64/libmwm_lxe.so+11719840
+[ 22] 0x00007f6edb85da2b                          bin/glnxa64/libmwm_lxe.so+11721259
+[ 23] 0x00007f6edb8c79b1                          bin/glnxa64/libmwm_lxe.so+12155313
+[ 24] 0x00007f6edb2e75ea                          bin/glnxa64/libmwm_lxe.so+05993962
+[ 25] 0x00007f6edb2d44f0                          bin/glnxa64/libmwm_lxe.so+05915888
+[ 26] 0x00007f6edb2da083                          bin/glnxa64/libmwm_lxe.so+05939331
+[ 27] 0x00007f6edb75cb0e                          bin/glnxa64/libmwm_lxe.so+10668814
+[ 28] 0x00007f6edb728dd4                          bin/glnxa64/libmwm_lxe.so+10456532
+[ 29] 0x00007f6edb72914a                          bin/glnxa64/libmwm_lxe.so+10457418
+[ 30] 0x00007f6edb72a919                          bin/glnxa64/libmwm_lxe.so+10463513
+[ 31] 0x00007f6edb79f2be                          bin/glnxa64/libmwm_lxe.so+10941118
+[ 32] 0x00007f6edb79f64a                          bin/glnxa64/libmwm_lxe.so+10942026
+[ 33] 0x00007f6edd90041b                         bin/glnxa64/libmwbridge.so+00189467
+[ 34] 0x00007f6edd9010cd                         bin/glnxa64/libmwbridge.so+0019

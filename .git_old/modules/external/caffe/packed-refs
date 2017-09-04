@@ -1,0 +1,14 @@
+# pack-refs with: peeled fully-peeled 
+80e6b7f7adbcc4c57b6a245016e128309ea6a59e refs/remotes/origin/SPP_net
+062f2431162165c658a42d717baf8b74918aa18e refs/remotes/origin/faster-R-CNN
+c65024cedd10fad92b3f866158b0650f2645a854 refs/remotes/origin/master
+211c3c29bb3f3acb6ef5e8c3f341e029d8946143 refs/tags/acm-mm-oss
+76c73d5549c54620e1a9a8654c5dc31d090ac28e refs/tags/bsd
+737ea5e936821b5c69f9c3952d72693ae5843370 refs/tags/rc
+682d9da0dba98788dd01723a16a257df4382376c refs/tags/rc2
+ec6f3b8466f68fc82f8b25dd048c26d3fd630784 refs/tags/rcnn-release
+c840119b6f6fbe80e91884deecfa46b39dea753e refs/tags/v0.1
+9da7bcb29751f2312dc7c93d3c4b3c24d9d3171c refs/tags/v0.9
+19a7e23cccb1b2f07b61ccbb11341ac85d37b9b1 refs/tags/v0.99
+a34816263c1e5181ac0eb857a20fdaabd07b80e9 refs/tags/v0.999
+709dc15af4a06bebda027c1eb2b3f3e3375d5077 refs/tags/v0.9999

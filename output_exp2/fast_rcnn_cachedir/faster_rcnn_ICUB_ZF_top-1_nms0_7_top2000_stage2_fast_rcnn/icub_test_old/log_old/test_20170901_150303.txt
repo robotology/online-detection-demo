@@ -1,0 +1,50 @@
+sprayer6: pr: load: 780/3330
+sprayer6: pr: load: 1869/3330
+sprayer6: pr: load: 3002/3330
+sprayer6: pr: evaluating detections
+[Warning: MATLAB has disabled some advanced graphics rendering features by switching to software OpenGL. For more information, click <a href="matlab:opengl('problems')">here</a>.] 
+!!! sprayer6 : 0.0211 0.0211
+cellphone1: pr: loading ground truth
+cellphone1: pr: evaluating detections
+!!! cellphone1 : 0.0097 0.0097
+glass8: pr: loading ground truth
+glass8: pr: evaluating detections
+!!! glass8 : 0.0070 0.0070
+mouse9: pr: loading ground truth
+mouse9: pr: evaluating detections
+!!! mouse9 : 0.0000 0.0000
+book6: pr: loading ground truth
+book6: pr: evaluating detections
+!!! book6 : 0.0000 0.0000
+wallet6: pr: loading ground truth
+wallet6: pr: evaluating detections
+!!! wallet6 : 0.0000 0.0000
+bodylotion8: pr: loading ground truth
+bodylotion8: pr: evaluating detections
+!!! bodylotion8 : 0.0000 0.0000
+squeezer5: pr: loading ground truth
+squeezer5: pr: evaluating detections
+!!! squeezer5 : 0.0000 0.0000
+mug1: pr: loading ground truth
+mug1: pr: evaluating detections
+!!! mug1 : 0.0000 0.0000
+pencilcase5: pr: loading ground truth
+pencilcase5: pr: evaluating detections
+!!! pencilcase5 : 0.0000 0.0000
+
+~~~~~~~~~~~~~~~~~~~~
+Results:
+    2.1143
+    0.9668
+    0.6964
+         0
+         0
+         0
+         0
+         0
+         0
+         0
+
+    0.3778
+
+~~~~~~~~~~~~~~~~~~~~
