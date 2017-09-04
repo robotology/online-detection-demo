@@ -82,13 +82,14 @@ model.stage2_fast_rcnn      = Faster_RCNN_Train.do_fast_rcnn_train(conf_fast_rcn
 
 %% -------------------- TRAIN RLS --------------------
 %features extraction
+dataset.roidb_train_rls     = Faster_RCNN_Train.do_proposal_test(conf_proposal, model.feature_extraction.rpn, dataset.imdb_train_TASK2, dataset.roidb_train_rls);
 
 
 %% final test
 fprintf('\n***************\n final test\n***************\n');
      
 model.stage2_rpn.nms        = model.final_test.nms;
-dataset.roidb_test       	= Faster_RCNN_Train.do_proposal_test(conf_proposal, model.stage2_rpn, dataset.imdb_test, dataset.roidb_test);
+dataset.roidb_test          = Faster_RCNN_Train.do_proposal_test(conf_proposal, model.stage2_rpn, dataset.imdb_test, dataset.roidb_test);
 opts.final_mAP              = Faster_RCNN_Train.do_fast_rcnn_test(conf_fast_rcnn, model.stage2_fast_rcnn, dataset.imdb_test, dataset.roidb_test);
 
 % save final models, for outside tester

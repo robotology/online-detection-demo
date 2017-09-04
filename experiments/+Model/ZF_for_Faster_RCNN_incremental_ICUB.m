@@ -35,7 +35,7 @@ model.stage2_fast_rcnn.test_net_def_file        = fullfile(pwd, 'models', 'fast_
 
 %% feature extraction
 model.feature_extraction.rpn.solver_def_file               = model.stage2_rpn.test_net_def_file;
-model.feature_extraction.fast_rcnn.solver_def_file        = fullfile(pwd, 'models', 'fast_rcnn_prototxts', 'ZF_fc6', 'solver_14k14k.prototxt');%prototxt con soli fc
+model.feature_extraction.fast_rcnn.solver_def_file         = fullfile(pwd, 'models', 'fast_rcnn_prototxts', 'ZF_featEx', 'feat_extraction.prototxt');%prototxt con soli fc
 
 model.feature_extraction.rpn.nms.per_nms_topN              	= 6000; % to speed up nms
 model.feature_extraction.rpn.nms.nms_overlap_thres       	= 0.7;
