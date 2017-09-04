@@ -37,11 +37,11 @@ end
 % fast_rcnn_net.copy_from(proposal_detection_model.detection_net);
 
 % proposal net
-rpn_net = caffe.Net('/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/output/faster_rcnn_final/faster_rcnn_ICUB_ZF/proposal_test.prototxt', 'test');
-rpn_net.copy_from('/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/output/faster_rcnn_final/faster_rcnn_ICUB_ZF/proposal_final');
+rpn_net = caffe.Net('/home/IIT.LOCAL/emaiettini/workspace/Repos/Incremental_Faster_RCNN/output/faster_rcnn_final/faster_rcnn_ICUB_ZF/proposal_test.prototxt', 'test');
+rpn_net.copy_from('/home/IIT.LOCAL/emaiettini/workspace/Repos/Incremental_Faster_RCNN/output/faster_rcnn_final/faster_rcnn_ICUB_ZF/proposal_final');
 % fast rcnn net
-fast_rcnn_net = caffe.Net('/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/output/faster_rcnn_final/faster_rcnn_ICUB_ZF/detection_test.prototxt', 'test');
-fast_rcnn_net.copy_from('/home/IIT.LOCAL/emaiettini/workspace/Repos/faster_rcnn/output/faster_rcnn_final/faster_rcnn_ICUB_ZF/detection_final');
+fast_rcnn_net = caffe.Net('/home/IIT.LOCAL/emaiettini/workspace/Repos/Incremental_Faster_RCNN/output/faster_rcnn_final/faster_rcnn_ICUB_ZF/detection_test.prototxt', 'test');
+fast_rcnn_net.copy_from('/home/IIT.LOCAL/emaiettini/workspace/Repos/Incremental_Faster_RCNN/output/faster_rcnn_final/faster_rcnn_ICUB_ZF/detection_final');
 
 
 % set gpu/cpu
@@ -72,7 +72,7 @@ end
 % end
 
 %% -------------------- TESTING --------------------
-% im_names = {'001763.jpg', '004545.jpg', '000542.jpg', '000456.jpg', '001150.jpg'};
+% % im_names = {'001763.jpg', '004545.jpg', '000542.jpg', '000456.jpg', '001150.jpg'};
 
 fid = fopen('/home/IIT.LOCAL/emaiettini/workspace/Datasets/iCubWorld-Transformations/ImageSets/test.txt');
 

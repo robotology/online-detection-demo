@@ -1,10 +1,16 @@
-function ICUBopts = get_icub_opts(path)
+function ICUBopts = get_icub_opts(path, image_set)
 
 tmp = pwd;
 cd(path);
 try
   addpath('VOCcode');
-  ICUBinit; %ELISA todo
+  if strcmp(image_set, 'train') || strcmp(image_set, 'test')
+    ICUBinit; %ELISA todo
+  elseif strcmp(image_set, 'TASK2_train') || strcmp(image_set, 'TASK2_test')
+    TASK2_ICUBinit;
+  elseif strcmp(image_set, 'TASK1_train') || strcmp(image_set, 'TASK1_test')
+    TASK1_ICUBinit;
+  end
 catch
   rmpath('VOCcode');
   cd(tmp);

@@ -28,7 +28,7 @@ cache_base_fast_rcnn        = '';
 dataset                     = [];
 use_flipped                 = true;
 dataset                     = Dataset.icub_trainval(dataset, 'train', use_flipped); %ELISA: changed
-dataset                     = Dataset.icub_test(dataset, 'test', false); %ELISA: changed
+dataset                   = Dataset.icub_test(dataset, 'test', false); %ELISA: changed
 
 %% -------------------- TRAIN --------------------
 % conf

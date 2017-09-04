@@ -102,10 +102,10 @@ catch
       for i = 1:length(imdb.image_ids)
         tic_toc_print('roidb (%s): %d/%d\n', roidb.name, i, length(imdb.image_ids));
         try
-          fprintf('try PASreadrecord, not flip\n');
+%           fprintf('try PASreadrecord, not flip\n');
           icub_rec = PASreadrecord(sprintf(ICUBopts.annopath, imdb.image_ids{i}));
         catch
-          fprintf('catch PASreadrecord, not flip\n');
+           fprintf('catch PASreadrecord, not flip\n');
           icub_rec = [];
         end
         if ~isempty(regions)
@@ -119,10 +119,10 @@ catch
       for i = 1:length(imdb.image_ids)/2
         tic_toc_print('roidb (%s): %d/%d\n', roidb.name, i, length(imdb.image_ids)/2);
         try
-          fprintf('try PASreadrecord');
+%           fprintf('try PASreadrecord');
           icub_rec = PASreadrecord(sprintf(ICUBopts.annopath, imdb.image_ids{i*2-1}));
         catch
-          fprintf('catch PASreadrecord');
+%           fprintf('catch PASreadrecord');
           icub_rec = [];
         end
         if ~isempty(regions)

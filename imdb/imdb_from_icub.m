@@ -38,7 +38,7 @@ end
 try
   load(cache_file);
 catch
-  ICUBopts = get_icub_opts(root_dir); %ELISA cheanged
+  ICUBopts = get_icub_opts(root_dir, image_set); %ELISA cheanged
   ICUBopts.testset = image_set;
 
   imdb.name = ['icub_' image_set];
