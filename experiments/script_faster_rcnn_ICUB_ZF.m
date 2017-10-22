@@ -76,8 +76,8 @@ dataset.roidb_train       	= cellfun(@(x, y) Faster_RCNN_Train.do_proposal_test(
 %%  stage two fast rcnn
 fprintf('\n***************\n stage two fast rcnn\n***************\n');
 % train
-% model.stage2_fast_rcnn.init_net_file = model.stage1_fast_rcnn.output_model_file;
-model.stage2_fast_rcnn.init_net_file = model.stage2_rpn.output_model_file;
+model.stage2_fast_rcnn.init_net_file = model.stage1_fast_rcnn.output_model_file;
+% model.stage2_fast_rcnn.init_net_file = model.stage2_rpn.output_model_file;
 model.stage2_fast_rcnn      = Faster_RCNN_Train.do_fast_rcnn_train(conf_fast_rcnn, dataset, model.stage2_fast_rcnn, opts.do_val);
 
 %% final test

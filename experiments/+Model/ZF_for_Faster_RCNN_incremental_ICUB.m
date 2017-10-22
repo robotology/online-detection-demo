@@ -34,12 +34,14 @@ model.stage2_fast_rcnn.solver_def_file          = fullfile(pwd, 'models', 'fast_
 model.stage2_fast_rcnn.test_net_def_file        = fullfile(pwd, 'models', 'fast_rcnn_prototxts', 'ZF_fc6', 'test.prototxt');
 
 %% feature extraction
-model.feature_extraction.rpn.solver_def_file               = model.stage2_rpn.test_net_def_file;
-model.feature_extraction.fast_rcnn.solver_def_file         = fullfile(pwd, 'models', 'fast_rcnn_prototxts', 'ZF_featEx', 'feat_extraction.prototxt');%prototxt troncato a soli fc
 
-model.feature_extraction.rpn.nms.per_nms_topN              	= 6000; % to speed up nms
-model.feature_extraction.rpn.nms.nms_overlap_thres       	= 0.7;
-model.feature_extraction.rpn.nms.after_nms_topN           	= 1000;
+model.feature_extraction.cache_name                 = 'feature_extraction_cache';
+% model.feature_extraction.net_def_file             = model.feature_extraction.fast_rcnn.solver_def_file;
+model.feature_extraction.rpn.nms.per_nms_topN       = 6000; % to speed up nms
+model.feature_extraction.rpn.nms.nms_overlap_thres  = 0.7;
+model.feature_extraction.rpn.nms.after_nms_topN     = 1000;
+model.feature_extraction.rpn.cache_name             = 'feature_extraction_region_cache';
+model.feature_extraction.rpn.solver_def_file        = model.stage2_rpn.test_net_def_file;
 
 %% rls train setting
 

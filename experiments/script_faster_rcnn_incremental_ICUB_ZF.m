@@ -1,5 +1,4 @@
-
-function script_faster_rcnn_ICUB_ZF()
+function script_faster_rcnn_incremental_ICUB_ZF()
 % script_faster_rcnn_VOC0712_ZF()
 % Faster rcnn training and testing with Zeiler & Fergus model
 % --------------------------------------------------------
@@ -29,7 +28,7 @@ dataset                     = [];
 use_flipped                 = true;
 dataset                     = Dataset.icub_trainval(dataset, 'TASK2_train', use_flipped); %ELISA: changed
 dataset                     = Dataset.icub_trainval(dataset, 'TASK1_train', use_flipped); %ELISA: changed
-dataset                     = Dataset.icub_test(dataset, 'test', false); %ELISA: changed
+dataset                     = Dataset.icub_test(dataset, 'TASK2_test', false); %ELISA: changed
 
 %% -------------------- PRE-TRAIN --------------------
 % conf
@@ -77,19 +76,13 @@ dataset.TASK1.roidb_train       	= cellfun(@(x, y) Faster_RCNN_Train.do_proposal
 %%  stage two fast rcnn
 fprintf('\n***************\n stage two fast rcnn\n***************\n');
 % train
-% model.stage2_fast_rcnn.init_net_file = model.stage1_fast_rcnn.output_model_file;
-model.stage2_fast_rcnn.init_net_file = model.stage2_rpn.output_model_file;
+model.stage2_fast_rcnn.init_net_file = model.stage1_fast_rcnn.output_model_file;
+% model.stage2_fast_rcnn.init_net_file = model.stage2_rpn.output_model_file;
 model.stage2_fast_rcnn               = Faster_RCNN_Train.do_fast_rcnn_train(conf_fast_rcnn, dataset.TASK1, model.stage2_fast_rcnn, opts.do_val);
 
-%% -------------------- TRAIN RLS --------------------
-% features extraction
-dataset.TASK2.roidb_train     = Faster_RCNN_Train.do_proposal_test(conf_proposal, model.feature_extraction.rpn, dataset.TASK2.imdb_train, dataset.TASK2.roidb_train);
-features                      = Incremental_Faster_RCNN_Train.do_extract_features(model.feature_extraction, dataset.TASK2.imdb_train, dataset.TASK2.roidb_train);
 
-% rls train
-model.bbox_regressors         = Incremental_Faster_RCNN_Train.do_bbox_regressor_train();
 
-%% final test
+%% Test of trained net on TASK1
 % fprintf('\n***************\n final test\n***************\n');
 %      
 % model.stage2_rpn.nms        = model.final_test.nms;
@@ -97,6 +90,48 @@ model.bbox_regressors         = Incremental_Faster_RCNN_Train.do_bbox_regressor_
 % opts.final_mAP              = Faster_RCNN_Train.do_fast_rcnn_test(conf_fast_rcnn, model.stage2_fast_rcnn, dataset.imdb_test, dataset.roidb_test);
 % 
 % % save final models, for outside tester
+Faster_RCNN_Train.gather_rpn_fast_rcnn_models(conf_proposal, conf_fast_rcnn, model, dataset);
+
+
+
+%% -------------------- TRAIN RLS --------------------
+% features extraction
+model.feature_extraction.rpn.output_model_file = model.stage2_rpn.output_model_file;
+model.feature_extraction.rpn.test_net_def_file = model.stage2_rpn.test_net_def_file;
+
+dataset.TASK2.roidb_train             = cellfun(@(x, y) Faster_RCNN_Train.do_proposal_test(conf_proposal, model.feature_extraction.rpn, x, y), dataset.TASK2.imdb_train, dataset.TASK2.roidb_train, 'UniformOutput', false);
+
+model.feature_extraction.binary_file  = model.stage2_fast_rcnn.output_model_file;
+model.feature_extraction.net_def_file = model.stage2_fast_rcnn.test_net_def_file;
+
+% model.feature_extraction.binary_file  = '/home/IIT.LOCAL/emaiettini/workspace/Repos/Incremental_Faster_RCNN/output/faster_rcnn_final/faster_rcnn_ICUB_ZF/detection_final';
+% model.feature_extraction.net_def_file = '/home/IIT.LOCAL/emaiettini/workspace/Repos/Incremental_Faster_RCNN/output/faster_rcnn_final/faster_rcnn_ICUB_ZF/detection_test.prototxt';
+
+cellfun(@(x, y) Incremental_Faster_RCNN_Train.do_extract_features(conf_fast_rcnn, model.feature_extraction, 'train', x, y), dataset.TASK2.imdb_train, dataset.TASK2.roidb_train);
+
+% rls train
+model.bbox_regressors                = cellfun(@(x, y) Incremental_Faster_RCNN_Train.do_bbox_regressor_train(conf_fast_rcnn, model.feature_extraction, x, y), dataset.TASK2.imdb_train, dataset.TASK2.roidb_train);
+
+model.classifiers                    = cellfun(@(x) Incremental_Faster_RCNN_Train.do_classifier_train(conf_fast_rcnn, model.feature_extraction, 'gurls', x), dataset.TASK2.imdb_train, 'UniformOutput', false);
+
+fprintf('\n***************\n the end \n***************\n');
+
+%% final test
+% fprintf('\n***************\n final test\n***************\n');
+%      
+% model.stage2_rpn.nms        = model.final_test.nms;
+dataset.roidb_test          = cellfun(@(x, y) Faster_RCNN_Train.do_proposal_test(conf_proposal, model.feature_extraction.rpn , x, y), dataset.imdb_test, dataset.roidb_test, 'UniformOutput', false);
+%cambiare la cache di extract_features
+cellfun(@(x, y) Incremental_Faster_RCNN_Train.do_extract_features(conf_fast_rcnn, model.feature_extraction, 'train', x, y), dataset.imdb_test, dataset.roidb_test);
+
+opts.cls_mAP                = cellfun(@(x) Incremental_Faster_RCNN_Train.do_classifiers_test(conf_fast_rcnn, model.classifiers, '',  'SVMs',  x), dataset.imdb_test, 'UniformOutput', false);
+opts.final_mAP              = cellfun(@(x) Incremental_Faster_RCNN_Train.do_regressor_test(conf_fast_rcnn, model.bbox_regressors, model.stage2_fast_rcnn, x), dataset.imdb_test, 'UniformOutput', false);
+
+% % save final models, for outside tester
+model_name = 'model_prova.mat';
+opts_name = 'opts_prova.mat';
+save(model_name,'-struct', 'model');
+save(opts_name, '-struct', 'opts');
 % Faster_RCNN_Train.gather_rpn_fast_rcnn_models(conf_proposal, conf_fast_rcnn, model, dataset);
 end
 
