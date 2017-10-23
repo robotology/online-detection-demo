@@ -1,7 +1,7 @@
-function bbox_reg = rcnn_train_bbox_regressor(imdb, rcnn_model, varargin)
-% bbox_reg = rcnn_train_bbox_regressor(imdb, rcnn_model, varargin)
+function bbox_reg = cnn_train_bbox_regressor(conf, imdb, roidb, cnn_model, varargin)
+% bbox_reg = rcnn_train_bbox_regressor(imdb, cnn_model, varargin)
 %   Trains a bounding box regressor on the image database imdb
-%   for use with the R-CNN model rcnn_model. The regressor is trained
+%   for use with the R-CNN model cnn_model. The regressor is trained
 %   using ridge regression.
 %
 %   Keys that can be passed in:
@@ -24,50 +24,52 @@ function bbox_reg = rcnn_train_bbox_regressor(imdb, rcnn_model, varargin)
 
 ip = inputParser;
 ip.addRequired('imdb',       @isstruct);
-ip.addRequired('rcnn_model', @isstruct);
+ip.addRequired('cnn_model', @isstruct);
 ip.addParamValue('min_overlap', 0.6,   @isscalar);
 ip.addParamValue('layer',       5,     @isscalar);
 ip.addParamValue('lambda',      1000,  @isscalar);
 ip.addParamValue('robust',      0,     @isscalar);
 ip.addParamValue('binarize',    false, @islogical);
 
-ip.parse(imdb, rcnn_model, varargin{:});
+ip.parse(imdb, cnn_model, varargin{:});
 opts = ip.Results;
-opts = rmfield(opts, 'rcnn_model');
+opts = rmfield(opts, 'cnn_model');
 opts = rmfield(opts, 'imdb');
-opts.cache_name = rcnn_model.cache_name;
+opts.cache_name = cnn_model.cache_name;
 
 fprintf('\n\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n');
 fprintf('Training options:\n');
 disp(opts);
 fprintf('~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n');
 
-conf = rcnn_config('sub_dir', imdb.name);
-clss = rcnn_model.classes;
+%  conf = rcnn_config('sub_dir', imdb.name);
+cache_dir = 'bbox_reg/';
+clss = imdb.classes;
 num_clss = length(clss);
+caffe_net=[];
 
 % ------------------------------------------------------------------------
 % Get the average norm of the features
-opts.feat_norm_mean = rcnn_feature_stats(imdb, opts.layer, rcnn_model);
+opts.feat_norm_mean = cnn_feature_stats(imdb, opts.layer, cnn_model, caffe_net, cache_dir);
 fprintf('average norm = %.3f\n', opts.feat_norm_mean);
 % ------------------------------------------------------------------------
 
 % ------------------------------------------------------------------------
 % Get all positive examples
 save_file = sprintf('./feat_cache/%s/%s/bbox_regressor_XY_layer_5_overlap_0.5.mat', ...
-                    rcnn_model.cache_name, imdb.name);
+                    cnn_model.cache_name, imdb.name);
 try
   load(save_file);
   fprintf('Loaded saved positives from ground truth boxes\n');
 catch
-  [X, Y, O, C] = get_examples(rcnn_model, imdb, opts);
+  [X, Y, O, C] = get_examples(conf, cnn_model, imdb, roidb, opts);
   save(save_file, 'X', 'Y', 'O', 'C', '-v7.3');
 end
 for i = 1:num_clss
-  fprintf('%14s has %6d samples\n', rcnn_model.classes{i}, length(find(C == i)));
+  fprintf('%14s has %6d samples\n', imdb.classes{i}, length(find(C == i)));
 end
-X = rcnn_pool5_to_fcX(X, opts.layer, rcnn_model);
-X = rcnn_scale_features(X, opts.feat_norm_mean);
+% X = rcnn_pool5_to_fcX(X, opts.layer, cnn_model);
+% X = rcnn_scale_features(X, opts.feat_norm_mean); %ELISA to check
 % ------------------------------------------------------------------------
 
 % use ridge regression solved by cholesky factorization
@@ -76,7 +78,7 @@ method = 'ridge_reg_chol';
 models = cell(num_clss, 1);
 for i = 1:num_clss
   fprintf('Training regressors for class %s (%d/%d)\n', ...
-      rcnn_model.classes{i}, i, num_clss);
+      imdb.classes{i}, i, num_clss);
   I = find(O > opts.min_overlap & C == i);
   Xi = X(I,:); 
   if opts.binarize
@@ -111,17 +113,20 @@ for i = 1:num_clss
 end
 bbox_reg.models = models;
 bbox_reg.training_opts = opts;
-save([conf.cache_dir 'bbox_regressor_final'], 'bbox_reg');
+save([cache_dir 'bbox_regressor_final'], 'bbox_reg');
 
 
 % ------------------------------------------------------------------------
-function [X, Y, O, C] = get_examples(rcnn_model, imdb, opts)
+function [X, Y, O, C] = get_examples(conf, cnn_model, imdb, roidb, opts)
 % ------------------------------------------------------------------------
-num_classes = length(rcnn_model.classes);
+num_classes = length(imdb.classes);
 
 pool5 = 5;
 
-roidb = imdb.roidb_func(imdb);
+% [cnn_model, caffe_net]=cnn_load_model(conf,cnn_model);
+
+
+% roidb = imdb.roidb_func(imdb);
 cls_counts = zeros(num_classes, 1);
 for i = 1:length(imdb.image_ids)
   tic_toc_print('%s: counting %d/%d\n', ...
@@ -136,7 +141,8 @@ for i = 1:length(imdb.image_ids)
   end
 end
 total = sum(cls_counts);
-feat_dim = size(rcnn_model.cnn.layers(pool5+1).weights{1},1);
+% feat_dim = size(caffe_net.layers(pool5+1).weights{1},1);
+feat_dim = 9216;
 % features
 X = zeros(total, feat_dim, 'single');
 % target values
@@ -151,7 +157,7 @@ for i = 1:length(imdb.image_ids)
   tic_toc_print('%s: pos features %d/%d\n', ...
                 procid(), i, length(imdb.image_ids));
 
-  d = rcnn_load_cached_pool5_features(rcnn_model.cache_name, ...
+  d = cnn_load_cached_pool5_features(cnn_model.cache_name, ...
       imdb.name, imdb.image_ids{i});
 
   sel_gt = find(d.class > 0);
@@ -159,7 +165,7 @@ for i = 1:length(imdb.image_ids)
   gt_classes = d.class(sel_gt);
 
   max_ov = max(d.overlap, [], 2);
-  sel_ex = find(max_ov >= opts.min_overlap);
+  sel_ex = find(max_ov >= opts.min_overlap)
   ex_boxes = d.boxes(sel_ex, :);
 
   X(cur+(0:length(sel_ex)-1), :) = d.feat(sel_ex, :);
@@ -198,7 +204,7 @@ for i = 1:length(imdb.image_ids)
       plot(src_ctr_x, src_ctr_y, 'rd');
       hold off;
       fprintf('target = [%.3f %.3f %.3f %.3f]\n', target(1), target(2), target(3), target(4));
-      fprintf('cls = %s\n', rcnn_model.classes{cls});
+      fprintf('cls = %s\n', cnn_model.classes{cls});
 
       % check that we can correctly reconstruct the gt_box from the
       % gold-standard target
