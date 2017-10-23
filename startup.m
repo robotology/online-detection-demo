@@ -30,4 +30,7 @@ function startup()
     mkdir_if_missing(fullfile(curdir, 'models'));
 
     fprintf('fast_rcnn startup done\n');
+    
+%     run(fullfile(getenv('Gurls_ROOT'),'gurls/utils/gurls_install.m'))
+    run('/home/IIT.LOCAL/emaiettini/workspace/Repos/GURLS/gurls/utils/gurls_install.m')
 end
