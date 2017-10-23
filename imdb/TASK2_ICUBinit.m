@@ -67,14 +67,14 @@ ICUBopts.classes={... %ELISA todo
 %     '__background__'
     'sprayer6'
     'cellphone1'
-    'glass8'
-    'mouse9'
-    'book6'
-    'wallet6'
-    'bodylotion8'
-    'squeezer5'
-    'mug1'
-    'pencilcase5'};
+    'glass8'};
+%     'mouse9'
+%     'book6'
+%     'wallet6'
+%     'bodylotion8'
+%     'squeezer5'
+%     'mug1'
+%     'pencilcase5'};
 
 ICUBopts.nclasses=length(ICUBopts.classes);	
 

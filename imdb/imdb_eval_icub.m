@@ -82,8 +82,8 @@ if do_eval
   ylim([0 1]);
   xlim([0 1]);
 
-  print(gcf, '-djpeg', '-r0', ...
-        fullfile(conf.cache_dir, [cls '_pr_' imdb.name suffix '.jpg']));
+%   print(gcf, '-djpeg', '-r0', ...
+%         fullfile(conf.cache_dir, [cls '_pr_' imdb.name suffix '.jpg']));
 end
 fprintf('!!! %s : %.4f %.4f\n', cls, ap, ap_auc);
 
