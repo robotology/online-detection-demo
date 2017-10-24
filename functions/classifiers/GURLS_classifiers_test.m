@@ -1,20 +1,6 @@
 function [ res ] = GURLS_classifiers_test( config, rcnn_model, imdb, suffix  )
-% res = rcnn_test(rcnn_model, imdb, suffix)
-%   Compute test results using the trained rcnn_model on the
-%   image database specified by imdb. Results are saved
-%   with an optional suffix.
 
-% AUTORIGHTS
-% ---------------------------------------------------------
-% Copyright (c) 2014, Ross Girshick
-% 
-% This file is part of the R-CNN code and is available 
-% under the terms of the Simplified BSD License provided in 
-% LICENSE. Please retain this notice and LICENSE if you use 
-% this file (or any portion of it) in your project.
-% ---------------------------------------------------------
 
-% conf = rcnn_config('sub_dir', imdb.name);
 
 conf.cache_dir = 'cache_classifiers/gurls/';
 conf.use_gpu =   config.use_gpu;
@@ -41,6 +27,7 @@ try
     load([conf.cache_dir rcnn_model.classes{i} '_boxes_' imdb.name suffix]);
     aboxes{i} = boxes;
   end
+
 catch
   aboxes = cell(num_classes, 1);
   box_inds = cell(num_classes, 1);

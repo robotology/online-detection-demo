@@ -1,32 +1,7 @@
 function [ model_classifier ] = GURLS_classifiers_train( gurls_options, imdb, cnn_model, config, varargin )
-% [rcnn_model, rcnn_k_fold_model] = rcnn_train(imdb, varargin)
-%   Trains an R-CNN detector for all classes in the imdb.
-%   
-%   Keys that can be passed in:
-%
-%   svm_C             SVM regularization parameter
-%   bias_mult         Bias feature value (for liblinear)
-%   pos_loss_weight   Cost factor on hinge loss for positives
-%   layer             Feature layer to use (either 5, 6 or 7)
-%   k_folds           Train on folds of the imdb
-%   checkpoint        Save the rcnn_model every checkpoint images
-%   crop_mode         Crop mode (either 'warp' or 'square')
-%   crop_padding      Amount of padding in crop
-%   net_file          Path to the Caffe CNN to use
-%   cache_name        Path to the precomputed feature cache
 
-% AUTORIGHTS
-% ---------------------------------------------------------
-% Copyright (c) 2014, Ross Girshick
-% 
-% This file is part of the R-CNN code and is available 
-% under the terms of the Simplified BSD License provided in 
-% LICENSE. Please retain this notice and LICENSE if you use 
-% this file (or any portion of it) in your project.
-% ---------------------------------------------------------
 
-% TODO:
-%  - allow training just a subset of classes
+
 
 ip = inputParser;
 ip.addRequired('imdb', @isstruct);
