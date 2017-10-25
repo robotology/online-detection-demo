@@ -101,7 +101,7 @@ function mAP = fast_rcnn_test(conf, imdb, roidb, varargin)
             [boxes, scores] = fast_rcnn_im_detect(conf, caffe_net, im, d.boxes, max_rois_num_in_gpu);
 
             for j = 1:num_classes
-                inds = find(~d.gt & scores(:, j) > thresh(j));
+                inds = find(~d.gt & scores(:, j) > thresh(j)); %~d.gt this check is needed since in the roidb saved there are also gt boxes and we want to evaluate only the non gt boxes
                 if ~isempty(inds)
                     [~, ord] = sort(scores(inds, j), 'descend');
                     ord = ord(1:min(length(ord), max_per_image));

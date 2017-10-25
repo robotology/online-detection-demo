@@ -16,7 +16,7 @@ function [ res ] = SVMs_test(config, rcnn_model, imdb, suffix )
 
 % conf = rcnn_config('sub_dir', imdb.name);
 
-conf.cache_dir = 'cache_classifiers/svms/';
+conf.cache_dir = 'cache_classifiers/';
 conf.use_gpu =   config.use_gpu;
 if ~exist(conf.cache_dir)
     mkdir(conf.cache_dir);

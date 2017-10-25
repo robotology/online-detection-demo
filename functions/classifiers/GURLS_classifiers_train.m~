@@ -19,7 +19,7 @@ opts.net_def_file =  ip.Results.cnn_model.net_def_file;
 opts.cache_name = ip.Results.cnn_model.cache_name;
 opts.layer = 7;
 
-conf.cache_dir = 'cache_classifiers/gurls/';
+conf.cache_dir = 'cache_classifiers/';
 conf.use_gpu =   config.use_gpu;
 if ~exist(conf.cache_dir)
     mkdir(conf.cache_dir);
@@ -72,7 +72,7 @@ for i = imdb.class_ids
   caches{i} = init_cache(X_pos{i}, keys_pos{i});
 end
 % ------------------------------------------------------------------------
-X = cat(1, X_pos{1},X_pos{2},X_pos{3},X_pos{4},X_pos{5},X_pos{6},X_pos{7},X_pos{8},X_pos{9},X_pos{10});
+X = cat(1, X_pos{1},X_pos{2},X_pos{3});
 Y = ones(size(X,1),1);
 last = 0;
 for i = imdb.class_ids
