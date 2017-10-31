@@ -19,16 +19,16 @@ I then connects automatically to all ports necessary otherwise complains of a mi
 
 The lua scripts has various behaviours and accepts the following commands via its port `/detection/cmd:i`:
 
-**look-around**
+**look-around**:
 This enables an autonomous looking around behavior depending on the number of object detections. It gets the lists of detections and choses randomly where to look. 
 
-**look #objectName**
+**look #objectName**:
 This enables the robots to focalise on one object chosen by the user. The user must provide the name of the target name and the robot will move the head accordingly.
 
-**home**
+**home**:
 Moves the head to its home location stopping any previous behavior.
 
-**quit**
+**quit**:
 Quits the module.
 
 
