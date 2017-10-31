@@ -3,8 +3,8 @@
 
 This file contains a lua code that manages the detection-demo. 
 
-##Progress on detection demo
-Project updates can be found [here](https://github.com/robotology/human-sensing/projects/1)
+#Progress on detection demo
+Project updates can be found [here](https://github.com/vtikha/detection-demo/projects/1?)
 
 # Dependencies
  - lua
