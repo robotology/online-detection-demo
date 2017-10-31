@@ -19,7 +19,7 @@ The user needs to choose at run time which robot will be in use (icub or r1)
 ```
 eg: detection_demo.lua icub
 ```
-I then connects automatically to all ports necessary otherwise complains of a missing dependency.
+It then connects automatically to all ports necessary otherwise complains of a missing dependency.
 
 The lua scripts has various behaviours and accepts the following commands via its port `/detection/cmd:i`:
 
