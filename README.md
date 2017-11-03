@@ -1,7 +1,7 @@
 # detection-demo
 ==========================
 
-This file contains a **lua** code that acts as a manager for @Arya07 **detection-demo**. 
+This file contains a **lua** code that acts as a manager for @Arya07's **detection-demo**. 
 
 # Progress on detection demo
 Project updates can be found [here](https://github.com/vtikha/detection-demo/projects/1?)
@@ -34,7 +34,8 @@ This enables the robots to focalise on one object chosen by the user. The user m
 
 Moves the head to its home location (looking down) stopping any previous behavior.
 
-- **quit** or spoken **return to home position**:S
+- **quit** or spoken **return to home position**:
+
 Quits the module.
 
 
