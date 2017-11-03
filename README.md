@@ -1,7 +1,7 @@
 # detection-demo
 ==========================
 
-This file contains a **lua** code that acts as a manager for the detection-demo. 
+This file contains a **lua** code that acts as a manager for the **detection-demo**. 
 
 # Progress on detection demo
 Project updates can be found [here](https://github.com/vtikha/detection-demo/projects/1?)
