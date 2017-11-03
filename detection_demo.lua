@@ -119,12 +119,12 @@ function look_at_angle(azi,ele,ver)
     local tx = port_gaze_tx:prepare()
     tx:clear()
     if whichRobot == "icub" then
-		tx:addString("abs")
+	tx:addString("abs")
         tx:addDouble(azi)
         tx:addDouble(ele)
         tx:addDouble(ver)
     else
-		tx:put("control-frame","gaze")
+	tx:put("control-frame","gaze")
         tx:put("target-type","angular")
         local location = yarp.Bottle()
         local val = location:addList()
@@ -132,7 +132,7 @@ function look_at_angle(azi,ele,ver)
         val:addDouble(ele)
         tx:put("target-location",location:get(0))
     end
-		port_gaze_tx:write()
+	port_gaze_tx:write()
 
     print("look_at_angle:", tx:toString())
 end
@@ -160,7 +160,7 @@ function look_at_pixel(mode,px,py)
         print("reply is", reply:get(0):asString())
         
     else
-		local tx = port_gaze_tx:prepare()
+	local tx = port_gaze_tx:prepare()
         tx:clear()
         tx:put("control-frame","depth")
         tx:put("target-type","image")
@@ -185,11 +185,7 @@ if whichRobot == "icub" then
     yarp.Time_delay(1.0)
 end
 
-print("before")
-
 look_at_angle(azi, ele, ver)
-
-print("after")
 
 while state ~= "quit" and not interrupting do
 
