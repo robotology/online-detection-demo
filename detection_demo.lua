@@ -31,7 +31,7 @@ if whichRobot ~= nil then
 end
 
 if whichRobot == nil or whichRobot ~= "icub" and whichRobot ~= "r1" then
-    print("Please state which robot you are uding icub or r1")
+    print("Please state which robot you are using icub or r1")
     os.exit()
 elseif whichRobot == "icub" then
     whichRobot = "icub"
@@ -42,7 +42,7 @@ end
 print ("using:", whichRobot)
 
 ---------------------------------------
--- setting up ctrl c signal handling --
+-- setting up ctrl-c signal handling --
 ---------------------------------------
 
 interrupting = false
@@ -65,6 +65,7 @@ port_cmd = yarp.BufferedPortBottle()
 port_detection = yarp.BufferedPortBottle()
 port_gaze_rpc = yarp.RpcClient()
 port_ispeak = yarp.BufferedPortBottle()
+port_speech_recog = yarp.BufferedPortBottle()
 
 if whichRobot == icub then
     port_gaze_tx = yarp.BufferedPortBottle()
@@ -250,6 +251,7 @@ function look_at_pixel(mode,px,py)
     end
 end
 
+--might not be useful anymore. Fixed a recent bug on the gaze controller
 if whichRobot == "icub" then
     bind_roll()
     yarp.Time_delay(1.0)
@@ -268,7 +270,7 @@ speak(port_ispeak, "Ready")
 while state ~= "quit" and not interrupting do
 
     local cmd = port_cmd:read(false)
-    result = SM_Reco_Grammar(port_speech_recog, grammar)
+    local result = SM_Reco_Grammar(port_speech_recog, grammar)
     print("received REPLY: ", result:toString() )
     local speechcmd =  result:get(1):asString()
 
