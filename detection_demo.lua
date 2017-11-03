@@ -1,6 +1,6 @@
 #!/usr/bin/lua
 
--- Copyright: (C) 2016 iCub Facility - Istituto Italiano di Tecnologia (IIT)
+-- Copyright: (C) 2017 iCub Facility - Istituto Italiano di Tecnologia (IIT)
 
 -- Authors: Vadim Tikhanoff <vadim.tikhanoff@iit.it>
 --          Elisa Maiettini <elisa.maiettini@iit.it>
