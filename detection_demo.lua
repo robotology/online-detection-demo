@@ -53,6 +53,7 @@ yarp.Network()
 port_cmd = yarp.BufferedPortBottle()
 port_detection = yarp.BufferedPortBottle()
 port_gaze_rpc = yarp.RpcClient()
+port_ispeak = yarp.BufferedPortBottle()
 
 if whichRobot == icub then
     port_gaze_tx = yarp.BufferedPortBottle()
@@ -67,9 +68,11 @@ port_detection:open("/detection/targets:i")
 port_gaze_tx:open("/detection/gaze/tx")
 port_gaze_rpc:open("/detection/gaze/rpc")
 port_gaze_rx:open("/detection/gaze/rx")
+port_ispeak:open("/detection/speak:o")
 
 
 yarp.NetworkBase_connect("/pyfaster:detout", port_detection:getName() )
+yarp.NetworkBase_connect(ispeak_port:getName(), "/iSpeak")
 
 if whichRobot == icub then
     yarp.NetworkBase_connect(port_gaze_tx:getName(), "/iKinGazeCtrl/angles:i")
@@ -89,6 +92,14 @@ end
 azi = 0.0
 ele = -30.0
 ver = 5.0
+
+function speak(port, str)
+   local wb = port:prepare()
+    wb:clear()
+    wb:addString(str)
+    port:write()
+   yarp.Time_delay(1.0)
+end
 
 function bind_roll()
     local cmd = yarp.Bottle()
@@ -185,6 +196,8 @@ end
 
 look_at_angle(azi, ele, ver)
 
+speak(port_ispeak, "Ready")
+
 while state ~= "quit" and not interrupting do
 
     local cmd = port_cmd:read(false)
@@ -275,6 +288,8 @@ while state ~= "quit" and not interrupting do
 
     end
 end
+
+speak(port_ispeak, "Bye bye")
 
 port_cmd:close()
 port_detection:close()
