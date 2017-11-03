@@ -22,6 +22,10 @@ rf:configure(arg)
 
 whichRobot = arg[1]
 
+---------------------------------------
+-- setting up demo with arguments    --
+---------------------------------------
+
 if whichRobot ~= nil then
     whichRobot = whichRobot:lower()
 end
@@ -37,6 +41,10 @@ end
 
 print ("using:", whichRobot)
 
+---------------------------------------
+-- setting up ctrl c signal handling --
+---------------------------------------
+
 interrupting = false
 signal.signal(signal.SIGINT, function(signum)
     interrupting = true
@@ -48,6 +56,9 @@ signal.signal(signal.SIGTERM, function(signum)
     look_at_angle(0,-30,5)
 end)
 
+---------------------------------------
+-- yarp port initializations         --
+---------------------------------------
 yarp.Network()
 
 port_cmd = yarp.BufferedPortBottle()
@@ -93,6 +104,14 @@ azi = 0.0
 ele = -30.0
 ver = 5.0
 
+---------------------------------------
+-- functions Speech Recognition      --
+---------------------------------------
+
+---------------------------------------
+-- functions Speech Synthesis        --
+---------------------------------------
+
 function speak(port, str)
    local wb = port:prepare()
     wb:clear()
@@ -100,6 +119,10 @@ function speak(port, str)
     port:write()
    yarp.Time_delay(1.0)
 end
+
+---------------------------------------
+-- functions Gaze Control            --
+---------------------------------------
 
 function bind_roll()
     local cmd = yarp.Bottle()
@@ -197,6 +220,10 @@ end
 look_at_angle(azi, ele, ver)
 
 speak(port_ispeak, "Ready")
+
+---------------------------------------
+-- While loop for various modalities --
+---------------------------------------
 
 while state ~= "quit" and not interrupting do
 
