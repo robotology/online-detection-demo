@@ -79,11 +79,13 @@ port_detection:open("/detection/targets:i")
 port_gaze_tx:open("/detection/gaze/tx")
 port_gaze_rpc:open("/detection/gaze/rpc")
 port_gaze_rx:open("/detection/gaze/rx")
-port_ispeak:open("/detection/speak:o")
+port_ispeak:open("/detection/ispeak:o")
+port_speech_recog:open("/detection/speech:o")
 
 
 yarp.NetworkBase_connect("/pyfaster:detout", port_detection:getName() )
-yarp.NetworkBase_connect(ispeak_port:getName(), "/iSpeak")
+yarp.NetworkBase_connect(port_ispeak:getName(), "/iSpeak")
+yarp.NetworkBase_connect(port_speech_recog:getName(), "/speechRecognizer/rpc")
 
 if whichRobot == icub then
     yarp.NetworkBase_connect(port_gaze_tx:getName(), "/iKinGazeCtrl/angles:i")
@@ -107,6 +109,13 @@ ver = 5.0
 ---------------------------------------
 -- functions Speech Recognition      --
 ---------------------------------------
+
+objects = {"Sprayer", "Book", "Cup", "Soapdispenser", "Sodabottle"}
+
+-- defining speech grammar in order to expand the speech recognition
+grammar = "Return to home position | Look around | Look at the #Object | Where is the #Object | See you soon"
+
+
 
 ---------------------------------------
 -- functions Speech Synthesis        --
@@ -323,5 +332,7 @@ port_detection:close()
 port_gaze_tx:close()
 port_gaze_rx:close()
 port_gaze_rpc:close()
+port_speech_recog:close()
+port_ispeak:close()
 
 yarp.Network_fini()
