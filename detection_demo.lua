@@ -176,8 +176,6 @@ function look_at_pixel(mode,px,py)
     end
 end
 
-t0 = yarp.Time_now()
-
 if whichRobot == "icub" then
     bind_roll()
     yarp.Time_delay(1.0)
