@@ -268,6 +268,13 @@ speak(port_ispeak, "Ready")
 while state ~= "quit" and not interrupting do
 
     local cmd = port_cmd:read(false)
+    result = SM_Reco_Grammar(port_speech_recog, grammar)
+    print("received REPLY: ", result:toString() )
+    local speechcmd =  result:get(1):asString()
+
+    print ("spoken command is", speechcmd)
+    -- here one should overide cmd with speechcmd
+    
     if cmd ~= nil then
         local cmd_rx = cmd:get(0):asString()
 
