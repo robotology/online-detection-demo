@@ -137,6 +137,17 @@ function SM_RGM_Expand(port, vocab, word)
     return "OK" --reply:get(1):asString()
 end
 
+function SM_Reco_Grammar(port, gram)
+    local wb = yarp.Bottle()
+    local reply = yarp.Bottle()
+    wb:clear()
+    wb:addString("recog")
+    wb:addString("grammarSimple")
+    wb:addString(gram)
+    port:write(wb,reply)
+    return reply
+end
+
 ---------------------------------------
 -- functions Speech Synthesis        --
 ---------------------------------------
