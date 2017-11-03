@@ -115,7 +115,27 @@ objects = {"Sprayer", "Book", "Cup", "Soapdispenser", "Sodabottle"}
 -- defining speech grammar in order to expand the speech recognition
 grammar = "Return to home position | Look around | Look at the #Object | Where is the #Object | See you soon"
 
+ret = true
+for key, word in pairs(objects) do
+    ret = ret and (SM_RGM_Expand(port_speech_recog, "#Object", word) == "OK")
+end
 
+if ret == false then
+    print("errors expanding the vocabulary")
+end
+
+function SM_RGM_Expand(port, vocab, word)
+    local wb = yarp.Bottle()
+    local reply = yarp.Bottle()
+    wb:clear()
+    wb:addString("RGM")
+    wb:addString("vocabulory")
+    wb:addString("add")
+    wb:addString(vocab)
+    wb:addString(word)
+    port:write(wb)
+    return "OK" --reply:get(1):asString()
+end
 
 ---------------------------------------
 -- functions Speech Synthesis        --
