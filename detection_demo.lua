@@ -1,10 +1,10 @@
-#!/usr/bin/lua
+#!/usr/local/bin/lua
 
 -- Copyright: (C) 2017 iCub Facility - Istituto Italiano di Tecnologia (IIT)
 
 -- Authors: Vadim Tikhanoff <vadim.tikhanoff@iit.it>
 --          Elisa Maiettini <elisa.maiettini@iit.it>
-            
+
 -- Copy Policy: Released under the terms of the LGPLv2.1 or later, see LGPL.TXT
 
 -- Dependencies
@@ -21,6 +21,7 @@ rf:setVerbose(false)
 rf:configure(arg)
 
 whichRobot = arg[1]
+interaction = arg[2]
 
 ---------------------------------------
 -- setting up demo with arguments    --
@@ -30,16 +31,34 @@ if whichRobot ~= nil then
     whichRobot = whichRobot:lower()
 end
 
+if interaction ~= nil then
+    interaction = interaction:lower()
+end
+
 if whichRobot == nil or whichRobot ~= "icub" and whichRobot ~= "r1" then
     print("Please state which robot you are using icub or r1")
     os.exit()
 elseif whichRobot == "icub" then
     whichRobot = "icub"
+    print("in icub")
 else
-    whichRobot = "r1";
+    whichRobot = "r1"
+    print("in r1")
+end
+
+if interaction == nil or interaction ~= "speech" and interaction ~= "cmd" then
+    print("Please state which type of interaction would you like to use")
+    os.exit()
+elseif interaction == "speech" then
+    interaction = "speech"
+    print("will interact using speech")
+else
+    interaction = "cmd"
+    print("will interact using speech")
 end
 
 print ("using:", whichRobot)
+print ("using:", interaction)
 
 ---------------------------------------
 -- setting up ctrl-c signal handling --
@@ -65,9 +84,11 @@ port_cmd = yarp.BufferedPortBottle()
 port_detection = yarp.BufferedPortBottle()
 port_gaze_rpc = yarp.RpcClient()
 port_ispeak = yarp.BufferedPortBottle()
-port_speech_recog = yarp.BufferedPortBottle()
+port_speech_recog = yarp.Port()
+port_image_in = yarp.BufferedPortBottle()
+port_image_out = yarp.Port()
 
-if whichRobot == icub then
+if whichRobot == "icub" then
     port_gaze_tx = yarp.BufferedPortBottle()
     port_gaze_rx = yarp.BufferedPortBottle()
 else
@@ -83,24 +104,32 @@ port_gaze_rx:open("/detection/gaze/rx")
 port_ispeak:open("/detection/ispeak:o")
 port_speech_recog:open("/detection/speech:o")
 
+port_image_in:open("/detection/image:i")
+port_image_out:open("/detection/image:o")
 
-yarp.NetworkBase_connect("/pyfaster:detout", port_detection:getName() )
-yarp.NetworkBase_connect(port_ispeak:getName(), "/iSpeak")
-yarp.NetworkBase_connect(port_speech_recog:getName(), "/speechRecognizer/rpc")
+--for debbugging purposes remove for demo
+--ret = yarp.NetworkBase_connect("/pyfaster:detout", port_detection:getName() )
+ret = yarp.NetworkBase_connect(port_ispeak:getName(), "/iSpeak")
+ret = ret and yarp.NetworkBase_connect(port_speech_recog:getName(), "/speechRecognizer/rpc")
+ret = ret and yarp.NetworkBase_connect(port_image_out:getName(), "/outview" )
 
-if whichRobot == icub then
-    yarp.NetworkBase_connect(port_gaze_tx:getName(), "/iKinGazeCtrl/angles:i")
-    yarp.NetworkBase_connect(port_gaze_rpc:getName(), "/iKinGazeCtrl/rpc")
-    yarp.NetworkBase_connect("/iKinGazeCtrl/angles:o", port_gaze_rx:getName() )
+if whichRobot == "icub" then
+    print ("Going through ICUB's connection")
+    ret = ret and yarp.NetworkBase_connect("/icub/camcalib/left/out", port_image_in:getName() )
+    ret = ret and yarp.NetworkBase_connect(port_gaze_tx:getName(), "/iKinGazeCtrl/angles:i")
+    ret = ret and yarp.NetworkBase_connect(port_gaze_rpc:getName(), "/iKinGazeCtrl/rpc")
+    ret = ret and yarp.NetworkBase_connect("/iKinGazeCtrl/angles:o", port_gaze_rx:getName() )
 else
-    yarp.NetworkBase_connect(port_gaze_tx:getName(), "/cer_gaze-controller/target:i")
-    yarp.NetworkBase_connect(port_gaze_rpc:getName(), "/cer_gaze-controller/rpc")
-    yarp.NetworkBase_connect("/cer_gaze-controller/state:o", port_gaze_rx:getName() )
+    print ("Going through R1's connection")
+    ret = ret and yarp.NetworkBase_connect("NEED R1 camera port", port_image_in:getName() )
+    ret = ret and yarp.NetworkBase_connect(port_gaze_tx:getName(), "/cer_gaze-controller/target:i")
+    ret = ret and yarp.NetworkBase_connect(port_gaze_rpc:getName(), "/cer_gaze-controller/rpc")
+    ret = ret and yarp.NetworkBase_connect("/cer_gaze-controller/state:o", port_gaze_rx:getName() )
 end
 
-while not interrupting and port_detection:getInputCount() == 0 do
-    print("checking yarp connection...")
-    yarp.Time_delay(1.0)
+if ret == false then
+    print("\n\nERROR WITH CONNECTIONS, PLEASE CHECK\n\n")
+    os.exit()
 end
 
 azi = 0.0
@@ -115,15 +144,6 @@ objects = {"Sprayer", "Book", "Cup", "Soapdispenser", "Sodabottle"}
 
 -- defining speech grammar in order to expand the speech recognition
 grammar = "Return to home position | Look around | Look at the #Object | Where is the #Object | See you soon"
-
-ret = true
-for key, word in pairs(objects) do
-    ret = ret and (SM_RGM_Expand(port_speech_recog, "#Object", word) == "OK")
-end
-
-if ret == false then
-    print("errors expanding the vocabulary")
-end
 
 function SM_RGM_Expand(port, vocab, word)
     local wb = yarp.Bottle()
@@ -175,7 +195,7 @@ function bind_roll()
     cmd:addDouble(0.0)
     port_gaze_rpc:write(cmd,reply)
     print("binding roll")
-    print("reply is", reply:get(0):asString())
+    print("reply is", reply:toString())
 end
 
 function set_tneck(value)
@@ -194,12 +214,12 @@ function look_at_angle(azi,ele,ver)
     local tx = port_gaze_tx:prepare()
     tx:clear()
     if whichRobot == "icub" then
-	tx:addString("abs")
+	    tx:addString("abs")
         tx:addDouble(azi)
         tx:addDouble(ele)
         tx:addDouble(ver)
     else
-	tx:put("control-frame","gaze")
+	    tx:put("control-frame","gaze")
         tx:put("target-type","angular")
         local location = yarp.Bottle()
         local val = location:addList()
@@ -233,7 +253,7 @@ function look_at_pixel(mode,px,py)
 
         print("look_at_pixel:", cmd:toString())
         print("reply is", reply:get(0):asString())
-        
+
     else
 	local tx = port_gaze_tx:prepare()
         tx:clear()
@@ -254,14 +274,27 @@ end
 --might not be useful anymore. Fixed a recent bug on the gaze controller
 if whichRobot == "icub" then
     bind_roll()
-    yarp.Time_delay(1.0)
+    yarp.Time_delay(0.2)
     set_tneck(1.2)
-    yarp.Time_delay(1.0)
+    yarp.Time_delay(0.2)
 end
 
 look_at_angle(azi, ele, ver)
 
+if interaction == "speech" then
+    print ("expanding speech recognizer grammar")
+    ret = true
+    for key, word in pairs(objects) do
+        ret = ret and (SM_RGM_Expand(port_speech_recog, "#Object", word) == "OK")
+    end
+    if ret == false then
+        print("errors expanding the vocabulary")
+    end
+end
+
 speak(port_ispeak, "Ready")
+
+print ("done, ready to receive command via ", interaction)
 
 ---------------------------------------
 -- While loop for various modalities --
@@ -269,16 +302,32 @@ speak(port_ispeak, "Ready")
 
 while state ~= "quit" and not interrupting do
 
-    local cmd = port_cmd:read(false)
-    local result = SM_Reco_Grammar(port_speech_recog, grammar)
-    print("received REPLY: ", result:toString() )
-    local speechcmd =  result:get(1):asString()
+    local cmd = yarp.Bottle()
+    if interaction == "speech" then
+        local result = SM_Reco_Grammar(port_speech_recog, grammar)
+        print("received REPLY: ", result:toString() )
+        local speechcmd =  result:get(1):asString()
 
-    print ("spoken command is", speechcmd)
-    -- here one should overide cmd with speechcmd
-    
+        if speechcmd == "Return" then
+            cmd:addString("home")
+        elseif speechcmd == "See" then
+            cmd:addString("quit")
+        elseif speechcmd == "Look" and result:get(3):asString() == "around" then
+            cmd:addString("look-around")
+        elseif speechcmd == "Look" and result:get(3):asString() == "at" then
+            cmd:addString("look")
+            local object = result:get(7):asString()
+            cmd:addString(object)
+        else
+            print ("cannot recognize the command")
+        end
+    else
+        cmd = port_cmd:read(false)
+    end
+
     if cmd ~= nil then
         local cmd_rx = cmd:get(0):asString()
+        print ("command is ", cmd_rx)
 
         if cmd_rx == "look-around" or cmd_rx == "look" or
             cmd_rx == "home" or cmd_rx == "quit" then
