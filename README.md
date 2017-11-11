@@ -14,9 +14,9 @@ Project updates can be found [here](https://github.com/vtikha/detection-demo/pro
  
 # Description
 
-The user needs to choose which robot will be used at run time (eg: icub or r1)
+The user needs to choose which robot will be used at run time (eg: icub or r1) and the interaction mode (cmd or speech)
 ```
-eg: detection_demo.lua icub
+eg: detection_demo.lua icub speech
 ```
 The lua manager connects automatically to all required ports, otherwise, it complains of missing dependencies.
 
