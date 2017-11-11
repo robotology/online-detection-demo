@@ -106,7 +106,6 @@ port_speech_recog:open("/detection/speech:o")
 --ret = yarp.NetworkBase_connect("/pyfaster:detout", port_detection:getName() )
 ret = yarp.NetworkBase_connect(port_ispeak:getName(), "/iSpeak")
 ret = ret and yarp.NetworkBase_connect(port_speech_recog:getName(), "/speechRecognizer/rpc")
-ret = ret and yarp.NetworkBase_connect(port_image_out:getName(), "/outview" )
 
 if whichRobot == "icub" then
     print ("Going through ICUB's connection")
