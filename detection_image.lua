@@ -1,5 +1,14 @@
 #!/usr/local/bin/lua
 
+-- Copyright: (C) 2017 iCub Facility - Istituto Italiano di Tecnologia (IIT)
+
+-- Authors: Vadim Tikhanoff <vadim.tikhanoff@iit.it>
+--          Elisa Maiettini <elisa.maiettini@iit.it>
+
+-- Copy Policy: Released under the terms of the LGPLv2.1 or later, see LGPL.TXT
+
+-- Dependencies
+
 -- To install posix.signal do:
 -- sudo apt-get install luarocks
 -- sudo luarocks install luaposix
