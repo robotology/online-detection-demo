@@ -85,8 +85,6 @@ port_detection = yarp.BufferedPortBottle()
 port_gaze_rpc = yarp.RpcClient()
 port_ispeak = yarp.BufferedPortBottle()
 port_speech_recog = yarp.Port()
-port_image_in = yarp.BufferedPortBottle()
-port_image_out = yarp.Port()
 
 if whichRobot == "icub" then
     port_gaze_tx = yarp.BufferedPortBottle()
@@ -104,9 +102,6 @@ port_gaze_rx:open("/detection/gaze/rx")
 port_ispeak:open("/detection/ispeak:o")
 port_speech_recog:open("/detection/speech:o")
 
-port_image_in:open("/detection/image:i")
-port_image_out:open("/detection/image:o")
-
 --for debbugging purposes remove for demo
 --ret = yarp.NetworkBase_connect("/pyfaster:detout", port_detection:getName() )
 ret = yarp.NetworkBase_connect(port_ispeak:getName(), "/iSpeak")
@@ -115,13 +110,11 @@ ret = ret and yarp.NetworkBase_connect(port_image_out:getName(), "/outview" )
 
 if whichRobot == "icub" then
     print ("Going through ICUB's connection")
-    ret = ret and yarp.NetworkBase_connect("/icub/camcalib/left/out", port_image_in:getName() )
     ret = ret and yarp.NetworkBase_connect(port_gaze_tx:getName(), "/iKinGazeCtrl/angles:i")
     ret = ret and yarp.NetworkBase_connect(port_gaze_rpc:getName(), "/iKinGazeCtrl/rpc")
     ret = ret and yarp.NetworkBase_connect("/iKinGazeCtrl/angles:o", port_gaze_rx:getName() )
 else
     print ("Going through R1's connection")
-    ret = ret and yarp.NetworkBase_connect("NEED R1 camera port", port_image_in:getName() )
     ret = ret and yarp.NetworkBase_connect(port_gaze_tx:getName(), "/cer_gaze-controller/target:i")
     ret = ret and yarp.NetworkBase_connect(port_gaze_rpc:getName(), "/cer_gaze-controller/rpc")
     ret = ret and yarp.NetworkBase_connect("/cer_gaze-controller/state:o", port_gaze_rx:getName() )
