@@ -85,6 +85,7 @@ port_detection = yarp.BufferedPortBottle()
 port_gaze_rpc = yarp.RpcClient()
 port_ispeak = yarp.BufferedPortBottle()
 port_speech_recog = yarp.Port()
+port_draw_image = yarp.BufferedPortBottle()
 
 if whichRobot == "icub" then
     port_gaze_tx = yarp.BufferedPortBottle()
@@ -101,11 +102,13 @@ port_gaze_rpc:open("/detection/gaze/rpc")
 port_gaze_rx:open("/detection/gaze/rx")
 port_ispeak:open("/detection/ispeak:o")
 port_speech_recog:open("/detection/speech:o")
+port_draw_image("/detection/draw:o")
 
 --for debbugging purposes remove for demo
 --ret = yarp.NetworkBase_connect("/pyfaster:detout", port_detection:getName() )
 ret = yarp.NetworkBase_connect(port_ispeak:getName(), "/iSpeak")
 ret = ret and yarp.NetworkBase_connect(port_speech_recog:getName(), "/speechRecognizer/rpc")
+ret = ret and yarp.NetworkBase_connect(port_draw_image:getName(), "/detection-image/cmd:i")
 
 if whichRobot == "icub" then
     print ("Going through ICUB's connection")
@@ -263,6 +266,23 @@ function look_at_pixel(mode,px,py)
     end
 end
 
+function sendDraw(tlx,tly,btx,bty)
+    local cmd = port_draw_image:prepare()
+    cmd:clear()
+    cmd:addString("draw")
+    cmd:addInt(tlx)
+    cmd:addInt(tly)
+    cmd:addInt(btx)
+    cmd:addInt(bty)
+    port_draw_image:write()
+end
+function clearDraw()
+    local cmd = port_draw_image:prepare()
+    cmd:clear()
+    cmd:addString("clear")
+    port_draw_image:write()
+end
+
 --might not be useful anymore. Fixed a recent bug on the gaze controller
 if whichRobot == "icub" then
     bind_roll()
@@ -353,6 +373,9 @@ while state ~= "quit" and not interrupting do
                         print( "tx is", tx )
                         print( "ty is", ty )
 
+                        sendDraw(det:get(index):asList():get(0):asInt(), det:get(index):asList():get(1):asInt(),
+                                 det:get(index):asList():get(2):asInt(), det:get(index):asList():get(3):asInt() )
+
                         look_at_pixel("left",tx,ty)
                     else
                         print("could not find what you are looking for")
@@ -360,6 +383,7 @@ while state ~= "quit" and not interrupting do
                 end
 
             elseif state == "home" then
+                clearDraw()
                 look_at_angle(azi, ele, ver)
             end
 
@@ -395,6 +419,9 @@ while state ~= "quit" and not interrupting do
             print( "tx is", tx )
             print( "ty is", ty )
 
+            sendDraw(det:get(num):asList():get(0):asInt(), det:get(num):asList():get(1):asInt(),
+                     det:get(num):asList():get(2):asInt(), det:get(num):asList():get(3):asInt() )
+
             look_at_pixel("left",tx,ty)
 
             yarp.Time_delay(4.0)
@@ -402,10 +429,10 @@ while state ~= "quit" and not interrupting do
 
     elseif state == "look" then
         yarp.Time_delay(0.1)
-
     end
 end
 
+clearDraw()
 speak(port_ispeak, "Bye bye")
 
 port_cmd:close()

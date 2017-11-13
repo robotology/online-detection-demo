@@ -51,7 +51,7 @@ port_cmd:open("/detection-image/cmd:i")
 
 ret = true
 if whichRobot == "icub" then
-    ret = yarp.NetworkBase_connect("/lbpExtract/segmentedlbp:o", port_image_in:getName() )
+    ret = yarp.NetworkBase_connect("/icub/camcalib/left/out", port_image_in:getName() )
 else
     ret = yarp.NetworkBase_connect("need R1 camera port", port_image_in:getName() )
 end
