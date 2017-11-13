@@ -397,10 +397,10 @@ while state ~= "quit" and not interrupting do
     elseif state == "look-around" then
         local det = port_detection:read(false)
         if det ~= nil then
-            math.randomseed( os.time() )
-            local num
+            --math.randomseed( os.time() )
+            local num = 0
 
-            if det:size() > 1 then
+            if det:size() > 0 then
                 num = math.random(0, det:size()-1)
             else
                 num = 0
