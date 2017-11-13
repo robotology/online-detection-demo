@@ -6,3 +6,10 @@
 
 (88 55 140 96 0.744987 box2) (208 49 258 90 0.744987 carrot6) (109 108 171 165 0.744987 dog3) (215 110 272 163 0.744987 lettuce8) 
 
+
+
+10.0.0.124
+
+icub@iiticubws030:~/elisa/Repos/py-faster_yarp$ ./tools/detection_yarp.py --caffemodel /home/icub/elisa/Repos/py-faster_yarp/data/zf_fast_rcnn_
+stage2_iter_54000_humanoids_no20pixels.caffemodel --prototxt /home/icub/elisa/Repos/py-faster_icubworld/models/icub_transformation/ZF/faster_rc
+nn_alt_opt/faster_rcnn_test.pt --vis

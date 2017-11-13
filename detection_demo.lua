@@ -65,12 +65,12 @@ print ("using:", interaction)
 interrupting = false
 signal.signal(signal.SIGINT, function(signum)
     interrupting = true
-    look_at_angle(0,-30,5)
+    look_at_angle(0,-50,5)
 end)
 
 signal.signal(signal.SIGTERM, function(signum)
     interrupting = true
-    look_at_angle(0,-30,5)
+    look_at_angle(0,-50,5)
 end)
 
 ---------------------------------------
@@ -107,6 +107,9 @@ ret = yarp.NetworkBase_connect("/pyfaster:detout", port_detection:getName() )
 ret = ret and yarp.NetworkBase_connect(port_ispeak:getName(), "/iSpeak")
 ret = ret and yarp.NetworkBase_connect(port_speech_recog:getName(), "/speechRecognizer/rpc")
 ret = ret and yarp.NetworkBase_connect(port_draw_image:getName(), "/detection-image/cmd:i")
+yarp.NetworkBase_connect( "/pyfaster:detimgout","/detectionDump")
+yarp.NetworkBase_connect( "/detection-image/image:o","/detectionLook")
+
 
 if whichRobot == "icub" then
     print ("Going through ICUB's connection")
@@ -126,7 +129,7 @@ if ret == false then
 end
 
 azi = 0.0
-ele = -40.0
+ele = -50.0
 ver = 5.0
 
 ---------------------------------------
@@ -306,6 +309,7 @@ speak(port_ispeak, "Ready")
 
 print ("done, ready to receive command via ", interaction)
 
+shouldDraw = false
 ---------------------------------------
 -- While loop for various modalities --
 ---------------------------------------
@@ -345,7 +349,8 @@ while state ~= "quit" and not interrupting do
             state = cmd_rx
 
             if state == "look" then
-                local object = cmd:get(1):asString()
+                clearDraw()
+                object = cmd:get(1):asString()
                 print ("object chosen is", object)
 
                 local det = port_detection:read(true)
@@ -378,8 +383,8 @@ while state ~= "quit" and not interrupting do
                         print( "tx is", tx )
                         print( "ty is", ty )
 
-                        sendDraw(det:get(index):asList():get(0):asInt(), det:get(index):asList():get(1):asInt(),
-                                 det:get(index):asList():get(2):asInt(), det:get(index):asList():get(3):asInt() )
+                        --sendDraw(det:get(index):asList():get(0):asInt(), det:get(index):asList():get(1):asInt(),
+                        --         det:get(index):asList():get(2):asInt(), det:get(index):asList():get(3):asInt() )
 
                         look_at_pixel("left",tx,ty)
 
@@ -407,8 +412,39 @@ while state ~= "quit" and not interrupting do
     if state == "home" then
         yarp.Time_delay(0.1)
 
+    elseif state == "look" then
+
+        local det = port_detection:read(true)
+        if det ~= nil then
+            local index
+            local found = false
+            for i=0,det:size()-1,1 do
+                str = det:get(i):asList():get(5):asString()
+
+                print ("got as object:", str)
+
+                if interaction == "speech" then
+                    --remove anything that is not aplha...
+                    str = str:gsub("[^a-z.]","")
+                end
+
+                if object == str then
+                    found = true
+                    index = i
+                end
+            end
+
+            if found then
+
+                sendDraw(det:get(index):asList():get(0):asInt(), det:get(index):asList():get(1):asInt(),
+                         det:get(index):asList():get(2):asInt(), det:get(index):asList():get(3):asInt() )
+            end
+        end
+        yarp.Time_delay(0.1)
+
     elseif state == "look-around" then
         local det = port_detection:read(false)
+        clearDraw()
         if det ~= nil then
             --math.randomseed( os.time() )
             local num = 0
@@ -430,12 +466,14 @@ while state ~= "quit" and not interrupting do
             print( "tx is", tx )
             print( "ty is", ty )
 
+            look_at_pixel("left",tx,ty)
+
+            yarp.Time_delay(1.0)
+
             sendDraw(det:get(num):asList():get(0):asInt(), det:get(num):asList():get(1):asInt(),
                      det:get(num):asList():get(2):asInt(), det:get(num):asList():get(3):asInt() )
 
-            look_at_pixel("left",tx,ty)
-
-            yarp.Time_delay(4.0)
+            yarp.Time_delay(3.0)
         end
 
     elseif state == "look" then
@@ -453,6 +491,7 @@ port_gaze_rx:close()
 port_gaze_rpc:close()
 port_speech_recog:close()
 port_ispeak:close()
+clearDraw()
 port_draw_image:close()
 
 yarp.Network_fini()

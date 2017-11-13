@@ -80,6 +80,22 @@ while not interrupting do
             bottomRightx = cmd:get(3):asInt()
             bottomRighty = cmd:get(4):asInt()
 
+            if bottomRighty > 238 then
+                bottomRighty = 235
+            end
+
+            if bottomRightx > 318 then
+                bottomRightx = 315
+            end
+
+            if topLeftx < 3 then
+                topLeftx = 5
+            end
+            
+            if topLefty < 3 then
+                topLefty = 5
+            end
+
             print ("command received", topLeftx, topLefty, bottomRightx, bottomRighty)
 
             shouldDraw = true
