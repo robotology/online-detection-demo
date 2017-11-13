@@ -102,10 +102,10 @@ port_gaze_rpc:open("/detection/gaze/rpc")
 port_gaze_rx:open("/detection/gaze/rx")
 port_ispeak:open("/detection/ispeak:o")
 port_speech_recog:open("/detection/speech:o")
-port_draw_image("/detection/draw:o")
+port_draw_image:open("/detection/draw:o")
 
 --for debbugging purposes remove for demo
---ret = yarp.NetworkBase_connect("/pyfaster:detout", port_detection:getName() )
+ret = yarp.NetworkBase_connect("/pyfaster:detout", port_detection:getName() )
 ret = yarp.NetworkBase_connect(port_ispeak:getName(), "/iSpeak")
 ret = ret and yarp.NetworkBase_connect(port_speech_recog:getName(), "/speechRecognizer/rpc")
 ret = ret and yarp.NetworkBase_connect(port_draw_image:getName(), "/detection-image/cmd:i")
