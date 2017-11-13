@@ -382,6 +382,8 @@ while state ~= "quit" and not interrupting do
                                  det:get(index):asList():get(2):asInt(), det:get(index):asList():get(3):asInt() )
 
                         look_at_pixel("left",tx,ty)
+
+                        speak(port_ispeak, "OK")
                     else
                         print("could not find what you are looking for")
                     end
@@ -390,6 +392,10 @@ while state ~= "quit" and not interrupting do
             elseif state == "home" then
                 clearDraw()
                 look_at_angle(azi, ele, ver)
+                speak(port_ispeak, "OK, I will go home")
+
+            elseif state == "look-around" then
+                speak(port_ispeak, "OK, I will now look around")
             end
 
         else
