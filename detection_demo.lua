@@ -51,10 +51,8 @@ if interaction == nil or interaction ~= "speech" and interaction ~= "cmd" then
     os.exit()
 elseif interaction == "speech" then
     interaction = "speech"
-    print("will interact using speech")
 else
     interaction = "cmd"
-    print("will interact using speech")
 end
 
 print ("using:", whichRobot)
@@ -104,9 +102,9 @@ port_ispeak:open("/detection/ispeak:o")
 port_speech_recog:open("/detection/speech:o")
 port_draw_image:open("/detection/draw:o")
 
---for debbugging purposes remove for demo
+ret = false
 ret = yarp.NetworkBase_connect("/pyfaster:detout", port_detection:getName() )
-ret = yarp.NetworkBase_connect(port_ispeak:getName(), "/iSpeak")
+ret = ret and yarp.NetworkBase_connect(port_ispeak:getName(), "/iSpeak")
 ret = ret and yarp.NetworkBase_connect(port_speech_recog:getName(), "/speechRecognizer/rpc")
 ret = ret and yarp.NetworkBase_connect(port_draw_image:getName(), "/detection-image/cmd:i")
 
@@ -128,7 +126,7 @@ if ret == false then
 end
 
 azi = 0.0
-ele = -30.0
+ele = -40.0
 ver = 5.0
 
 ---------------------------------------
@@ -376,7 +374,7 @@ while state ~= "quit" and not interrupting do
                         sendDraw(det:get(index):asList():get(0):asInt(), det:get(index):asList():get(1):asInt(),
                                  det:get(index):asList():get(2):asInt(), det:get(index):asList():get(3):asInt() )
 
-                        look_at_pixel("left",tx,ty)
+                        --look_at_pixel("left",tx,ty)
                     else
                         print("could not find what you are looking for")
                     end
@@ -422,7 +420,7 @@ while state ~= "quit" and not interrupting do
             sendDraw(det:get(num):asList():get(0):asInt(), det:get(num):asList():get(1):asInt(),
                      det:get(num):asList():get(2):asInt(), det:get(num):asList():get(3):asInt() )
 
-            look_at_pixel("left",tx,ty)
+            --look_at_pixel("left",tx,ty)
 
             yarp.Time_delay(4.0)
         end

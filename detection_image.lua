@@ -91,27 +91,51 @@ while not interrupting do
 
     if shouldDraw then
         for i=topLeftx, bottomRightx do
+            img_out:pixel(i, topLefty-1).r = 0
+            img_out:pixel(i, topLefty).r = 0
+            img_out:pixel(i, topLefty+1).r = 0
             img_out:pixel(i, topLefty-1).g = 255
             img_out:pixel(i, topLefty).g = 255
             img_out:pixel(i, topLefty+1).g = 255
+            img_out:pixel(i, topLefty-1).b = 0
+            img_out:pixel(i, topLefty).b = 0
+            img_out:pixel(i, topLefty+1).b = 0
         end
 
         for i=topLefty, bottomRighty do
+            img_out:pixel(bottomRightx-1, i).r = 0
+            img_out:pixel(bottomRightx, i).r = 0
+            img_out:pixel(bottomRightx+1, i).r = 0
             img_out:pixel(bottomRightx-1, i).g = 255
             img_out:pixel(bottomRightx, i).g = 255
             img_out:pixel(bottomRightx+1, i).g = 255
+            img_out:pixel(bottomRightx-1, i).b = 0
+            img_out:pixel(bottomRightx, i).b = 0
+            img_out:pixel(bottomRightx+1, i).b = 0
         end
 
         for i=topLefty, bottomRighty do
+            img_out:pixel(topLeftx-1, i).r = 0
+            img_out:pixel(topLeftx, i).r = 0
+            img_out:pixel(topLeftx+1, i).r = 0
             img_out:pixel(topLeftx-1, i).g = 255
             img_out:pixel(topLeftx, i).g = 255
             img_out:pixel(topLeftx+1, i).g = 255
+            img_out:pixel(topLeftx-1, i).b = 0
+            img_out:pixel(topLeftx, i).b = 0
+            img_out:pixel(topLeftx+1, i).b = 0
         end
 
         for i=topLeftx, bottomRightx do
+            img_out:pixel(i, bottomRighty-1).r = 0
+            img_out:pixel(i, bottomRighty).r = 0
+            img_out:pixel(i, bottomRighty+1).r = 0
             img_out:pixel(i, bottomRighty-1).g = 255
             img_out:pixel(i, bottomRighty).g = 255
             img_out:pixel(i, bottomRighty+1).g = 255
+            img_out:pixel(i, bottomRighty-1).b = 0
+            img_out:pixel(i, bottomRighty).b = 0
+            img_out:pixel(i, bottomRighty+1).b = 0
         end
     end
 
