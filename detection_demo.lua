@@ -352,10 +352,17 @@ while state ~= "quit" and not interrupting do
                 if det ~= nil then
                     local index
                     local found = false
-                    for i=0,det:size()-1,1
-                        do
-                        print ("got as object:", det:get(i):asList():get(5):asString())
-                        if object == det:get(i):asList():get(5):asString() then
+                    for i=0,det:size()-1,1 do
+                        str = det:get(i):asList():get(5):asString()
+
+                        print ("got as object:", str)
+
+                        if interaction == "speech" then
+                            --remove anything that is not aplha...
+                            str = str:gsub("[^a-z.]","")
+                        end
+
+                        if object == str then
                             found = true
                             index = i
                         end
@@ -367,7 +374,7 @@ while state ~= "quit" and not interrupting do
 
                         print( "the size is", det:size() )
                         print( "the chosen one is", index )
-                        print( "the string is", det:get(index):asList():toString() )
+                        print( "the string is", str )
                         print( "tx is", tx )
                         print( "ty is", ty )
 
