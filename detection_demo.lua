@@ -381,7 +381,7 @@ while state ~= "quit" and not interrupting do
                         sendDraw(det:get(index):asList():get(0):asInt(), det:get(index):asList():get(1):asInt(),
                                  det:get(index):asList():get(2):asInt(), det:get(index):asList():get(3):asInt() )
 
-                        --look_at_pixel("left",tx,ty)
+                        look_at_pixel("left",tx,ty)
                     else
                         print("could not find what you are looking for")
                     end
@@ -427,7 +427,7 @@ while state ~= "quit" and not interrupting do
             sendDraw(det:get(num):asList():get(0):asInt(), det:get(num):asList():get(1):asInt(),
                      det:get(num):asList():get(2):asInt(), det:get(num):asList():get(3):asInt() )
 
-            --look_at_pixel("left",tx,ty)
+            look_at_pixel("left",tx,ty)
 
             yarp.Time_delay(4.0)
         end
