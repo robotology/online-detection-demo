@@ -442,5 +442,6 @@ port_gaze_rx:close()
 port_gaze_rpc:close()
 port_speech_recog:close()
 port_ispeak:close()
+port_draw_image:close()
 
 yarp.Network_fini()
