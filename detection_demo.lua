@@ -309,7 +309,7 @@ speak(port_ispeak, "Ready")
 
 print ("done, ready to receive command via ", interaction)
 
-shouldDraw = false
+shouldLook = false
 ---------------------------------------
 -- While loop for various modalities --
 ---------------------------------------
@@ -401,6 +401,8 @@ while state ~= "quit" and not interrupting do
 
             elseif state == "look-around" then
                 speak(port_ispeak, "OK, I will now look around")
+                t1 = os.time()
+                shouldLook = true
             end
 
         else
@@ -466,14 +468,20 @@ while state ~= "quit" and not interrupting do
             print( "tx is", tx )
             print( "ty is", ty )
 
-            look_at_pixel("left",tx,ty)
-
-            yarp.Time_delay(1.0)
+            if shouldLook then
+                look_at_pixel("left",tx,ty)
+                t1 = os.time()
+                shouldLook = false
+            end
 
             sendDraw(det:get(num):asList():get(0):asInt(), det:get(num):asList():get(1):asInt(),
                      det:get(num):asList():get(2):asInt(), det:get(num):asList():get(3):asInt() )
 
-            yarp.Time_delay(3.0)
+            t2 = os.difftime(os.time(), t1)
+
+            if t2 > 4 then
+                shouldLook = true
+            end
         end
 
     elseif state == "look" then
