@@ -110,7 +110,6 @@ ret = ret and yarp.NetworkBase_connect(port_draw_image:getName(), "/detection-im
 yarp.NetworkBase_connect( "/pyfaster:detimgout","/detectionDump")
 yarp.NetworkBase_connect( "/detection-image/image:o","/detectionLook")
 
-
 if whichRobot == "icub" then
     print ("Going through ICUB's connection")
     ret = ret and yarp.NetworkBase_connect(port_gaze_tx:getName(), "/iKinGazeCtrl/angles:i")
@@ -277,6 +276,7 @@ function sendDraw(tlx,tly,btx,bty)
     cmd:addInt(bty)
     port_draw_image:write()
 end
+
 function clearDraw()
     local cmd = port_draw_image:prepare()
     cmd:clear()
@@ -401,7 +401,6 @@ while state ~= "quit" and not interrupting do
 
             elseif state == "look-around" then
                 speak(port_ispeak, "OK, I will now look around")
-                t1 = os.time()
                 shouldLook = true
             end
 
