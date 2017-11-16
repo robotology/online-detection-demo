@@ -51,9 +51,9 @@ port_cmd:open("/detection-image/cmd:i")
 
 ret = true
 if whichRobot == "icub" then
-    ret = yarp.NetworkBase_connect("/icub/camcalib/left/out", port_image_in:getName() )
+    ret = yarp.NetworkBase_connect("/icub/camcalib/left/out", port_image_in:getName() "fast_tcp")
 else
-    ret = yarp.NetworkBase_connect("need R1 camera port", port_image_in:getName() )
+    ret = yarp.NetworkBase_connect("/depthCamera/rgbImage:o", port_image_in:getName(), "fast_tcp" )
 end
 
 ret = ret and yarp.NetworkBase_connect(port_image_out:getName(), "/viewout" )
@@ -91,7 +91,7 @@ while not interrupting do
             if topLeftx < 3 then
                 topLeftx = 5
             end
-            
+
             if topLefty < 3 then
                 topLefty = 5
             end

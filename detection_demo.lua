@@ -102,13 +102,13 @@ port_ispeak:open("/detection/ispeak:o")
 port_speech_recog:open("/detection/speech:o")
 port_draw_image:open("/detection/draw:o")
 
-ret = false
-ret = yarp.NetworkBase_connect("/pyfaster:detout", port_detection:getName() )
+ret = true
+ret = ret and yarp.NetworkBase_connect("/pyfaster:detout", port_detection:getName(), "fast_tcp" )
 ret = ret and yarp.NetworkBase_connect(port_ispeak:getName(), "/iSpeak")
 ret = ret and yarp.NetworkBase_connect(port_speech_recog:getName(), "/speechRecognizer/rpc")
 ret = ret and yarp.NetworkBase_connect(port_draw_image:getName(), "/detection-image/cmd:i")
-yarp.NetworkBase_connect( "/pyfaster:detimgout","/detectionDump")
-yarp.NetworkBase_connect( "/detection-image/image:o","/detectionLook")
+--yarp.NetworkBase_connect( "/pyfaster:detimgout","/detectionDump")
+--yarp.NetworkBase_connect( "/detection-image/image:o","/detectionLook")
 
 if whichRobot == "icub" then
     print ("Going through ICUB's connection")
@@ -436,7 +436,6 @@ while state ~= "quit" and not interrupting do
             end
 
             if found then
-
                 sendDraw(det:get(index):asList():get(0):asInt(), det:get(index):asList():get(1):asInt(),
                          det:get(index):asList():get(2):asInt(), det:get(index):asList():get(3):asInt() )
             end
@@ -445,7 +444,8 @@ while state ~= "quit" and not interrupting do
 
     elseif state == "look-around" then
         local det = port_detection:read(false)
-        clearDraw()
+        --print("**************************will clear")
+        --clearDraw()
         if det ~= nil then
             --math.randomseed( os.time() )
             local num = 0
@@ -467,12 +467,6 @@ while state ~= "quit" and not interrupting do
             print( "tx is", tx )
             print( "ty is", ty )
 
-            if shouldLook then
-                look_at_pixel("left",tx,ty)
-                t1 = os.time()
-                shouldLook = false
-            end
-
             sendDraw(det:get(num):asList():get(0):asInt(), det:get(num):asList():get(1):asInt(),
                      det:get(num):asList():get(2):asInt(), det:get(num):asList():get(3):asInt() )
 
@@ -481,6 +475,14 @@ while state ~= "quit" and not interrupting do
             if t2 > 4 then
                 shouldLook = true
             end
+
+            if shouldLook then
+                print("should now move the head...")
+                look_at_pixel("left",tx,ty)
+                t1 = os.time()
+                shouldLook = false
+            end
+            yarp.Time_delay(0.1)
         end
 
     elseif state == "look" then
