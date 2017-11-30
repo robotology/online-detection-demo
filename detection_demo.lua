@@ -103,7 +103,7 @@ port_speech_recog:open("/detection/speech:o")
 port_draw_image:open("/detection/draw:o")
 
 ret = true
---ret = ret and yarp.NetworkBase_connect("/pyfaster:detout", port_detection:getName(), "fast_tcp" )
+ret = ret and yarp.NetworkBase_connect("/pyfaster:detout", port_detection:getName(), "fast_tcp" )
 ret = ret and yarp.NetworkBase_connect(port_ispeak:getName(), "/iSpeak")
 ret = ret and yarp.NetworkBase_connect(port_speech_recog:getName(), "/speechRecognizer/rpc")
 ret = ret and yarp.NetworkBase_connect(port_draw_image:getName(), "/detection-image/cmd:i")
@@ -305,11 +305,13 @@ if interaction == "speech" then
     end
 end
 
-speak(port_ispeak, "Ready")
+speak(port_ispeak, "Roger")
 
 print ("done, ready to receive command via ", interaction)
 
 shouldLook = false
+shouldDraw = false
+drawString = "robot"
 ---------------------------------------
 -- While loop for various modalities --
 ---------------------------------------
@@ -379,7 +381,7 @@ while state ~= "quit" and not interrupting do
 
                         print( "the size is", det:size() )
                         print( "the chosen one is", index )
-                        print( "the string is", str )
+                        --print( "the string is", str )
                         print( "tx is", tx )
                         print( "ty is", ty )
 
@@ -389,6 +391,7 @@ while state ~= "quit" and not interrupting do
                         look_at_pixel("left",tx,ty)
 
                         speak(port_ispeak, "OK")
+                        
                     else
                         print("could not find what you are looking for")
                     end
@@ -402,6 +405,7 @@ while state ~= "quit" and not interrupting do
             elseif state == "look-around" then
                 speak(port_ispeak, "OK, I will now look around")
                 shouldLook = true
+                shouldLook = false
             end
 
         else
@@ -422,7 +426,7 @@ while state ~= "quit" and not interrupting do
             for i=0,det:size()-1,1 do
                 str = det:get(i):asList():get(5):asString()
 
-                print ("got as object:", str)
+                --print ("got as object:", str)
 
                 if interaction == "speech" then
                     --remove anything that is not aplha...
@@ -444,12 +448,11 @@ while state ~= "quit" and not interrupting do
 
     elseif state == "look-around" then
         local det = port_detection:read(false)
-        --print("**************************will clear")
-        --clearDraw()
+        
         if det ~= nil then
             --math.randomseed( os.time() )
             local num = 0
-
+           
             if det:size() > 0 then
                 num = math.random(0, det:size()-1)
             else
@@ -458,17 +461,10 @@ while state ~= "quit" and not interrupting do
 
             local det_list = det:get(num):asList()
 
+            local str = det:get(num):asList():get(5):asString()
+
             local tx = (det:get(num):asList():get(0):asInt() + det:get(num):asList():get(2):asInt()) / 2
             local ty = (det:get(num):asList():get(1):asInt() + det:get(num):asList():get(3):asInt()) / 2
-
-            print( "the size is", det:size() )
-            print( "the chosen one is", num )
-            print( "the string is", det_list:toString() )
-            print( "tx is", tx )
-            print( "ty is", ty )
-
-            sendDraw(det:get(num):asList():get(0):asInt(), det:get(num):asList():get(1):asInt(),
-                     det:get(num):asList():get(2):asInt(), det:get(num):asList():get(3):asInt() )
 
             t2 = os.difftime(os.time(), t1)
 
@@ -477,10 +473,35 @@ while state ~= "quit" and not interrupting do
             end
 
             if shouldLook then
+                --print( "the size is", det:size() )
+                print( "the chosen one is", num )
+                print( "the string is", str )
+                print( "tx is", tx )
+                print( "ty is", ty )
                 print("should now move the head...")
                 look_at_pixel("left",tx,ty)
                 t1 = os.time()
+                drawString = str
                 shouldLook = false
+                shouldDraw = true
+            end
+
+            if shouldDraw then
+                
+                local index
+                local found = false
+                for i=0,det:size()-1,1 do
+                    str = det:get(i):asList():get(5):asString()
+                    if drawString == str then
+                        found = true
+                        index = i
+                    end
+                end
+                if found then
+                    sendDraw(det:get(index):asList():get(0):asInt(), det:get(index):asList():get(1):asInt(),
+                        det:get(index):asList():get(2):asInt(), det:get(index):asList():get(3):asInt() )
+                end
+            
             end
             yarp.Time_delay(0.1)
         end

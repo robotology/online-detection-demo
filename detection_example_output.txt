@@ -10,6 +10,11 @@
 
 10.0.0.124
 
-icub@iiticubws030:~/elisa/Repos/py-faster_yarp$ ./tools/detection_yarp.py --caffemodel /home/icub/elisa/Repos/py-faster_yarp/data/zf_fast_rcnn_
-stage2_iter_54000_humanoids_no20pixels.caffemodel --prototxt /home/icub/elisa/Repos/py-faster_icubworld/models/icub_transformation/ZF/faster_rc
-nn_alt_opt/faster_rcnn_test.pt --vis
+
+
+ICUB
+icub@iiticubws030:~/elisa/Repos/py-faster_yarp$ ./tools/detection_yarp.py --caffemodel /home/icub/elisa/Repos/py-faster_yarp/data/zf_fast_rcnn_stage2_iter_54000_humanoids_no20pixels.caffemodel --prototxt /home/icub/elisa/Repos/py-faster_icubworld/models/icub_transformation/ZF/faster_rcnn_alt_opt/faster_rcnn_test.pt --vis
+
+R1
+./detection_yarp.py --prototxt models/icub_transformation_20obj/ZF/faster_rcnn_alt_opt/faster_rcnn_test.pt --caffemodel /media/r1-user/SDCARD/caffe_data_and_models/detection_models/zf_fast_rcnn_stage2_iter_54000_humanoids_no20pixels.caffemodel --vis --classes_file app/humanoids_classes.txt --cameraport /depthCamera/rgbImage:o
+
