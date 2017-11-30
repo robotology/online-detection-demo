@@ -1,0 +1,24 @@
+<application>
+    <name>Detection demo - R1</name>
+
+    <dependencies>
+    </dependencies>
+
+    <module>
+        <name>find-wally</name>
+        <node>localhost</node>
+    </module>
+
+    <module>
+        <name>yarpview</name>
+        <node>localhost</node>
+        <parameters>--name /output --x 0 --y 0 --RefreshTime 33 </parameters>
+    </module>
+
+    <connection>
+        <from>/find-wally/image:o</from>
+        <to>/output</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+</application>
