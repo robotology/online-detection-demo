@@ -1,4 +1,4 @@
-#!/usr/local/bin/lua
+#!/usr/bin/lua
 
 -- Copyright: (C) 2017 iCub Facility - Istituto Italiano di Tecnologia (IIT)
 
@@ -49,19 +49,19 @@ port_image_in:open("/detection-image/image:i")
 port_image_out:open("/detection-image/image:o")
 port_cmd:open("/detection-image/cmd:i")
 
-ret = true
-if whichRobot == "icub" then
-    ret = yarp.NetworkBase_connect("/icub/camcalib/left/out", port_image_in:getName() "fast_tcp")
-else
-    ret = yarp.NetworkBase_connect("/depthCamera/rgbImage:o", port_image_in:getName(), "fast_tcp" )
-end
+--ret = true
+--if whichRobot == "icub" then
+--    ret = yarp.NetworkBase_connect("/icub/camcalib/left/out", port_image_in:getName() "fast_tcp")
+--else
+--    ret = yarp.NetworkBase_connect("/depthCamera/rgbImage:o", port_image_in:getName(), "fast_tcp" )
+--end
 
-ret = ret and yarp.NetworkBase_connect(port_image_out:getName(), "/viewout" )
+--ret = ret and yarp.NetworkBase_connect(port_image_out:getName(), "/viewout" )
 
-if ret == false then
-    print("\n\nERROR WITH CONNECTIONS, PLEASE CHECK\n\n")
-    os.exit()
-end
+--if ret == false then
+--    print("\n\nERROR WITH CONNECTIONS, PLEASE CHECK\n\n")
+--    os.exit()
+--end
 
 shouldDraw = false
 

@@ -1,4 +1,4 @@
-#!/usr/local/bin/lua
+#!/usr/bin/lua
 
 -- Copyright: (C) 2017 iCub Facility - Istituto Italiano di Tecnologia (IIT)
 
@@ -103,7 +103,7 @@ port_speech_recog:open("/detection/speech:o")
 port_draw_image:open("/detection/draw:o")
 
 ret = true
-ret = ret and yarp.NetworkBase_connect("/pyfaster:detout", port_detection:getName(), "fast_tcp" )
+--ret = ret and yarp.NetworkBase_connect("/pyfaster:detout", port_detection:getName(), "fast_tcp" )
 ret = ret and yarp.NetworkBase_connect(port_ispeak:getName(), "/iSpeak")
 ret = ret and yarp.NetworkBase_connect(port_speech_recog:getName(), "/speechRecognizer/rpc")
 ret = ret and yarp.NetworkBase_connect(port_draw_image:getName(), "/detection-image/cmd:i")

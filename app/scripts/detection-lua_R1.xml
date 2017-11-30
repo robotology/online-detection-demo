@@ -5,20 +5,113 @@
     </dependencies>
 
     <module>
-        <name>find-wally</name>
-        <node>localhost</node>
+        <name>yarpdev</name>
+        <parameters>--device speech --lingware-context speech --default-language en-GB --robot r1 --pitch 80 --speed 100</parameters>
+        <node>r1-face</node>
+    </module>
+
+    <module>
+        <name>yarpdev</name>
+        <parameters>--device faceDisplayServer</parameters>
+        <node>r1-face</node>
+    </module>
+
+    <module>
+        <name>yarpdev</name>
+        <parameters> --from sensors/Xtion_depthCamera.ini </parameters>
+        <node>r1-torso</node>
+    </module>
+
+    <module>
+        <name>faceExpressionImage</name>
+        <node>r1-console-linux</node>
+    </module>
+
+    <module>
+        <name>iSpeak</name>
+        <parameters>--package speech-dev</parameters>
+        <node>r1-face</node>
+    </module>
+
+    <module>
+        <name>speechRecognizer</name>
+        <parameters></parameters>
+        <node>r1-console-windows</node>
+    </module>
+
+    <module>
+        <name>cer_gaze-controller</name>
+        <parameters>--cameras::context cameraCalibration --cameras::file cerEyes_320x240.ini --joints-limits::pitch "(-40.0 40.0)" --joints-limits::yaw "(-40.0 40.0)"</parameters>
+        <node>r1-base</node>
+    </module>
+
+     <module>
+        <name>detection_image.lua</name>
+        <parameters>r1</parameters>
+        <deployer>lua</deployer>
+        <node>r1-console-linux</node>
+    </module>
+
+    <module>
+        <name>detection_demo.lua</name>
+        <parameters>r1 cmd</parameters>
+        <deployer>lua</deployer>
+        <node>r1-console-linux</node>
+        <dependencies>
+            <port timeout="10">/detection-image/image:i</port>
+            <port timeout="10">/detection-image/image:o</port>
+            <port timeout="10">/detection-image/cmd:i</port>
+            <port timeout="10">/cer_gaze-controller/state:o</port>
+            <port timeout="10">/cer_gaze-controller/target:i</port>
+            <port timeout="10">/cer_gaze-controller/rpc</port>
+        </dependencies>
     </module>
 
     <module>
         <name>yarpview</name>
         <node>localhost</node>
-        <parameters>--name /output --x 0 --y 0 --RefreshTime 33 </parameters>
+        <parameters>--name /viewOut --x 0 --y 0 --RefreshTime 33 </parameters>
     </module>
 
+    <!--connections for face display -->
+
     <connection>
-        <from>/find-wally/image:o</from>
-        <to>/output</to>
+        <from>/faceExpressionImage/image:o</from> 
+        <to>/robot/faceDisplay/image:i</to>
         <protocol>tcp</protocol>
     </connection>
 
+    <!--connections for speech -->
+
+     <connection>
+        <from>/iSpeak/speech-dev/rpc</from>
+        <to>/r1/speech:rpc</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+
+    <!--connections for detection image -->
+
+    <connection>
+        <from>/depthCamera/rgbImage:o</from>
+        <to>/detection-image/image:i</to>
+        <protocol> mjpeg </protocol>
+    </connection>
+
+    <connection>
+        <from>/detection-image/image:o</from>
+        <to>/viewOut</to>
+        <protocol> mjpeg </protocol>
+    </connection>
+
+    <!--connections for detection demo -->
+
+    <connection>
+        <from> /pyfaster:detout </from>
+        <to>/detection/targets:i</to>
+        <protocol> tcp </protocol>
+    </connection>
+
 </application>
+
+
