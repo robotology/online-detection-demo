@@ -135,7 +135,7 @@ ver = 5.0
 -- functions Speech Recognition      --
 ---------------------------------------
 
-objects = {"Sprayer", "Book", "Cup", "Soapdispenser", "Sodabottle"}
+objects = {"sprayer", "mug", "flower", "sodabottle"}
 
 -- defining speech grammar in order to expand the speech recognition
 grammar = "Return to home position | Look around | Look at the #Object | Where is the #Object | See you soon"
@@ -353,6 +353,7 @@ while state ~= "quit" and not interrupting do
             if state == "look" then
                 clearDraw()
                 object = cmd:get(1):asString()
+                object = object:lower()
                 print ("object chosen is", object)
 
                 local det = port_detection:read(true)
@@ -384,9 +385,6 @@ while state ~= "quit" and not interrupting do
                         --print( "the string is", str )
                         print( "tx is", tx )
                         print( "ty is", ty )
-
-                        --sendDraw(det:get(index):asList():get(0):asInt(), det:get(index):asList():get(1):asInt(),
-                        --         det:get(index):asList():get(2):asInt(), det:get(index):asList():get(3):asInt() )
 
                         look_at_pixel("left",tx,ty)
 
@@ -426,8 +424,6 @@ while state ~= "quit" and not interrupting do
             local found = false
             for i=0,det:size()-1,1 do
                 str = det:get(i):asList():get(5):asString()
-
-                --print ("got as object:", str)
 
                 if interaction == "speech" then
                     --remove anything that is not aplha...
