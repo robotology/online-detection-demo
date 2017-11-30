@@ -394,6 +394,7 @@ while state ~= "quit" and not interrupting do
                         
                     else
                         print("could not find what you are looking for")
+                        speak(port_ispeak, "I can't seem to find this object")
                     end
                 end
 
