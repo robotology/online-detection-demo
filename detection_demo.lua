@@ -231,6 +231,27 @@ function clearDraw()
     port_draw_image:write()
 end
 
+
+function getObjectIndex(det)
+    local index = -1
+    for i=0,det:size()-1,1 do
+        str = det:get(i):asList():get(5):asString()
+
+        print ("got as object:", str)
+
+        if isSpeech then
+            --remove anything that is not aplha...
+            str = str:gsub("[^a-z.]","")
+        end
+
+        if object == str then
+            found = true
+            index = i
+        end
+    end
+    return index
+end
+
 --might not be useful anymore. Fixed a recent bug on the gaze controller
 if whichRobot == "icub" then
     bind_roll()
@@ -285,24 +306,10 @@ while state ~= "quit" and not interrupting do
                 local det = port_detection:read(true)
                 if det ~= nil then
                     local index
-                    local found = false
-                    for i=0,det:size()-1,1 do
-                        str = det:get(i):asList():get(5):asString()
-
-                        print ("got as object:", str)
-
-                        if isSpeech then
-                            --remove anything that is not aplha...
-                            str = str:gsub("[^a-z.]","")
-                        end
-
-                        if object == str then
-                            found = true
-                            index = i
-                        end
-                    end
-
-                    if found then
+      
+                    index = getObjectIndex(det)
+                    
+                    if index >= 0 then
                         local tx = (det:get(index):asList():get(0):asInt() + det:get(index):asList():get(2):asInt()) / 2
                         local ty = (det:get(index):asList():get(1):asInt() + det:get(index):asList():get(3):asInt()) / 2
 
@@ -347,22 +354,10 @@ while state ~= "quit" and not interrupting do
         local det = port_detection:read(true)
         if det ~= nil then
             local index
-            local found = false
-            for i=0,det:size()-1,1 do
-                str = det:get(i):asList():get(5):asString()
+            
+            index = getObjectIndex(det)
 
-                if isSpeech then
-                    --remove anything that is not aplha...
-                    str = str:gsub("[^a-z.]","")
-                end
-
-                if object == str then
-                    found = true
-                    index = i
-                end
-            end
-
-            if found then
+            if index >= 0 then
                 sendDraw(det:get(index):asList():get(0):asInt(), det:get(index):asList():get(1):asInt(),
                          det:get(index):asList():get(2):asInt(), det:get(index):asList():get(3):asInt() )
             end
@@ -412,15 +407,10 @@ while state ~= "quit" and not interrupting do
             if shouldDraw then
 
                 local index
-                local found = false
-                for i=0,det:size()-1,1 do
-                    str = det:get(i):asList():get(5):asString()
-                    if drawString == str then
-                        found = true
-                        index = i
-                    end
-                end
-                if found then
+                
+                index = getObjectIndex(det)
+
+                if index >= 0 then
                     sendDraw(det:get(index):asList():get(0):asInt(), det:get(index):asList():get(1):asInt(),
                         det:get(index):asList():get(2):asInt(), det:get(index):asList():get(3):asInt() )
                 end
