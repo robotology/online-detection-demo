@@ -276,7 +276,7 @@ function getClosestObject(det)
             
             local distance = (distancex*distancex) + (distancey*distancey) 
             
-            print ("got as distance ", distance)
+            print ("got as distance ", distance, det:get(i):asList():get(5):asString())
             
             if distance < mindist then
                 mindist = distance
@@ -284,8 +284,50 @@ function getClosestObject(det)
             end                         
         end
     end
+    local returnStr
+    if minindex < 0 then
+        returnStr = "none"
+    else
+        returnStr = det:get(minindex):asList():get(5):asString()
+    end
+    return returnStr
+end
 
-    return det:get(minindex):asList():get(5):asString()
+
+function getObjectsAround(det)
+
+    index = getObjectIndex(det)
+    local objectList = yarp.Bottle()
+    print("getClosestObject for index is ", index, object)
+
+    if index < 0 then
+        objectList:addString("none")
+    end
+    local objtx = 0
+    local objty = 0
+    
+    if index >= 0 then
+        objtx = (det:get(index):asList():get(0):asInt() + det:get(index):asList():get(2):asInt()) / 2
+        objty = (det:get(index):asList():get(1):asInt() + det:get(index):asList():get(3):asInt()) / 2
+    end
+    for i=0,det:size()-1,1 do
+        if i ~= index then
+            local thistx = (det:get(i):asList():get(0):asInt() + det:get(i):asList():get(2):asInt()) / 2
+            local thisty = (det:get(i):asList():get(1):asInt() + det:get(i):asList():get(3):asInt()) / 2      
+            
+            local distancex = math.abs(objtx-thistx)
+            local distancey = math.abs(objty-thisty)
+            
+            local distance = (distancex*distancex) + (distancey*distancey) 
+            
+            print ("got as distance ", distance, det:get(i):asList():get(5):asString())
+            
+            if distance < 4000 then
+                objectList:addString(det:get(i):asList():get(5):asString())
+            end                         
+        end
+    end
+    return objectList
 end
 
 --might not be useful anymore. Fixed a recent bug on the gaze controller
@@ -332,7 +374,7 @@ while state ~= "quit" and not interrupting do
 
         if cmd_rx == "look-around" or cmd_rx == "look" or
             cmd_rx == "home" or cmd_rx == "quit" or 
-             cmd_rx == "closest-to" then
+             cmd_rx == "closest-to" or cmd_rx == "where-is" then
 
             state = cmd_rx
 
@@ -383,9 +425,46 @@ while state ~= "quit" and not interrupting do
                 local det = port_detection:read(true)
 
                 if det ~= nil then
-                    local name = getClosestObject(det, object)
-                    local tosay = "The closest object is the " .. name 
+                    local name = getClosestObject(det)
+                    local tosay                    
+                    if name == "none" then
+                        tosay = "There is nothing close to the " .. object
+                    else
+                        tosay = "The closest object is the " .. name 
+                    end
+                    state = "look"
                     speak(port_ispeak, tosay)
+                end
+            elseif state == "where-is" then
+                object = cmd:get(1):asString()
+                object = object:lower()
+                local det = port_detection:read(true)
+
+                if det ~= nil then
+                    local list = yarp.Bottle()
+                    list = getObjectsAround(det)
+                    
+                    print("size of near objects is ", list:size() )
+                    
+                    if list:get(0):asString() == "none" then 
+                        local tosay = "I cannot see the " .. object
+                        speak(port_ispeak, tosay)
+                    elseif list:size() < 1 and list:get(0):asString() ~= "none" then
+                        local tosay = "Here is the  " .. object
+                        speak(port_ispeak, tosay)
+                        state = "look"
+                    else
+                        local tosay = "The " .. object .. " is next to the "
+                        for i=0,list:size()-1,1 do
+                            if i > 0 then
+                                tosay = tosay .. " and the "
+                            end
+                            tosay = tosay .. list:get(i):asString()
+                        end
+                        print(tosay)
+                        speak(port_ispeak, tosay)
+                        state = "look"
+                    end
                 end
             end
         else
@@ -473,6 +552,7 @@ while state ~= "quit" and not interrupting do
 end
 
 clearDraw()
+look_at_angle(0,-50,5)
 speak(port_ispeak, "Bye bye")
 
 port_cmd:close()

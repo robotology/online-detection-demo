@@ -59,7 +59,7 @@ end
 objects = {"sprayer", "mug", "flower", "sodabottle"}
 
 -- defining speech grammar in order to expand the speech recognition
-grammar = "Return to home position | Look around | Look at the #Object | Where is the #Object | See you soon"
+grammar = "Return to home position | Look around | Look at the #Object | Where is the #Object | See you soon | What is close to the #Object"
 
 function SM_RGM_Expand(port, vocab, word)
     local wb = yarp.Bottle()
@@ -124,6 +124,14 @@ while state ~= "quit" and not interrupting do
         instruction:addString("look-around")
     elseif speechcmd == "Look" and result:get(3):asString() == "at" then
         instruction:addString("look")
+        local object = result:get(7):asString()
+        instruction:addString(object)
+    elseif speechcmd == "What" then
+        instruction:addString("closest-to")
+        local object = result:get(11):asString()
+        instruction:addString(object)
+    elseif speechcmd == "Where" then
+        instruction:addString("where-is")
         local object = result:get(7):asString()
         instruction:addString(object)
     else
