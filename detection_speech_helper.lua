@@ -128,6 +128,7 @@ while state ~= "quit" and not interrupting do
     end
 
     if cmd ~= nil then
+        cmd:addString("speech")
         sendSpeech(port_speech_output, cmd)
     end
 end

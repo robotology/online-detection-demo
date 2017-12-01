@@ -246,6 +246,7 @@ speak(port_ispeak, "Roger")
 shouldLook = false
 shouldDraw = false
 drawString = "robot"
+isSpeech = false
 ---------------------------------------
 -- While loop for various modalities --
 ---------------------------------------
@@ -257,7 +258,17 @@ while state ~= "quit" and not interrupting do
 
     if cmd ~= nil then
         local cmd_rx = cmd:get(0):asString()
+
+        local size = cmd:getSize();
         print ("command is ", cmd_rx)
+        print ("size is ", size)
+
+        local interaction = cmd:get(size):asString()
+        if interaction == "speech" then
+            isSpeech = true
+        else
+            isSpeech = false
+        end
 
         if cmd_rx == "look-around" or cmd_rx == "look" or
             cmd_rx == "home" or cmd_rx == "quit" then
@@ -279,10 +290,10 @@ while state ~= "quit" and not interrupting do
 
                         print ("got as object:", str)
 
-                        --if interaction == "speech" then
+                        if isSpeech then
                             --remove anything that is not aplha...
-                        --    str = str:gsub("[^a-z.]","")
-                        --end
+                            str = str:gsub("[^a-z.]","")
+                        end
 
                         if object == str then
                             found = true
@@ -339,10 +350,10 @@ while state ~= "quit" and not interrupting do
             for i=0,det:size()-1,1 do
                 str = det:get(i):asList():get(5):asString()
 
-                --if interaction == "speech" then
+                if isSpeech then
                     --remove anything that is not aplha...
-                --    str = str:gsub("[^a-z.]","")
-                --end
+                    str = str:gsub("[^a-z.]","")
+                end
 
                 if object == str then
                     found = true
