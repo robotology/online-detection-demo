@@ -245,11 +245,47 @@ function getObjectIndex(det)
         end
 
         if object == str then
-            found = true
             index = i
         end
     end
     return index
+end
+
+
+function getClosestObject(det)
+    
+    index = getObjectIndex(det)
+
+    print("getClosestObject for index is ", index, object)
+    local objtx = 0
+    local objty = 0
+    if index >= 0 then
+        objtx = (det:get(index):asList():get(0):asInt() + det:get(index):asList():get(2):asInt()) / 2
+        objty = (det:get(index):asList():get(1):asInt() + det:get(index):asList():get(3):asInt()) / 2
+    end
+    
+    local mindist = 10000000
+    local minindex =-1
+    for i=0,det:size()-1,1 do
+        if i ~= index then
+            local thistx = (det:get(i):asList():get(0):asInt() + det:get(i):asList():get(2):asInt()) / 2
+            local thisty = (det:get(i):asList():get(1):asInt() + det:get(i):asList():get(3):asInt()) / 2      
+            
+            local distancex = math.abs(objtx-thistx)
+            local distancey = math.abs(objty-thisty)
+            
+            local distance = (distancex*distancex) + (distancey*distancey) 
+            
+            print ("got as distance ", distance)
+            
+            if distance < mindist then
+                mindist = distance
+                minindex = i
+            end                         
+        end
+    end
+
+    return det:get(minindex):asList():get(5):asString()
 end
 
 --might not be useful anymore. Fixed a recent bug on the gaze controller
@@ -288,12 +324,15 @@ while state ~= "quit" and not interrupting do
         
         if interaction == "speech" then
             isSpeech = true
+            print("using interaction speech")
         else
             isSpeech = false
+            print("using interaction command")
         end
 
         if cmd_rx == "look-around" or cmd_rx == "look" or
-            cmd_rx == "home" or cmd_rx == "quit" then
+            cmd_rx == "home" or cmd_rx == "quit" or 
+             cmd_rx == "closest-to" then
 
             state = cmd_rx
 
@@ -338,8 +377,17 @@ while state ~= "quit" and not interrupting do
                 speak(port_ispeak, "OK, I will now look around")
                 shouldLook = true
                 shouldLook = false
-            end
+            elseif state == "closest-to" then
+                object = cmd:get(1):asString()
+                object = object:lower()
+                local det = port_detection:read(true)
 
+                if det ~= nil then
+                    local name = getClosestObject(det, object)
+                    local tosay = "The closest object is the " .. name 
+                    speak(port_ispeak, tosay)
+                end
+            end
         else
             print("warning: unrecognized command")
         end
