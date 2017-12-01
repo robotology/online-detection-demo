@@ -259,11 +259,12 @@ while state ~= "quit" and not interrupting do
     if cmd ~= nil then
         local cmd_rx = cmd:get(0):asString()
 
-        local size = cmd:getSize();
+        local size = cmd:size();
         print ("command is ", cmd_rx)
         print ("size is ", size)
 
-        local interaction = cmd:get(size):asString()
+        local interaction = cmd:get(size-1):asString()
+        
         if interaction == "speech" then
             isSpeech = true
         else

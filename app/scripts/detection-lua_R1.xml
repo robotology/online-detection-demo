@@ -51,6 +51,12 @@
         <deployer>lua</deployer>
         <node>r1-console-linux</node>
     </module>
+    <module>
+        <name>detection_speech_helper.lua</name>
+        <parameters></parameters>
+        <deployer>lua</deployer>
+        <node>r1-console-linux</node>
+    </module>
 
     <module>
         <name>detection_demo.lua</name>
@@ -69,8 +75,14 @@
 
     <module>
         <name>yarpview</name>
-        <node>localhost</node>
+        <node>r1-console2</node>
         <parameters>--name /viewOut --x 0 --y 0 --RefreshTime 33 </parameters>
+    </module>
+
+    <module>
+        <name>yarpview</name>
+        <node>r1-console2</node>
+        <parameters>--name /pyfaster:vis --x 0 --y 0 --RefreshTime 33 </parameters>
     </module>
 
     <!--connections for face display -->
@@ -93,9 +105,9 @@
     <!--connections for detection image -->
 
     <connection>
-        <from>/depthCamera/rgbImage:o</from>
+        <from>/pyfaster:imgout </from>
         <to>/detection-image/image:i</to>
-        <protocol> mjpeg </protocol>
+        <protocol> fast_tcp </protocol>
     </connection>
 
     <connection>
@@ -104,13 +116,32 @@
         <protocol> mjpeg </protocol>
     </connection>
 
-    <!--connections for detection demo -->
+    <!--connections for detection -->
 
     <connection>
         <from> /pyfaster:detout </from>
         <to>/detection/targets:i</to>
         <protocol> tcp </protocol>
     </connection>
+
+    <connection>
+        <from>/detection/speech:o</from>
+        <to>/detection/cmd:i</to>
+        <protocol> tcp </protocol>
+    </connection>
+
+     <connection>
+        <from>/pyfaster:detimgout</from>
+        <to>/pyfaster:vis</to>
+        <protocol> fast_tcp </protocol>
+    </connection>
+
+    <connection>
+        <from>/depthCamera/rgbImage:o</from>
+        <to>/pyfaster:in</to>
+        <protocol> fast_tcp </protocol>
+    </connection>
+
 
 </application>
 

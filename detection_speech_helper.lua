@@ -86,10 +86,11 @@ function SM_Reco_Grammar(port, gram)
 end
 
 function sendSpeech(port, cmd)
-   local wb = port:prepare()
+   --local wb = port:prepare()
+   local wb = yarp.Bottle()
    wb:clear()
    wb=cmd
-   port:write()
+   port:write(wb)
 end
 
 print ("expanding speech recognizer grammar")
@@ -113,23 +114,25 @@ while state ~= "quit" and not interrupting do
     print("received REPLY: ", result:toString() )
     local speechcmd =  result:get(1):asString()
 
+    local instruction = yarp.Bottle()
+
     if speechcmd == "Return" then
-        cmd:addString("home")
+        instruction:addString("home")
     elseif speechcmd == "See" then
-        cmd:addString("quit")
+        instruction:addString("quit")
     elseif speechcmd == "Look" and result:get(3):asString() == "around" then
-        cmd:addString("look-around")
+        instruction:addString("look-around")
     elseif speechcmd == "Look" and result:get(3):asString() == "at" then
-        cmd:addString("look")
+        instruction:addString("look")
         local object = result:get(7):asString()
-        cmd:addString(object)
+        instruction:addString(object)
     else
         print ("cannot recognize the command")
     end
 
-    if cmd ~= nil then
-        cmd:addString("speech")
-        sendSpeech(port_speech_output, cmd)
+    if instruction:size() ~= 0 then
+        instruction:addString("speech")
+        sendSpeech(port_speech_output, instruction)
     end
 end
 
