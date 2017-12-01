@@ -21,7 +21,6 @@ rf:setVerbose(false)
 rf:configure(arg)
 
 whichRobot = arg[1]
-interaction = arg[2]
 
 ---------------------------------------
 -- setting up demo with arguments    --
@@ -29,10 +28,6 @@ interaction = arg[2]
 
 if whichRobot ~= nil then
     whichRobot = whichRobot:lower()
-end
-
-if interaction ~= nil then
-    interaction = interaction:lower()
 end
 
 if whichRobot == nil or whichRobot ~= "icub" and whichRobot ~= "r1" then
@@ -46,17 +41,7 @@ else
     print("in r1")
 end
 
-if interaction == nil or interaction ~= "speech" and interaction ~= "cmd" then
-    print("Please state which type of interaction would you like to use")
-    os.exit()
-elseif interaction == "speech" then
-    interaction = "speech"
-else
-    interaction = "cmd"
-end
-
 print ("using:", whichRobot)
-print ("using:", interaction)
 
 ---------------------------------------
 -- setting up ctrl-c signal handling --
@@ -82,7 +67,6 @@ port_cmd = yarp.BufferedPortBottle()
 port_detection = yarp.BufferedPortBottle()
 port_gaze_rpc = yarp.RpcClient()
 port_ispeak = yarp.BufferedPortBottle()
-port_speech_recog = yarp.Port()
 port_draw_image = yarp.BufferedPortBottle()
 
 if whichRobot == "icub" then
@@ -99,16 +83,12 @@ port_gaze_tx:open("/detection/gaze/tx")
 port_gaze_rpc:open("/detection/gaze/rpc")
 port_gaze_rx:open("/detection/gaze/rx")
 port_ispeak:open("/detection/ispeak:o")
-port_speech_recog:open("/detection/speech:o")
 port_draw_image:open("/detection/draw:o")
 
 ret = true
 ret = ret and yarp.NetworkBase_connect("/pyfaster:detout", port_detection:getName(), "fast_tcp" )
 ret = ret and yarp.NetworkBase_connect(port_ispeak:getName(), "/iSpeak")
-ret = ret and yarp.NetworkBase_connect(port_speech_recog:getName(), "/speechRecognizer/rpc")
 ret = ret and yarp.NetworkBase_connect(port_draw_image:getName(), "/detection-image/cmd:i")
---yarp.NetworkBase_connect( "/pyfaster:detimgout","/detectionDump")
---yarp.NetworkBase_connect( "/detection-image/image:o","/detectionLook")
 
 if whichRobot == "icub" then
     print ("Going through ICUB's connection")
@@ -130,39 +110,6 @@ end
 azi = 0.0
 ele = -50.0
 ver = 5.0
-
----------------------------------------
--- functions Speech Recognition      --
----------------------------------------
-
-objects = {"sprayer", "mug", "flower", "sodabottle"}
-
--- defining speech grammar in order to expand the speech recognition
-grammar = "Return to home position | Look around | Look at the #Object | Where is the #Object | See you soon"
-
-function SM_RGM_Expand(port, vocab, word)
-    local wb = yarp.Bottle()
-    local reply = yarp.Bottle()
-    wb:clear()
-    wb:addString("RGM")
-    wb:addString("vocabulory")
-    wb:addString("add")
-    wb:addString(vocab)
-    wb:addString(word)
-    port:write(wb)
-    return "OK" --reply:get(1):asString()
-end
-
-function SM_Reco_Grammar(port, gram)
-    local wb = yarp.Bottle()
-    local reply = yarp.Bottle()
-    wb:clear()
-    wb:addString("recog")
-    wb:addString("grammarSimple")
-    wb:addString(gram)
-    port:write(wb,reply)
-    return reply
-end
 
 ---------------------------------------
 -- functions Speech Synthesis        --
@@ -294,20 +241,7 @@ end
 
 look_at_angle(azi, ele, ver)
 
-if interaction == "speech" then
-    print ("expanding speech recognizer grammar")
-    ret = true
-    for key, word in pairs(objects) do
-        ret = ret and (SM_RGM_Expand(port_speech_recog, "#Object", word) == "OK")
-    end
-    if ret == false then
-        print("errors expanding the vocabulary")
-    end
-end
-
 speak(port_ispeak, "Roger")
-
-print ("done, ready to receive command via ", interaction)
 
 shouldLook = false
 shouldDraw = false
@@ -319,27 +253,7 @@ drawString = "robot"
 while state ~= "quit" and not interrupting do
 
     local cmd = yarp.Bottle()
-    if interaction == "speech" then
-        local result = SM_Reco_Grammar(port_speech_recog, grammar)
-        print("received REPLY: ", result:toString() )
-        local speechcmd =  result:get(1):asString()
-
-        if speechcmd == "Return" then
-            cmd:addString("home")
-        elseif speechcmd == "See" then
-            cmd:addString("quit")
-        elseif speechcmd == "Look" and result:get(3):asString() == "around" then
-            cmd:addString("look-around")
-        elseif speechcmd == "Look" and result:get(3):asString() == "at" then
-            cmd:addString("look")
-            local object = result:get(7):asString()
-            cmd:addString(object)
-        else
-            print ("cannot recognize the command")
-        end
-    else
-        cmd = port_cmd:read(false)
-    end
+    cmd = port_cmd:read(false)
 
     if cmd ~= nil then
         local cmd_rx = cmd:get(0):asString()
@@ -365,10 +279,10 @@ while state ~= "quit" and not interrupting do
 
                         print ("got as object:", str)
 
-                        if interaction == "speech" then
+                        --if interaction == "speech" then
                             --remove anything that is not aplha...
-                            str = str:gsub("[^a-z.]","")
-                        end
+                        --    str = str:gsub("[^a-z.]","")
+                        --end
 
                         if object == str then
                             found = true
@@ -389,7 +303,7 @@ while state ~= "quit" and not interrupting do
                         look_at_pixel("left",tx,ty)
 
                         speak(port_ispeak, "OK")
-                        
+
                     else
                         print("could not find what you are looking for")
                         speak(port_ispeak, "I can't seem to find this object")
@@ -425,10 +339,10 @@ while state ~= "quit" and not interrupting do
             for i=0,det:size()-1,1 do
                 str = det:get(i):asList():get(5):asString()
 
-                if interaction == "speech" then
+                --if interaction == "speech" then
                     --remove anything that is not aplha...
-                    str = str:gsub("[^a-z.]","")
-                end
+                --    str = str:gsub("[^a-z.]","")
+                --end
 
                 if object == str then
                     found = true
@@ -445,11 +359,11 @@ while state ~= "quit" and not interrupting do
 
     elseif state == "look-around" then
         local det = port_detection:read(false)
-        
+
         if det ~= nil then
             --math.randomseed( os.time() )
             local num = 0
-           
+
             if det:size() > 0 then
                 num = math.random(0, det:size()-1)
             else
@@ -484,7 +398,7 @@ while state ~= "quit" and not interrupting do
             end
 
             if shouldDraw then
-                
+
                 local index
                 local found = false
                 for i=0,det:size()-1,1 do
@@ -498,7 +412,7 @@ while state ~= "quit" and not interrupting do
                     sendDraw(det:get(index):asList():get(0):asInt(), det:get(index):asList():get(1):asInt(),
                         det:get(index):asList():get(2):asInt(), det:get(index):asList():get(3):asInt() )
                 end
-            
+
             end
             yarp.Time_delay(0.1)
         end
@@ -516,7 +430,6 @@ port_detection:close()
 port_gaze_tx:close()
 port_gaze_rx:close()
 port_gaze_rpc:close()
-port_speech_recog:close()
 port_ispeak:close()
 clearDraw()
 port_draw_image:close()
