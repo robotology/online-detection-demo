@@ -49,43 +49,153 @@ port_image_in:open("/detection-image/image:i")
 port_image_out:open("/detection-image/image:o")
 port_cmd:open("/detection-image/cmd:i")
 
-
 shouldDraw = false
 
+topLeftx = {}
+topLefty = {}
+bottomRightx = {}
+bottomRighty = {}
+
+function drawGreen(tlx,tly,brx,bry)
+    for i=tlx, brx do
+            img_out:pixel(i, tly-1).r = 0
+            img_out:pixel(i, tly).r = 0
+            img_out:pixel(i, tly+1).r = 0
+            img_out:pixel(i, tly-1).g = 255
+            img_out:pixel(i, tly).g = 255
+            img_out:pixel(i, tly+1).g = 255
+            img_out:pixel(i, tly-1).b = 0
+            img_out:pixel(i, tly).b = 0
+            img_out:pixel(i, tly+1).b = 0
+        end
+
+        for i=tly, bry do
+            img_out:pixel(brx-1, i).r = 0
+            img_out:pixel(brx, i).r = 0
+            img_out:pixel(brx+1, i).r = 0
+            img_out:pixel(brx-1, i).g = 255
+            img_out:pixel(brx, i).g = 255
+            img_out:pixel(brx+1, i).g = 255
+            img_out:pixel(brx-1, i).b = 0
+            img_out:pixel(brx, i).b = 0
+            img_out:pixel(brx+1, i).b = 0
+        end
+
+        for i=tly, bry do
+            img_out:pixel(tlx-1, i).r = 0
+            img_out:pixel(tlx, i).r = 0
+            img_out:pixel(tlx+1, i).r = 0
+            img_out:pixel(tlx-1, i).g = 255
+            img_out:pixel(tlx, i).g = 255
+            img_out:pixel(tlx+1, i).g = 255
+            img_out:pixel(tlx-1, i).b = 0
+            img_out:pixel(tlx, i).b = 0
+            img_out:pixel(tlx+1, i).b = 0
+        end
+
+        for i=tlx, brx do
+            img_out:pixel(i, bry-1).r = 0
+            img_out:pixel(i, bry).r = 0
+            img_out:pixel(i, bry+1).r = 0
+            img_out:pixel(i, bry-1).g = 255
+            img_out:pixel(i, bry).g = 255
+            img_out:pixel(i, bry+1).g = 255
+            img_out:pixel(i, bry-1).b = 0
+            img_out:pixel(i, bry).b = 0
+            img_out:pixel(i, bry+1).b = 0
+        end
+end
+
+function drawRed(tlx,tly,brx,bry)
+    for i=tlx, brx do
+            img_out:pixel(i, tly-1).r = 255
+            img_out:pixel(i, tly).r = 255
+            img_out:pixel(i, tly+1).r = 255
+            img_out:pixel(i, tly-1).g = 0
+            img_out:pixel(i, tly).g = 0
+            img_out:pixel(i, tly+1).g = 0
+            img_out:pixel(i, tly-1).b = 0
+            img_out:pixel(i, tly).b = 0
+            img_out:pixel(i, tly+1).b = 0
+        end
+
+        for i=tly, bry do
+            img_out:pixel(brx-1, i).r = 255
+            img_out:pixel(brx, i).r = 255
+            img_out:pixel(brx+1, i).r = 255
+            img_out:pixel(brx-1, i).g = 0
+            img_out:pixel(brx, i).g = 0
+            img_out:pixel(brx+1, i).g = 0
+            img_out:pixel(brx-1, i).b = 0
+            img_out:pixel(brx, i).b = 0
+            img_out:pixel(brx+1, i).b = 0
+        end
+
+        for i=tly, bry do
+            img_out:pixel(tlx-1, i).r = 255
+            img_out:pixel(tlx, i).r = 255
+            img_out:pixel(tlx+1, i).r = 255
+            img_out:pixel(tlx-1, i).g = 0
+            img_out:pixel(tlx, i).g = 0
+            img_out:pixel(tlx+1, i).g = 0
+            img_out:pixel(tlx-1, i).b = 0
+            img_out:pixel(tlx, i).b = 0
+            img_out:pixel(tlx+1, i).b = 0
+        end
+
+        for i=tlx, brx do
+            img_out:pixel(i, bry-1).r = 255
+            img_out:pixel(i, bry).r = 255
+            img_out:pixel(i, bry+1).r = 255
+            img_out:pixel(i, bry-1).g = 0
+            img_out:pixel(i, bry).g = 0
+            img_out:pixel(i, bry+1).g = 0
+            img_out:pixel(i, bry-1).b = 0
+            img_out:pixel(i, bry).b = 0
+            img_out:pixel(i, bry+1).b = 0
+        end
+end
+
 while not interrupting do
+    
     img_in  = port_image_in:read()
     img_out = img_in
 
     cmd = port_cmd:read(false)
 
     if cmd ~= nil then
+        print ("size is", cmd:size())
         local cmd_rx = cmd:get(0):asString()
-        print ("command received", cmd_rx)
+        --print ("command received", cmd_rx)
         if cmd_rx == "draw" then
-            topLeftx = cmd:get(1):asInt()
-            topLefty = cmd:get(2):asInt()
-            bottomRightx = cmd:get(3):asInt()
-            bottomRighty = cmd:get(4):asInt()
+            
+            for i=1,cmd:size()-1,1 do
+                topLeftx[i-1] = cmd:get(i):asList():get(0):asInt()
+                topLefty[i-1] = cmd:get(i):asList():get(1):asInt()
+                bottomRightx[i-1] = cmd:get(i):asList():get(2):asInt()
+                bottomRighty[i-1] = cmd:get(i):asList():get(3):asInt()
+           
+                print (topLeftx[i-1], topLefty[i-1], bottomRightx[i-1], bottomRighty[i-1])
+                if bottomRighty[i-1] > 238 then
+                    bottomRighty[i-1] = 235
+                end
 
-            if bottomRighty > 238 then
-                bottomRighty = 235
+                if bottomRightx[i-1] > 318 then
+                    bottomRightx[i-1] = 315
+                end
+
+                if topLeftx[i-1] < 3 then
+                    topLeftx[i-1] = 5
+                end
+
+                if topLefty[i-1] < 3 then
+                    topLefty[i-1] = 5
+                end
+
+                --print ("command received", topLeftx, topLefty, bottomRightx, bottomRighty)
+
+                shouldDraw = true
             end
-
-            if bottomRightx > 318 then
-                bottomRightx = 315
-            end
-
-            if topLeftx < 3 then
-                topLeftx = 5
-            end
-
-            if topLefty < 3 then
-                topLefty = 5
-            end
-
-            print ("command received", topLeftx, topLefty, bottomRightx, bottomRighty)
-
-            shouldDraw = true
         end
         if cmd_rx == "clear" then
             shouldDraw = false
@@ -93,52 +203,13 @@ while not interrupting do
     end
 
     if shouldDraw then
-        for i=topLeftx, bottomRightx do
-            img_out:pixel(i, topLefty-1).r = 0
-            img_out:pixel(i, topLefty).r = 0
-            img_out:pixel(i, topLefty+1).r = 0
-            img_out:pixel(i, topLefty-1).g = 255
-            img_out:pixel(i, topLefty).g = 255
-            img_out:pixel(i, topLefty+1).g = 255
-            img_out:pixel(i, topLefty-1).b = 0
-            img_out:pixel(i, topLefty).b = 0
-            img_out:pixel(i, topLefty+1).b = 0
-        end
-
-        for i=topLefty, bottomRighty do
-            img_out:pixel(bottomRightx-1, i).r = 0
-            img_out:pixel(bottomRightx, i).r = 0
-            img_out:pixel(bottomRightx+1, i).r = 0
-            img_out:pixel(bottomRightx-1, i).g = 255
-            img_out:pixel(bottomRightx, i).g = 255
-            img_out:pixel(bottomRightx+1, i).g = 255
-            img_out:pixel(bottomRightx-1, i).b = 0
-            img_out:pixel(bottomRightx, i).b = 0
-            img_out:pixel(bottomRightx+1, i).b = 0
-        end
-
-        for i=topLefty, bottomRighty do
-            img_out:pixel(topLeftx-1, i).r = 0
-            img_out:pixel(topLeftx, i).r = 0
-            img_out:pixel(topLeftx+1, i).r = 0
-            img_out:pixel(topLeftx-1, i).g = 255
-            img_out:pixel(topLeftx, i).g = 255
-            img_out:pixel(topLeftx+1, i).g = 255
-            img_out:pixel(topLeftx-1, i).b = 0
-            img_out:pixel(topLeftx, i).b = 0
-            img_out:pixel(topLeftx+1, i).b = 0
-        end
-
-        for i=topLeftx, bottomRightx do
-            img_out:pixel(i, bottomRighty-1).r = 0
-            img_out:pixel(i, bottomRighty).r = 0
-            img_out:pixel(i, bottomRighty+1).r = 0
-            img_out:pixel(i, bottomRighty-1).g = 255
-            img_out:pixel(i, bottomRighty).g = 255
-            img_out:pixel(i, bottomRighty+1).g = 255
-            img_out:pixel(i, bottomRighty-1).b = 0
-            img_out:pixel(i, bottomRighty).b = 0
-            img_out:pixel(i, bottomRighty+1).b = 0
+        print (topLeftx[0], topLefty[0], bottomRightx[0], bottomRighty[0])  
+        
+        drawGreen(topLeftx[0],topLefty[0],bottomRightx[0],bottomRighty[0])        
+        
+        for i=1,table.getn(topLeftx),1 do     
+            print (topLeftx[i], topLefty[i], bottomRightx[i], bottomRighty[i])      
+            drawRed(topLeftx[i],topLefty[i],bottomRightx[i],bottomRighty[i])
         end
     end
 

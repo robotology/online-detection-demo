@@ -215,14 +215,18 @@ function look_at_pixel(mode,px,py)
     end
 end
 
-function sendDraw(tlx,tly,btx,bty)
+function sendDraw(bot)
     local cmd = port_draw_image:prepare()
     cmd:clear()
     cmd:addString("draw")
-    cmd:addInt(tlx)
-    cmd:addInt(tly)
-    cmd:addInt(btx)
-    cmd:addInt(bty)
+    for i=0, bot:size()-1,1 do
+        local val = cmd:addList()
+        val:addInt(bot:get(i):asList():get(0):asInt())
+        val:addInt(bot:get(i):asList():get(1):asInt())
+        val:addInt(bot:get(i):asList():get(2):asInt())
+        val:addInt(bot:get(i):asList():get(3):asInt())
+    end   
+    
     port_draw_image:write()
 end
 
@@ -516,8 +520,14 @@ while state ~= "quit" and not interrupting do
             index = indexes[0]            
 
             if index ~=nil and index >= 0 then
-                sendDraw(det:get(index):asList():get(0):asInt(), det:get(index):asList():get(1):asInt(),
-                         det:get(index):asList():get(2):asInt(), det:get(index):asList():get(3):asInt() )
+                local bot = yarp.Bottle()
+                local val = bot:addList()
+                val:addInt(det:get(index):asList():get(0):asInt())
+                val:addInt(det:get(index):asList():get(1):asInt())
+                val:addInt(det:get(index):asList():get(2):asInt())
+                val:addInt(det:get(index):asList():get(3):asInt())
+
+                sendDraw(bot)
             end
         end
         yarp.Time_delay(0.1)
@@ -577,8 +587,14 @@ while state ~= "quit" and not interrupting do
                 index = indexes[0]
 
                 if index ~=nil and index >= 0 then
-                    sendDraw(det:get(index):asList():get(0):asInt(), det:get(index):asList():get(1):asInt(),
-                        det:get(index):asList():get(2):asInt(), det:get(index):asList():get(3):asInt() )
+                    local bot = yarp.Bottle()
+                    local val = bot:addList()
+                    val:addInt(det:get(index):asList():get(0):asInt())
+                    val:addInt(det:get(index):asList():get(1):asInt())
+                    val:addInt(det:get(index):asList():get(2):asInt())
+                    val:addInt(det:get(index):asList():get(3):asInt())
+    
+                    sendDraw(bot)
                 end
             end
             yarp.Time_delay(0.1)
