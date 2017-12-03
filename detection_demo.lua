@@ -237,9 +237,9 @@ function getObjectIndex(det)
     for i=0,det:size()-1,1 do
         str = det:get(i):asList():get(5):asString()
 
-        print ("got as object:", str)
+        --print ("got as object:", str)
 
-        if isSpeech then
+        if isSpeech and state ~= "look-around" then
             --remove anything that is not aplha...
             str = str:gsub("[^a-z.]","")
         end
@@ -346,6 +346,8 @@ shouldLook = false
 shouldDraw = false
 drawString = "robot"
 isSpeech = false
+
+lookedObject = ""
 ---------------------------------------
 -- While loop for various modalities --
 ---------------------------------------
@@ -359,7 +361,8 @@ while state ~= "quit" and not interrupting do
         local cmd_rx = cmd:get(0):asString()
 
         local size = cmd:size();
-        print ("command is ", cmd_rx)
+        print (" ")        
+        print ("***********************command is *********************** ", cmd_rx)
         print ("size is ", size)
 
         local interaction = cmd:get(size-1):asString()
@@ -394,15 +397,21 @@ while state ~= "quit" and not interrupting do
                         local tx = (det:get(index):asList():get(0):asInt() + det:get(index):asList():get(2):asInt()) / 2
                         local ty = (det:get(index):asList():get(1):asInt() + det:get(index):asList():get(3):asInt()) / 2
 
-                        print( "the size is", det:size() )
-                        print( "the chosen one is", index )
+                        local listNames = ""
+                            
+                        for i=0,det:size()-1,1 do
+                            listNames = listNames .. " " .. det:get(i):asList():get(5):asString()
+                        end
+                        print( "the size is", det:size(), listNames )
+
+                        print( "the chosen index is", index )
                         --print( "the string is", str )
                         print( "tx is", tx )
                         print( "ty is", ty )
 
                         look_at_pixel("left",tx,ty)
 
-                        speak(port_ispeak, "OK")
+                        speak(port_ispeak, "OK, looking at the ", object)
 
                     else
                         print("could not find what you are looking for")
@@ -418,7 +427,6 @@ while state ~= "quit" and not interrupting do
             elseif state == "look-around" then
                 speak(port_ispeak, "OK, I will now look around")
                 shouldLook = true
-                shouldLook = false
             elseif state == "closest-to" then
                 object = cmd:get(1):asString()
                 object = object:lower()
@@ -504,9 +512,16 @@ while state ~= "quit" and not interrupting do
                 num = 0
             end
 
+            while det:get(num):asList():get(5):asString() == lookedObject do
+                num = math.random(0, det:size()-1)
+            end            
+
             local det_list = det:get(num):asList()
 
-            local str = det:get(num):asList():get(5):asString()
+            if not shouldDraw then
+                object = det:get(num):asList():get(5):asString()
+                lookedObject = object
+            end 
 
             local tx = (det:get(num):asList():get(0):asInt() + det:get(num):asList():get(2):asInt()) / 2
             local ty = (det:get(num):asList():get(1):asInt() + det:get(num):asList():get(3):asInt()) / 2
@@ -515,18 +530,20 @@ while state ~= "quit" and not interrupting do
 
             if t2 > 4 then
                 shouldLook = true
+                object = det:get(num):asList():get(5):asString()
+                lookedObject = object
             end
 
             if shouldLook then
-                --print( "the size is", det:size() )
+                print( "the size is", det:size() )
                 print( "the chosen one is", num )
-                print( "the string is", str )
+                print( "the string is", object )
                 print( "tx is", tx )
                 print( "ty is", ty )
                 print("should now move the head...")
                 look_at_pixel("left",tx,ty)
                 t1 = os.time()
-                drawString = str
+                drawString = object
                 shouldLook = false
                 shouldDraw = true
             end
@@ -541,7 +558,6 @@ while state ~= "quit" and not interrupting do
                     sendDraw(det:get(index):asList():get(0):asInt(), det:get(index):asList():get(1):asInt(),
                         det:get(index):asList():get(2):asInt(), det:get(index):asList():get(3):asInt() )
                 end
-
             end
             yarp.Time_delay(0.1)
         end
