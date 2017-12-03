@@ -111,6 +111,8 @@ azi = 0.0
 ele = -50.0
 ver = 5.0
 
+index = -1
+
 ---------------------------------------
 -- functions Speech Synthesis        --
 ---------------------------------------
@@ -233,7 +235,8 @@ end
 
 
 function getObjectIndex(det)
-    local index = -1
+    local indexes = {}
+    local count = 0
     for i=0,det:size()-1,1 do
         str = det:get(i):asList():get(5):asString()
 
@@ -245,16 +248,18 @@ function getObjectIndex(det)
         end
 
         if object == str then
-            index = i
+            indexes[count] = i
+            count = count + 1
         end
+        
     end
-    return index
+    return indexes
 end
 
 
 function getClosestObject(det)
     
-    index = getObjectIndex(det)
+    selectObject(det)
 
     print("getClosestObject for index is ", index, object)
     local objtx = 0
@@ -293,10 +298,34 @@ function getClosestObject(det)
     return returnStr
 end
 
+function selectObject(det)
+    local indexes
+                    
+    indexes = getObjectIndex(det)
+
+    print("size of indexes ", table.getn(indexes))
+
+    if indexes ~= nil and table.getn(indexes) >= 0 then
+        
+        if table.getn(indexes) > 0 then
+            speak(port_ispeak, "I have found " .. table.getn(indexes)+1 .. object .. "s" )
+            index = indexes[ math.random(0, table.getn(indexes))]
+            speak(port_ispeak, "I randomly chose " .. det:get(index):asList():get(5):asString())
+            object = det:get(index):asList():get(5):asString()
+            isSpeech = false
+        else
+            index = indexes[0]
+        end
+    else
+        print("could not find what you are looking for")
+        speak(port_ispeak, "I can't seem to find this object")
+    end
+end
 
 function getObjectsAround(det)
 
-    index = getObjectIndex(det)
+    selectObject(det)
+
     local objectList = yarp.Bottle()
     print("getClosestObject for index is ", index, object)
 
@@ -322,7 +351,7 @@ function getObjectsAround(det)
             
             print ("got as distance ", distance, det:get(i):asList():get(5):asString())
             
-            if distance < 4000 then
+            if distance < 5000 then
                 objectList:addString(det:get(i):asList():get(5):asString())
             end                         
         end
@@ -389,34 +418,28 @@ while state ~= "quit" and not interrupting do
 
                 local det = port_detection:read(true)
                 if det ~= nil then
-                    local index
-      
-                    index = getObjectIndex(det)
-                    
-                    if index >= 0 then
-                        local tx = (det:get(index):asList():get(0):asInt() + det:get(index):asList():get(2):asInt()) / 2
-                        local ty = (det:get(index):asList():get(1):asInt() + det:get(index):asList():get(3):asInt()) / 2
 
-                        local listNames = ""
-                            
-                        for i=0,det:size()-1,1 do
-                            listNames = listNames .. " " .. det:get(i):asList():get(5):asString()
-                        end
-                        print( "the size is", det:size(), listNames )
+                    selectObject(det)
+ 
+                    local tx = (det:get(index):asList():get(0):asInt() + det:get(index):asList():get(2):asInt()) / 2
+                    local ty = (det:get(index):asList():get(1):asInt() + det:get(index):asList():get(3):asInt()) / 2
 
-                        print( "the chosen index is", index )
-                        --print( "the string is", str )
-                        print( "tx is", tx )
-                        print( "ty is", ty )
-
-                        look_at_pixel("left",tx,ty)
-
-                        speak(port_ispeak, "OK, looking at the ", object)
-
-                    else
-                        print("could not find what you are looking for")
-                        speak(port_ispeak, "I can't seem to find this object")
+                    local listNames = ""
+                        
+                    for i=0,det:size()-1,1 do
+                        listNames = listNames .. " " .. det:get(i):asList():get(5):asString()
                     end
+                    print( "the size is", det:size(), listNames )
+
+                    print( "the chosen index is", index )
+                    --print( "the string is", str )
+                    print( "tx is", tx )
+                    print( "ty is", ty )
+
+                    look_at_pixel("left",tx,ty)
+
+                    speak(port_ispeak, "looking at the " .. object)
+                                
                 end
 
             elseif state == "home" then
@@ -488,11 +511,11 @@ while state ~= "quit" and not interrupting do
 
         local det = port_detection:read(true)
         if det ~= nil then
-            local index
-            
-            index = getObjectIndex(det)
+            local indexes = getObjectIndex(det)
 
-            if index >= 0 then
+            index = indexes[0]            
+
+            if index ~=nil and index >= 0 then
                 sendDraw(det:get(index):asList():get(0):asInt(), det:get(index):asList():get(1):asInt(),
                          det:get(index):asList():get(2):asInt(), det:get(index):asList():get(3):asInt() )
             end
@@ -550,11 +573,10 @@ while state ~= "quit" and not interrupting do
 
             if shouldDraw then
 
-                local index
-                
-                index = getObjectIndex(det)
+                local indexes = getObjectIndex(det)
+                index = indexes[0]
 
-                if index >= 0 then
+                if index ~=nil and index >= 0 then
                     sendDraw(det:get(index):asList():get(0):asInt(), det:get(index):asList():get(1):asInt(),
                         det:get(index):asList():get(2):asInt(), det:get(index):asList():get(3):asInt() )
                 end
