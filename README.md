@@ -1,7 +1,7 @@
 # detection-demo
 ==========================
 
-This repo contains a **lua** code that acts as a manager for @Arya07's **detection-demo**. 
+This repo contains **lua** scripts that act as manager for @Arya07's **detection-demo**. 
 
 # Progress on detection demo
 Project updates can be found [here](https://github.com/vtikha/detection-demo/projects/1?)
