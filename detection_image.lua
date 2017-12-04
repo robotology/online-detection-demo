@@ -167,6 +167,13 @@ while not interrupting do
         print ("size is", cmd:size())
         local cmd_rx = cmd:get(0):asString()
         --print ("command received", cmd_rx)
+
+        print("COMMAND ", cmd:toString())
+        topLeftx = {}
+        topLefty = {}
+        bottomRightx = {}
+        bottomRighty = {}
+
         if cmd_rx == "draw" then
             
             for i=1,cmd:size()-1,1 do
@@ -203,12 +210,13 @@ while not interrupting do
     end
 
     if shouldDraw then
-        print (topLeftx[0], topLefty[0], bottomRightx[0], bottomRighty[0])  
+        --print (topLeftx[0], topLefty[0], bottomRightx[0], bottomRighty[0])  
         
         drawGreen(topLeftx[0],topLefty[0],bottomRightx[0],bottomRighty[0])        
         
+        
         for i=1,table.getn(topLeftx),1 do     
-            print (topLeftx[i], topLefty[i], bottomRightx[i], bottomRighty[i])      
+            --print (topLeftx[i], topLefty[i], bottomRightx[i], bottomRighty[i])      
             drawRed(topLeftx[i],topLefty[i],bottomRightx[i],bottomRighty[i])
         end
     end

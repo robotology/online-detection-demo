@@ -238,6 +238,26 @@ function clearDraw()
 end
 
 
+function getObjectBB(det, objName)
+    
+    local objectList = yarp.Bottle()
+
+    for i=0,det:size()-1,1 do
+        str = det:get(i):asList():get(5):asString()
+
+        if str == objName then
+            
+            objectList:addInt(det:get(i):asList():get(0):asInt())
+            objectList:addInt(det:get(i):asList():get(1):asInt())
+            objectList:addInt(det:get(i):asList():get(2):asInt())
+            objectList:addInt(det:get(i):asList():get(3):asInt())
+        end
+        
+    end
+    return objectList
+end
+
+
 function getObjectIndex(det)
     local indexes = {}
     local count = 0
@@ -309,7 +329,7 @@ function selectObject(det)
 
     print("size of indexes ", table.getn(indexes))
 
-    if indexes ~= nil and table.getn(indexes) >= 0 then
+    if indexes[0] ~= nil and table.getn(indexes) >= 0 then
         
         if table.getn(indexes) > 0 then
             speak(port_ispeak, "I have found " .. table.getn(indexes)+1 .. object .. "s" )
@@ -381,6 +401,10 @@ drawString = "robot"
 isSpeech = false
 
 lookedObject = ""
+
+multipleName = yarp.Bottle()
+multipleDraw = yarp.Bottle()
+
 ---------------------------------------
 -- While loop for various modalities --
 ---------------------------------------
@@ -412,6 +436,9 @@ while state ~= "quit" and not interrupting do
             cmd_rx == "home" or cmd_rx == "quit" or 
              cmd_rx == "closest-to" or cmd_rx == "where-is" then
 
+            clearDraw()
+            multipleDraw:clear()
+            multipleName:clear()
             state = cmd_rx
 
             if state == "look" then
@@ -467,6 +494,9 @@ while state ~= "quit" and not interrupting do
                     else
                         tosay = "The closest object is the " .. name 
                     end
+                    multipleName:clear()
+                    multipleName:addString(name)
+
                     state = "look"
                     speak(port_ispeak, tosay)
                 end
@@ -478,6 +508,7 @@ while state ~= "quit" and not interrupting do
                 if det ~= nil then
                     local list = yarp.Bottle()
                     list = getObjectsAround(det)
+                    multipleName:clear()
                     
                     print("size of near objects is ", list:size() )
                     
@@ -495,6 +526,7 @@ while state ~= "quit" and not interrupting do
                                 tosay = tosay .. " and the "
                             end
                             tosay = tosay .. list:get(i):asString()
+                            multipleName:addString(list:get(i):asString())
                         end
                         print(tosay)
                         speak(port_ispeak, tosay)
@@ -517,8 +549,18 @@ while state ~= "quit" and not interrupting do
         if det ~= nil then
             local indexes = getObjectIndex(det)
 
-            index = indexes[0]            
+            index = indexes[0]         
 
+            multipleDraw:clear()
+            
+            for i=0,multipleName:size()-1,1 do
+                local elements = multipleDraw:addList()
+                local bbs = getObjectBB(det, multipleName:get(i):asString())
+                for i=0,bbs:size()-1,1 do
+                    elements:addInt(bbs:get(i):asInt()) 
+                end
+            end
+            
             if index ~=nil and index >= 0 then
                 local bot = yarp.Bottle()
                 local val = bot:addList()
@@ -526,6 +568,16 @@ while state ~= "quit" and not interrupting do
                 val:addInt(det:get(index):asList():get(1):asInt())
                 val:addInt(det:get(index):asList():get(2):asInt())
                 val:addInt(det:get(index):asList():get(3):asInt())
+
+                for i=0,multipleDraw:size()-1,1 do
+                    local val = bot:addList()
+                    val:addInt(multipleDraw:get(i):asList():get(0):asInt())
+                    val:addInt(multipleDraw:get(i):asList():get(1):asInt())
+                    val:addInt(multipleDraw:get(i):asList():get(2):asInt())
+                    val:addInt(multipleDraw:get(i):asList():get(3):asInt())
+                end
+
+                --print(bot:toString())
 
                 sendDraw(bot)
             end
