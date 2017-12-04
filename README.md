@@ -26,9 +26,15 @@ This manager script has various behaviours and accepts the following commands vi
 
 This command enables an autonomous looking around behavior depending on the number of object detections. It gets the lists of detections and randomly choses where to look. 
 
-- **look #objectName** or spoken **look at the #objectName**:
+- **where-is #objectName** or spoken **Where is the #objectName**:
 
-This enables the robots to focalise on one object chosen by the user. The user must provide the name of the target and the robot will move the head accordingly.
+This enables the robots to localise on one object chosen by the user. The robot will then use the spatial information to verbally locate the object with respect to others in the scene. Eg: The #targetObject is next to #objectName and the #objectName 
+
+- **closest-to #objectName** or spoken **What is close to the #ObjectName**:
+
+This enables the robots to localise on one object chosen by the user and locate the closest object to it. The robot will then use the spatial information to locate the closest object in the scene. Eg: The #targetObject is next to #objectName and the #objectName 
+
+- **look #objectName** or spoken **look at the #objectName**:
 
 - **home** or spoken **go home**:
 
