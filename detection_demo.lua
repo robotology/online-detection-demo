@@ -345,6 +345,7 @@ function selectObject(det)
     else
         print("could not find what you are looking for")
         speak(port_ispeak, "I can't seem to find this object")
+        index = -1
     end
 end
 
@@ -453,25 +454,28 @@ while state ~= "quit" and not interrupting do
                 if det ~= nil then
 
                     selectObject(det)
+                
+                    if index >= 0 then
  
-                    local tx = (det:get(index):asList():get(0):asInt() + det:get(index):asList():get(2):asInt()) / 2
-                    local ty = (det:get(index):asList():get(1):asInt() + det:get(index):asList():get(3):asInt()) / 2
+                        local tx = (det:get(index):asList():get(0):asInt() + det:get(index):asList():get(2):asInt()) / 2
+                        local ty = (det:get(index):asList():get(1):asInt() + det:get(index):asList():get(3):asInt()) / 2
 
-                    local listNames = ""
-                        
-                    for i=0,det:size()-1,1 do
-                        listNames = listNames .. " " .. det:get(i):asList():get(5):asString()
-                    end
-                    print( "the size is", det:size(), listNames )
+                        local listNames = ""
+                            
+                        for i=0,det:size()-1,1 do
+                            listNames = listNames .. " " .. det:get(i):asList():get(5):asString()
+                        end
+                        print( "the size is", det:size(), listNames )
 
-                    print( "the chosen index is", index )
-                    --print( "the string is", str )
-                    print( "tx is", tx )
-                    print( "ty is", ty )
+                        print( "the chosen index is", index )
+                        --print( "the string is", str )
+                        print( "tx is", tx )
+                        print( "ty is", ty )
 
-                    look_at_pixel("left",tx,ty)
+                        look_at_pixel("left",tx,ty)
 
-                    speak(port_ispeak, "looking at the " .. object)
+                        speak(port_ispeak, "looking at the " .. object)
+                     end
                                 
                 end
 
