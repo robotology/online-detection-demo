@@ -295,22 +295,24 @@ function getClosestObject(det)
     
     local mindist = 10000000
     local minindex =-1
-    for i=0,det:size()-1,1 do
-        if i ~= index then
-            local thistx = (det:get(i):asList():get(0):asInt() + det:get(i):asList():get(2):asInt()) / 2
-            local thisty = (det:get(i):asList():get(1):asInt() + det:get(i):asList():get(3):asInt()) / 2      
-            
-            local distancex = math.abs(objtx-thistx)
-            local distancey = math.abs(objty-thisty)
-            
-            local distance = (distancex*distancex) + (distancey*distancey) 
-            
-            print ("got as distance ", distance, det:get(i):asList():get(5):asString())
-            
-            if distance < mindist then
-                mindist = distance
-                minindex = i
-            end                         
+    if index >= 0 then
+        for i=0,det:size()-1,1 do
+            if i ~= index then
+                local thistx = (det:get(i):asList():get(0):asInt() + det:get(i):asList():get(2):asInt()) / 2
+                local thisty = (det:get(i):asList():get(1):asInt() + det:get(i):asList():get(3):asInt()) / 2      
+                
+                local distancex = math.abs(objtx-thistx)
+                local distancey = math.abs(objty-thisty)
+                
+                local distance = (distancex*distancex) + (distancey*distancey) 
+                
+                print ("got as distance ", distance, det:get(i):asList():get(5):asString())
+                
+                if distance < mindist then
+                    mindist = distance
+                    minindex = i
+                end                         
+            end
         end
     end
     local returnStr
