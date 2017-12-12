@@ -271,6 +271,7 @@ function getObjectIndex(det)
             str = str:gsub("[^a-z.]","")
         end
 
+        --print ("got as object:", str, object)
         if object == str then
             indexes[count] = i
             count = count + 1
@@ -587,6 +588,7 @@ while state ~= "quit" and not interrupting do
 
                 sendDraw(bot)
             end
+            clearDraw()
         end
         yarp.Time_delay(0.1)
 
@@ -594,7 +596,8 @@ while state ~= "quit" and not interrupting do
         local det = port_detection:read(false)
 
         if det ~= nil then
-            --math.randomseed( os.time() )
+            math.randomseed( os.time() )
+            math.random(); math.random(); math.random()
             local num = 0
 
             if det:size() > 0 then
