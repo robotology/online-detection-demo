@@ -322,6 +322,9 @@ function getClosestObject(det)
     else
         returnStr = det:get(minindex):asList():get(5):asString()
     end
+    if index < 0 then
+        returnStr = "notFound"  
+    end
     return returnStr
 end
 
@@ -345,7 +348,7 @@ function selectObject(det)
         end
     else
         print("could not find what you are looking for")
-        speak(port_ispeak, "I can't seem to find this object")
+        --speak(port_ispeak, "I can't seem to find this object")
         index = -1
     end
 end
@@ -401,6 +404,8 @@ speak(port_ispeak, "Roger")
 
 shouldLook = false
 shouldDraw = false
+drawNearObjs = false
+drawCloseObj = false
 drawString = "robot"
 isSpeech = false
 
@@ -450,9 +455,14 @@ while state ~= "quit" and not interrupting do
                 object = cmd:get(1):asString()
                 object = object:lower()
                 print ("object chosen is", object)
+                drawNearObjs = false
+                drawCloseObj = false
 
-                local det = port_detection:read(true)
+                local det = port_detection:read(false)
+                    
                 if det ~= nil then
+                    print("looping det ", det:size())
+                    print("det not nil")
 
                     selectObject(det)
                 
@@ -476,8 +486,10 @@ while state ~= "quit" and not interrupting do
                         look_at_pixel("left",tx,ty)
 
                         speak(port_ispeak, "looking at the " .. object)
-                     end
-                                
+                     end      
+                else
+                    print("det nil")
+                    speak(port_ispeak, "I do not see any objects") 
                 end
 
             elseif state == "home" then
@@ -491,37 +503,46 @@ while state ~= "quit" and not interrupting do
             elseif state == "closest-to" then
                 object = cmd:get(1):asString()
                 object = object:lower()
-                local det = port_detection:read(true)
+                local det = port_detection:read(false)
 
                 if det ~= nil then
                     local name = getClosestObject(det)
                     local tosay                    
                     if name == "none" then
                         tosay = "There is nothing close to the " .. object
+                    elseif name == "notFound" then
+                        tosay = "I can't seem to find the " .. object 
                     else
                         tosay = "The closest object is the " .. name 
                     end
-                    multipleName:clear()
-                    multipleName:addString(name)
+                    --multipleName:clear()
+                    --multipleName:addString(name)
+                    drawCloseObj = true
+                    drawNearObjs = false
 
                     state = "look"
                     speak(port_ispeak, tosay)
+                else
+                    print("det nil")
+                    speak(port_ispeak, "I do not see any objects") 
                 end
             elseif state == "where-is" then
                 object = cmd:get(1):asString()
                 object = object:lower()
-                local det = port_detection:read(true)
+                local det = port_detection:read(false)
 
                 if det ~= nil then
                     local list = yarp.Bottle()
                     list = getObjectsAround(det)
-                    multipleName:clear()
-                    
+                    --multipleName:clear()
+                    drawNearObjs = true
+                    drawCloseObj = false
                     print("size of near objects is ", list:size() )
                     
                     if list:get(0):asString() == "none" then 
                         local tosay = "I cannot see the " .. object
                         speak(port_ispeak, tosay)
+                        state = "look"
                     elseif list:size() < 1 and list:get(0):asString() ~= "none" then
                         local tosay = "Here is the  " .. object
                         speak(port_ispeak, tosay)
@@ -533,12 +554,16 @@ while state ~= "quit" and not interrupting do
                                 tosay = tosay .. " and the "
                             end
                             tosay = tosay .. list:get(i):asString()
-                            multipleName:addString(list:get(i):asString())
+                            --multipleName:addString(list:get(i):asString())
+                           
                         end
                         print(tosay)
                         speak(port_ispeak, tosay)
                         state = "look"
                     end
+                else
+                    print("det nil")
+                    speak(port_ispeak, "I do not see any objects") 
                 end
             end
         else
@@ -552,14 +577,29 @@ while state ~= "quit" and not interrupting do
 
     elseif state == "look" then
 
-        local det = port_detection:read(true)
+        local det = port_detection:read(false)
         if det ~= nil then
             local indexes = getObjectIndex(det)
 
             index = indexes[0]         
-
             multipleDraw:clear()
+
+            if drawCloseObj then
+                local name = getClosestObject(det)
+                multipleName:clear()
+                multipleName:addString(name)
+            end
             
+            if drawNearObjs then 
+
+                local list = getObjectsAround(det)
+                multipleName:clear()
+
+                for i=0,list:size()-1,1 do
+                    multipleName:addString(list:get(i):asString())
+                end
+            end
+
             for i=0,multipleName:size()-1,1 do
                 local elements = multipleDraw:addList()
                 local bbs = getObjectBB(det, multipleName:get(i):asString())
@@ -568,6 +608,7 @@ while state ~= "quit" and not interrupting do
                 end
             end
             
+                
             if index ~=nil and index >= 0 then
                 local bot = yarp.Bottle()
                 local val = bot:addList()
@@ -588,6 +629,7 @@ while state ~= "quit" and not interrupting do
 
                 sendDraw(bot)
             end
+            
             clearDraw()
         end
         yarp.Time_delay(0.1)
