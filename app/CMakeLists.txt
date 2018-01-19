@@ -6,6 +6,7 @@ cmake_minimum_required(VERSION 2.6)
 set(PROJECTNAME detection-lua)
 
 file(GLOB scripts ${CMAKE_CURRENT_SOURCE_DIR}/scripts/*.xml)
+
 set(lua_bin       ${CMAKE_CURRENT_SOURCE_DIR}/../detection_demo.lua
                   ${CMAKE_CURRENT_SOURCE_DIR}/../detection_image.lua
                   ${CMAKE_CURRENT_SOURCE_DIR}/../detection_speech_helper.lua)

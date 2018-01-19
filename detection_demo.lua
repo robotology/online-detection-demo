@@ -108,8 +108,14 @@ if ret == false then
 end
 
 azi = 0.0
-ele = -50.0
+ele = 0.0
 ver = 5.0
+
+if whichRobot == "icub" then
+    ele = -36.0
+else
+    ele = -50.0
+end
 
 index = -1
 
@@ -709,7 +715,14 @@ while state ~= "quit" and not interrupting do
 end
 
 clearDraw()
-look_at_angle(0,-50,5)
+
+if whichRobot == "icub" then
+    look_at_angle(0,-36,5)
+else
+    look_at_angle(0,-50,5)
+end
+
+
 speak(port_ispeak, "Bye bye")
 
 port_cmd:close()
