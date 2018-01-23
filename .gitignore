@@ -13,9 +13,13 @@ models/
 data/
 datasets/
 external/caffe/matlab
+external/
 output/
 cachedir/
 imdb/cache
+to_remove.txt
+feat_cache/
+cache_classifiers/
 *.caffemodel
 *.mat
 
