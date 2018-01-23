@@ -51,14 +51,16 @@ function [image_roidb, means, stds] = append_bbox_regression_targets(conf, image
     image_roidb_cell = num2cell(image_roidb, 2);
     bbox_targets = cell(num_images, 1);
     parfor i = 1:num_images
+
         % for fcn, anchors are concated as [channel, height, width], where channel is the fastest dimension.
        [anchors, im_scales] = proposal_locate_anchors(conf, image_roidb_cell{i}.im_size);
         
        gt_rois = image_roidb_cell{i}.boxes;
        gt_labels = image_roidb_cell{i}.class;
        im_size = image_roidb_cell{i}.im_size;
-       bbox_targets{i} = cellfun(@(x, y) ...
-           compute_targets(conf, scale_rois(gt_rois, im_size, y), gt_labels,  x, image_roidb_cell{i}, y), ...
+%        fprintf(int2str(i));
+
+       bbox_targets{i} = cellfun(@(x, y) compute_targets(conf, scale_rois(gt_rois, im_size, y), gt_labels,  x, image_roidb_cell{i}, y), ...
            anchors, im_scales, 'UniformOutput', false);
     end
     clear image_roidb_cell;

@@ -18,12 +18,13 @@ function aboxes = proposal_test(conf, imdb, varargin)
                                                         @isstr);
                                                     
     ip.addParamValue('suffix',          '',             @isstr);
+    ip.addParamValue('output_dir',          'output',             @isstr);
     
     ip.parse(conf, imdb, varargin{:});
     opts = ip.Results;
     
 
-    cache_dir = fullfile(pwd, 'output', 'rpn_cachedir', opts.cache_name, imdb.name);
+    cache_dir = fullfile(pwd, opts.output_dir, 'rpn_cachedir', opts.cache_name, imdb.name);
     try
         % try to load cache
         ld = load(fullfile(cache_dir, ['proposal_boxes_' imdb.name opts.suffix]));

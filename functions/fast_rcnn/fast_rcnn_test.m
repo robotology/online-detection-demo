@@ -17,13 +17,15 @@ function mAP = fast_rcnn_test(conf, imdb, roidb, varargin)
     ip.addParamValue('cache_name',      '', 			@isstr);                                         
     ip.addParamValue('suffix',          '',             @isstr);
     ip.addParamValue('ignore_cache',    false,          @islogical);
+    ip.addParamValue('output_dir',          'output',             @isstr);
+
     
     ip.parse(conf, imdb, roidb, varargin{:});
     opts = ip.Results;
     
 
 %%  set cache dir
-    cache_dir = fullfile(pwd, 'output', 'fast_rcnn_cachedir', opts.cache_name, imdb.name);
+    cache_dir = fullfile(pwd, opts.output_dir, 'fast_rcnn_cachedir', opts.cache_name, imdb.name);
     mkdir_if_missing(cache_dir);
 
 %%  init log
@@ -165,7 +167,7 @@ function mAP = fast_rcnn_test(conf, imdb, roidb, varargin)
     % Peform AP evaluation
     % ------------------------------------------------------------------------
 
-    if isequal(imdb.eval_func, @imdb_eval_icub)
+    if isequal(imdb.eval_func, @imdb_eval_voc_reduced)
         for model_ind = 1:num_classes
           cls = imdb.classes{model_ind};
           res(model_ind) = imdb.eval_func(cls, aboxes{model_ind}, imdb, opts.cache_name, opts.suffix);

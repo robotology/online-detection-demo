@@ -65,16 +65,17 @@ ICUBopts.detrespath=[ICUBopts.resdir 'Main/%s_det_' ICUBopts.testset '_%s.txt'];
 
 ICUBopts.classes={... %ELISA todo
 %     '__background__'
+    'soapdispenser5'
     'ringbinder4'
     'flower7'
-    'perfume1'
-    'hairclip2'
-    'hairbrush3'
-    'sunglasses7' 
-    'sodabottle2'
-    'soapdispenser5'
-    'ovenglove7'
-    'remote7'};
+%     'perfume1'
+%     'hairclip2'
+%     'hairbrush3'
+%     'sunglasses7' 
+%     'sodabottle2'
+%     'ovenglove7'
+%     'remote7'
+};
 
 ICUBopts.nclasses=length(ICUBopts.classes);	
 

@@ -17,7 +17,7 @@ opts.gpu_id                 = auto_select_gpu;
 active_caffe_mex(opts.gpu_id, opts.caffe_version);
 
 % do validation, or not 
-opts.do_val                 = true; 
+opts.do_val                 = false; 
 % model
 model                       = Model.ZF_for_Faster_RCNN_VOC2007;
 % cache base
@@ -25,9 +25,13 @@ cache_base_proposal         = 'faster_rcnn_VOC2007_ZF';
 cache_base_fast_rcnn        = '';
 % train/test data
 dataset                     = [];
-use_flipped                 = true;
-dataset                     = Dataset.voc2007_trainval(dataset, 'train', use_flipped);
+use_flipped                 = false;
+removed_classes          = {'cat','chair','cow','diningtable','dog','horse','motorbike','person','pottedplant','sheep','sofa','train','tvmonitor'};
+
+dataset                     = Dataset.voc2007_train(dataset, 'train', use_flipped, removed_classes);
+% dataset.imdb_train{1} = imdb_new;
 dataset                     = Dataset.voc2007_test(dataset, 'test', false);
+output_dir                  = 'output';
 
 %% -------------------- TRAIN --------------------
 % conf
@@ -42,37 +46,38 @@ model                       = Faster_RCNN_Train.set_cache_folder(cache_base_prop
 %%  stage one proposal
 fprintf('\n***************\nstage one proposal \n***************\n');
 % train
-model.stage1_rpn            = Faster_RCNN_Train.do_proposal_train(conf_proposal, dataset, model.stage1_rpn, opts.do_val);
+model.stage1_rpn            = Faster_RCNN_Train.do_proposal_train(conf_proposal, dataset, model.stage1_rpn, opts.do_val, output_dir);
 % test
-dataset.roidb_train        	= cellfun(@(x, y) Faster_RCNN_Train.do_proposal_test(conf_proposal, model.stage1_rpn, x, y), dataset.imdb_train, dataset.roidb_train, 'UniformOutput', false);
-dataset.roidb_test        	= Faster_RCNN_Train.do_proposal_test(conf_proposal, model.stage1_rpn, dataset.imdb_test, dataset.roidb_test);
+dataset.roidb_train        	= cellfun(@(x, y) Faster_RCNN_Train.do_proposal_test(conf_proposal, model.stage1_rpn, output_dir, x, y),  dataset.imdb_train, dataset.roidb_train, 'UniformOutput', false);
+% dataset.roidb_train        	= cellfun(@(x, y) Faster_RCNN_Train.do_proposal_test(conf_proposal, model.stage1_rpn, x, y), dataset.imdb_train, dataset.roidb_train, 'UniformOutput', false);
+% dataset.roidb_test        	= Faster_RCNN_Train.do_proposal_test(conf_proposal, model.stage1_rpn, dataset.imdb_test, dataset.roidb_test);
 
 %%  stage one fast rcnn
 fprintf('\n***************\nstage one fast rcnn\n***************\n');
 % train
-model.stage1_fast_rcnn      = Faster_RCNN_Train.do_fast_rcnn_train(conf_fast_rcnn, dataset, model.stage1_fast_rcnn, opts.do_val);
+model.stage1_fast_rcnn      = Faster_RCNN_Train.do_fast_rcnn_train(conf_fast_rcnn, dataset, model.stage1_fast_rcnn, opts.do_val, output_dir);
 % test
-opts.mAP                    = Faster_RCNN_Train.do_fast_rcnn_test(conf_fast_rcnn, model.stage1_fast_rcnn, dataset.imdb_test, dataset.roidb_test);
+% opts.mAP                    = Faster_RCNN_Train.do_fast_rcnn_test(conf_fast_rcnn, model.stage1_fast_rcnn, dataset.imdb_test, dataset.roidb_test);
 
 %%  stage two proposal
 % net proposal
 fprintf('\n***************\nstage two proposal\n***************\n');
 % train
 model.stage2_rpn.init_net_file = model.stage1_fast_rcnn.output_model_file;
-model.stage2_rpn            = Faster_RCNN_Train.do_proposal_train(conf_proposal, dataset, model.stage2_rpn, opts.do_val);
+model.stage2_rpn            = Faster_RCNN_Train.do_proposal_train(conf_proposal, dataset, model.stage2_rpn, opts.do_val, output_dir);
 % test
-dataset.roidb_train       	= cellfun(@(x, y) Faster_RCNN_Train.do_proposal_test(conf_proposal, model.stage2_rpn, x, y), dataset.imdb_train, dataset.roidb_train, 'UniformOutput', false);
-dataset.roidb_test       	= Faster_RCNN_Train.do_proposal_test(conf_proposal, model.stage2_rpn, dataset.imdb_test, dataset.roidb_test);
+dataset.roidb_train       	= cellfun(@(x, y) Faster_RCNN_Train.do_proposal_test(conf_proposal, model.stage2_rpn,output_dir, x, y), dataset.imdb_train, dataset.roidb_train, 'UniformOutput', false);
+% dataset.roidb_test       	= Faster_RCNN_Train.do_proposal_test(conf_proposal, model.stage2_rpn, dataset.imdb_test, dataset.roidb_test);
 
 %%  stage two fast rcnn
 fprintf('\n***************\nstage two fast rcnn\n***************\n');
 % train
 model.stage2_fast_rcnn.init_net_file = model.stage1_fast_rcnn.output_model_file;
-model.stage2_fast_rcnn      = Faster_RCNN_Train.do_fast_rcnn_train(conf_fast_rcnn, dataset, model.stage2_fast_rcnn, opts.do_val);
+model.stage2_fast_rcnn      = Faster_RCNN_Train.do_fast_rcnn_train(conf_fast_rcnn, dataset, model.stage2_fast_rcnn, opts.do_val, output_dir);
 
 %% final test
 fprintf('\n***************\nfinal test\n***************\n');
-     
+ save('VOC2007_trained_ZF_80k60k_meanVOC_19objs')  %save workspace
 model.stage2_rpn.nms        = model.final_test.nms;
 dataset.roidb_test       	= Faster_RCNN_Train.do_proposal_test(conf_proposal, model.stage2_rpn, dataset.imdb_test, dataset.roidb_test);
 opts.final_mAP              = Faster_RCNN_Train.do_fast_rcnn_test(conf_fast_rcnn, model.stage2_fast_rcnn, dataset.imdb_test, dataset.roidb_test);

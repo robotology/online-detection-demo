@@ -1,4 +1,4 @@
-function feat = cnn_features(conf, im, boxes, caffe_net, cnn_model)
+function feat = cnn_features(conf, im, boxes, caffe_net, cnn_model, layer)
 % feat = rcnn_features(im, boxes, cnn_model)
 %   Compute CNN features on a set of boxes.
 %
@@ -19,7 +19,7 @@ function feat = cnn_features(conf, im, boxes, caffe_net, cnn_model)
 %% Faster RCNN
 
 %%  init log
-cache_dir = cnn_model.cache_name;
+cache_dir = 'cacheFake';
 timestamp = datestr(datevec(now()), 'yyyymmdd_HHMMSS');
 mkdir_if_missing(fullfile(cache_dir, 'log'));
 log_file = fullfile(cache_dir, 'log', ['test_', timestamp, '.txt']);
@@ -59,11 +59,7 @@ feat_dim = -1;
 feat = [];
 curr = 1;
 batch_size = 256;
-% if total_rois > max_rois_num_in_gpu
-%     batch_size = max_rois_num_in_gpu;
-% else
-%     batch_size = total_rois;
-% end
+
 batch_padding = calculate_batch_padding(total_rois, batch_size);
 
 for i = 1:ceil(total_rois / batch_size)
@@ -77,13 +73,19 @@ for i = 1:ceil(total_rois / batch_size)
     % Reshape net's input blobs
     caffe_net.reshape_as_input(net_inputs);
     scores = caffe_net.forward(net_inputs);
-%     scores = scores{1};
-    f = caffe_net.blobs('pool5').get_data(); %14 = fc7 to check
+    f = caffe_net.blobs(layer).get_data(); %14 = fc7 to check
     f = f(:);
     
     % first batch, init feat_dim and feat
     if i == 1
-      feat_dim = length(f)/batch_size;
+        if layer == 'fc7'
+            feat_dim = 4096;
+        elseif layer == 'pool5'
+            feat_dim = 9216;
+        else
+            error('Error: unrecognized layer');
+        end
+%       feat_dim = length(f)/batch_size;
       feat = zeros(size(boxes, 1), feat_dim, 'single');
     end
     other_dim = batch_size;
@@ -102,6 +104,7 @@ for i = 1:ceil(total_rois / batch_size)
     curr = curr + batch_size;
 
 end
+feat = feat(inv_index, :);
 end
 
 function [data_blob, rois_blob, im_scale_factors] = get_blobs(conf, im, rois)

@@ -1,5 +1,5 @@
-function gather_rpn_fast_rcnn_models(conf_proposal, conf_fast_rcnn, model, dataset)
-    cachedir = fullfile(pwd, 'output', 'faster_rcnn_final', model.final_model.cache_name);
+function gather_rpn_fast_rcnn_models(conf_proposal, conf_fast_rcnn, model, dataset, output_dir)
+    cachedir = fullfile(pwd, output_dir, 'faster_rcnn_final', model.final_model.cache_name);
     mkdir_if_missing(cachedir);
     
     % find latest model for rpn and fast rcnn

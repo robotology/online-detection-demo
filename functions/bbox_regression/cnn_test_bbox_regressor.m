@@ -1,7 +1,10 @@
 function [ res ] = cnn_test_bbox_regressor( conf, imdb, rcnn_model, bbox_reg, suffix )
 % conf = rcnn_config('sub_dir', imdb.name);
 image_ids = imdb.image_ids;
-conf.cache_dir = 'cache_classifiers'
+conf.cache_dir = 'cache_classifiers/gurls_VOC2007_gt_gauss_voc_mean/';
+feat_opts.cache_name = 'feature_extraction_cache';
+feat_opts.layer = 7;
+caffe_net=[];
 
 % assume they are all the same
 feat_opts = bbox_reg.training_opts;
@@ -31,6 +34,8 @@ catch
     box_inds{i} = inds;
     clear boxes inds;
   end
+  
+  [feat_opts.feat_norm_mean, feat_opts.stdd, feat_opts.mean_feat] = cnn_feature_stats(imdb, feat_opts.layer, rcnn_model, caffe_net , feat_opts.cache_name);
 
   for i = 1:length(image_ids)
     fprintf('%s: bbox reg test (%s) %d/%d\n', procid(), imdb.name, i, length(image_ids));
@@ -42,6 +47,8 @@ catch
 
     d.feat = cnn_pool5_to_fcX(d.feat, feat_opts.layer, rcnn_model);
 %     d.feat = cnn_scale_features(d.feat, feat_opts.feat_norm_mean);
+    d.feat = GURLS_subtract_mean_features(d.feat, feat_opts.mean_feat);
+
 
     if feat_opts.binarize
       d.feat = single(d.feat > 0);
@@ -103,7 +110,7 @@ end
 
 fprintf('\n~~~~~~~~~~~~~~~~~~~~\n');
 fprintf('Results (bbox reg):\n');
-aps = [res(:).ap]';
+aps = [res(:).ap]'* 100;
 disp(aps);
 disp(mean(aps));
 fprintf('~~~~~~~~~~~~~~~~~~~~\n');

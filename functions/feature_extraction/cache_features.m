@@ -1,4 +1,4 @@
-function cache_fc7_features(conf, cnn_model, imdb, roidb, varargin)
+function cache_features(conf, cnn_model, imdb, roidb, layer, varargin)
 % rcnn_cache_pool5_features(imdb, varargin)
 %   Computes pool5 features and saves them to disk. We compute
 %   pool5 features because we can easily compute fc6 and fc7
@@ -30,15 +30,11 @@ ip.addOptional('start', 1, @isscalar);
 ip.addOptional('end', 0, @isscalar);
 ip.addOptional('crop_mode', 'warp', @isstr);
 ip.addOptional('crop_padding', 16, @isscalar);
-ip.addOptional('net_file', ...
-    './data/caffe_nets/finetune_voc_2007_trainval_iter_70k', ...
-    @isstr);
 ip.addOptional('cache_name', ...
-    'feature_extraction_cache', @isstr);
+    'feature_extraction_cache', @isstr); % to check
 
 ip.parse(imdb, varargin{:});
 opts = ip.Results;
-opts.net_def_file = './models/fast_rcnn_prototxts/ZF_featEx/feat_extraction.prototxt';
 
 image_ids = imdb.image_ids;
 if opts.end == 0
@@ -46,7 +42,7 @@ if opts.end == 0
 end
 
 % Where to save feature cache
-opts.output_dir = ['./feat_cache/' opts.cache_name '/' imdb.name '/'];
+opts.output_dir = ['./feat_cache/' opts.cache_name '/' imdb.name '/']; %check name dir
 mkdir_if_missing(opts.output_dir);
 
 % Log feature extraction
@@ -92,7 +88,7 @@ for i = opts.start:opts.end
   im = imread(imdb.image_at(i));
 
   th = tic;
-  d.feat = cnn_features(conf, im, d.boxes, caffe_net, cnn_model);
+  d.feat = cnn_features(conf, im, d.boxes, caffe_net, cnn_model, layer);
   fprintf(' [features: %.3fs]\n', toc(th));
 
   th = tic;

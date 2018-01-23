@@ -50,8 +50,9 @@ caffe_net=[];
 
 % ------------------------------------------------------------------------
 % Get the average norm of the features
-opts.feat_norm_mean = cnn_feature_stats(imdb, opts.layer, cnn_model, caffe_net, cache_dir);
-fprintf('average norm = %.3f\n', opts.feat_norm_mean);
+[opts.feat_norm_mean, opts.stdd, opts.mean_feat] = cnn_feature_stats(imdb, opts.layer, cnn_model, caffe_net , cnn_model.cache_name);
+
+% fprintf('average norm = %.3f\n', opts.feat_norm_mean);
 % ------------------------------------------------------------------------
 
 % ------------------------------------------------------------------------
@@ -69,7 +70,7 @@ for i = 1:num_clss
   fprintf('%14s has %6d samples\n', imdb.classes{i}, length(find(C == i)));
 end
 % X = rcnn_pool5_to_fcX(X, opts.layer, cnn_model);
-% X = rcnn_scale_features(X, opts.feat_norm_mean); %ELISA to check
+X = GURLS_subtract_mean_features(X, opts.mean_feat);
 % ------------------------------------------------------------------------
 
 % use ridge regression solved by cholesky factorization
@@ -133,6 +134,7 @@ for i = 1:length(imdb.image_ids)
                 procid(), i, length(imdb.image_ids));
 
   d = roidb.rois(i);
+  
   [max_ov cls] = max(d.overlap, [], 2);
   sel_ex = find(max_ov >= 0.5);
   cls = cls(sel_ex);
@@ -142,7 +144,7 @@ for i = 1:length(imdb.image_ids)
 end
 total = sum(cls_counts);
 % feat_dim = size(caffe_net.layers(pool5+1).weights{1},1);
-feat_dim = 9216;
+feat_dim = 4096;
 % features
 X = zeros(total, feat_dim, 'single');
 % target values
@@ -165,7 +167,7 @@ for i = 1:length(imdb.image_ids)
   gt_classes = d.class(sel_gt);
 
   max_ov = max(d.overlap, [], 2);
-  sel_ex = find(max_ov >= opts.min_overlap)
+  sel_ex = find(max_ov >= opts.min_overlap);
   ex_boxes = d.boxes(sel_ex, :);
 
   X(cur+(0:length(sel_ex)-1), :) = d.feat(sel_ex, :);

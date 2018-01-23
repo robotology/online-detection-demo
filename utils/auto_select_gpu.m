@@ -20,7 +20,7 @@ function gpu_id = auto_select_gpu()
             gpu_id = i;
         end
     end
-    gpu_id = 4;
+    gpu_id = 1;
     fprintf('Use GPU %d\n', gpu_id);
     
     % deselects all GPU devices

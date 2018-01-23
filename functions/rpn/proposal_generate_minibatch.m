@@ -28,6 +28,7 @@ function [input_blobs, random_scale_inds] = proposal_generate_minibatch(conf, im
         % get fcn output size
         img_size = round(image_roidb(i).im_size * im_scales(i));
         output_size = cell2mat([conf.output_height_map.values({img_size(1)}), conf.output_width_map.values({img_size(2)})]);
+%         fprintf(int2str(i));
         
         assert(img_size(1) == size(im_blob, 1) && img_size(2) == size(im_blob, 2));
         

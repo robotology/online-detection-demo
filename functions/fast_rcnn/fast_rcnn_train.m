@@ -25,13 +25,14 @@ function save_model_path = fast_rcnn_train(conf, imdb_train, roidb_train, vararg
                                                         @isstr);
     ip.addParamValue('cache_name',      'Zeiler_conv5', ...
                                                         @isstr);
+    ip.addParamValue('output_dir',          'output',             @isstr);
     
     ip.parse(conf, imdb_train, roidb_train, varargin{:});
     opts = ip.Results;
     
 %% try to find trained model
     imdbs_name = cell2mat(cellfun(@(x) x.name, imdb_train, 'UniformOutput', false));
-    cache_dir = fullfile(pwd, 'output', 'fast_rcnn_cachedir', opts.cache_name, imdbs_name);
+    cache_dir = fullfile(pwd, opts.output_dir, 'fast_rcnn_cachedir', opts.cache_name, imdbs_name);
     save_model_path = fullfile(cache_dir, 'final');
     if exist(save_model_path, 'file')
         return;

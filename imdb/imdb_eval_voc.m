@@ -70,7 +70,8 @@ prec = [];
 ap = 0;
 ap_auc = 0;
 
-do_eval = (str2num(year) <= 2007) | ~strcmp(test_set, 'test');
+% do_eval = (str2num(year) <= 2007) | ~strcmp(test_set, 'test');
+do_eval = true;
 if do_eval
   % Bug in VOCevaldet requires that tic has been called first
   tic;

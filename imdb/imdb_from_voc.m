@@ -70,8 +70,8 @@ catch
 
   % private VOC details
   imdb.details.VOCopts = VOCopts;
-
-  % VOC specific functions for evaluation and region of interest DB
+roidb
+  % VOC specific functions for evaluation and regi???on of interest DB
   imdb.eval_func = @imdb_eval_voc;
   imdb.roidb_func = @roidb_from_voc;
   imdb.image_at = @(i) ...

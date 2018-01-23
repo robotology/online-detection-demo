@@ -24,6 +24,8 @@ ip.addParamValue('with_edge_box',                   false,  @islogical);
 ip.addParamValue('with_self_proposal',              false,  @islogical);
 ip.addParamValue('rootDir',                         '.',    @ischar);
 ip.addParamValue('extension',                       '',     @ischar);
+ip.addParamValue('removed_classes',                 {},     @iscell);
+
 ip.parse(imdb, varargin{:});
 opts = ip.Results;
 
@@ -59,8 +61,9 @@ if opts.with_self_proposal
     end
 end
 
+cache_file_imdb = ['./imdb/cache/imdb_' imdb.name '_new'];
 cache_file = fullfile(opts.rootDir, ['/imdb/cache/roidb_' cache_file_ss cache_file_eb cache_file_sp imdb.name opts.extension]);
-if imdb.flip
+if imdb.flip@iscell
     cache_file = [cache_file '_flip'];
 end
 if opts.exclude_difficult_samples
@@ -72,13 +75,13 @@ try
 catch
   VOCopts = imdb.details.VOCopts;
 
-  addpath(fullfile(VOCopts.datadir, 'VOCcode')); 
+%   addpath(fullfile(VOCopts.datadir, 'VOCcode')); 
 
   roidb.name = imdb.name;
 
   fprintf('Loading region proposals...');
   regions = [];
-  if opts.with_selective_search
+  if opts.with_selective_s@iscellearch
         regions = load_proposals(regions_file_ss, regions);
   end
   if opts.with_edge_box
@@ -98,11 +101,16 @@ catch
       end
   end
 
+  fid = fopen('to_remove.txt', 'w');
+  
   if ~imdb.flip
+%       new_sizes = imdb.sizes;
       for i = 1:length(imdb.image_ids)
         tic_toc_print('roidb (%s): %d/%d\n', roidb.name, i, length(imdb.image_ids));
+        %ELISA
+        ann_to_remove = false;
         try
-          voc_rec = PASreadrecord(sprintf(VOCopts.annopath, imdb.image_ids{i}));
+          [ann_to_remove, voc_rec] = PASreadrecord(sprintf(VOCopts.annopath, imdb.image_ids{i}), opts.removed_classes);
         catch
           voc_rec = [];
         end
@@ -111,13 +119,32 @@ catch
             [~, image_name2] = fileparts(regions.images{i});
             assert(strcmp(image_name1, image_name2));
         end
-        roidb.rois(i) = attach_proposals(voc_rec, regions.boxes{i}, imdb.class_to_id, opts.exclude_difficult_samples, false);
+        %ELISA
+        if ~ann_to_remove
+            roidb.rois(i) = attach_proposals(voc_rec, regions.boxes{i}, imdb.class_to_id, opts.exclude_difficult_samples, false);
+            if isempty(roidb.rois(i).gt)
+                 fprintf(fid, '%s\n', imdb.image_ids{i});
+                 imdb.image_ids{i} = []; 
+            end
+        else
+            fprintf(fid, '%s\n', imdb.image_ids{i});
+            imdb.image_ids{i} = [];           
+        end
       end
+      %ELISA
+    
+      index_to_mantain = ~cellfun('isempty',imdb.image_ids);
+      imdb.sizes = imdb.sizes(index_to_mantain,:);
+      roidb.rois = roidb.rois(index_to_mantain);
+      imdb.image_ids = imdb.image_ids(index_to_mantain);
+      imdb.image_at = @(i) ...
+         sprintf('%s/%s.%s', imdb.image_dir, imdb.image_ids{i}, imdb.extension);
+      imdb.removed_classes = removed_classes;
   else
       for i = 1:length(imdb.image_ids)/2
         tic_toc_print('roidb (%s): %d/%d\n', roidb.name, i, length(imdb.image_ids)/2);
         try
-          voc_rec = PASreadrecord(sprintf(VOCopts.annopath, imdb.image_ids{i*2-1}));
+          [ann_to_remove, voc_rec] = PASreadrecord(sprintf(VOCopts.annopath, imdb.image_ids{i*2-1}), opts.removed_classes);
         catch
           voc_rec = [];
         end
@@ -127,15 +154,37 @@ catch
             assert(strcmp(image_name1, image_name2));
             assert(imdb.flip_from(i*2) == i*2-1);
         end
-        roidb.rois(i*2-1) = attach_proposals(voc_rec, regions.boxes{i}, imdb.class_to_id, opts.exclude_difficult_samples, false);
-        roidb.rois(i*2) = attach_proposals(voc_rec, regions.boxes{i}, imdb.class_to_id, opts.exclude_difficult_samples, true);
+        %ELISA
+        if ~ann_to_remove
+            roidb.rois(i*2-1) = attach_proposals(voc_rec, regions.boxes{i}, imdb.class_to_id, opts.exclude_difficult_samples, false);
+            roidb.rois(i*2) = attach_proposals(voc_rec, regions.boxes{i}, imdb.class_to_id, opts.exclude_difficult_samples, true);
+            if isempty(roidb.rois(i).gt)
+                 fprintf(fid, '%s\n', imdb.image_ids{i});
+                 imdb.sizes(i,:) = [];
+                 imdb.image_ids{i} = []; 
+            end
+        else
+            fprintf(fid, '%s\n', imdb.image_ids{i}); 
+            imdb.sizes(i,:) = [];
+            imdb.image_ids{i} = [];
+        end
       end
+      %ELISA
+      index_to_mantain = ~cellfun('isempty',imdb.image_ids);
+      imdb.sizes = imdb.sizes(index_to_mantain,:);
+      roidb.rois = roidb.rois(index_to_mantain);
+      imdb.image_ids = imdb.image_ids(index_to_mantain);
+      imdb.image_at = @(i) ...
+         sprintf('%s/%s.%s', imdb.image_dir, imdb.image_ids{i}, imdb.extension);
+      imdb.removed_classes = removed_classes;
   end
 
-  rmpath(fullfile(VOCopts.datadir, 'VOCcode')); 
+%   rmpath(fullfile(VOCopts.datadir, 'VOCcode')); 
 
+  %ELISA
   fprintf('Saving roidb to cache...');
   save(cache_file, 'roidb', '-v7.3');
+  save(cache_file_imdb, 'imdb', '-v7.3');
   fprintf('done\n');
 end
 
@@ -159,6 +208,12 @@ end
 %         feat: [2108x9216 single]
 %        class: [2108x1 uint8]
 if isfield(voc_rec, 'objects')
+      %ELISA
+  for i=1:length(voc_rec.objects)
+      if isempty(voc_rec.objects(i).class)
+          voc_rec.objects(i).difficult = 1;
+      end
+  end
   if exclude_difficult_samples
       valid_objects = ~cat(1, voc_rec.objects(:).difficult);
   else

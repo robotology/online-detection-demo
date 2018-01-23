@@ -1,6 +1,7 @@
 function model = ZF_for_Faster_RCNN_VOC2007(model)
 
-model.mean_image                                = fullfile(pwd, 'models', 'pre_trained_models', 'ZF', 'mean_image');
+% model.mean_image                                = fullfile(pwd, 'models', 'pre_trained_models', 'ZF', 'mean_image');
+model.mean_image                                = fullfile(pwd, 'voc2007_train_meanImage');
 model.pre_trained_net_file                      = fullfile(pwd, 'models', 'pre_trained_models', 'ZF', 'ZF.caffemodel');
 % Stride in input image pixels at the last conv layer
 model.feat_stride                               = 16;
@@ -36,5 +37,5 @@ model.stage2_fast_rcnn.test_net_def_file        = fullfile(pwd, 'models', 'fast_
 %% final test
 model.final_test.nms.per_nms_topN            	= 6000; % to speed up nms
 model.final_test.nms.nms_overlap_thres       	= 0.7;
-model.final_test.nms.after_nms_topN          	= 300;
+model.final_test.nms.after_nms_topN          	= 1000;
 end

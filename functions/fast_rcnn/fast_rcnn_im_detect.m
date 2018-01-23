@@ -63,9 +63,11 @@ function [pred_boxes, scores] = fast_rcnn_im_detect(conf, caffe_net, im, boxes, 
     scores = cell2mat(total_scores);
     box_deltas = cell2mat(total_box_deltas);
     
-    pred_boxes = fast_rcnn_bbox_transform_inv(boxes, box_deltas);
-    pred_boxes = clip_boxes(pred_boxes, size(im, 2), size(im, 1));
+     pred_boxes = fast_rcnn_bbox_transform_inv(boxes, box_deltas);
+     pred_boxes = clip_boxes(pred_boxes, size(im, 2), size(im, 1));
 
+%     pred_boxes = boxes;
+    
     % Map scores and predictions back to the original set of boxes
     scores = scores(inv_index, :);
     pred_boxes = pred_boxes(inv_index, :);

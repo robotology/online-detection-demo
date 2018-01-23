@@ -1,4 +1,4 @@
-function model_stage = do_fast_rcnn_train(conf, dataset, model_stage, do_val)
+function model_stage = do_fast_rcnn_train(conf, dataset, model_stage, do_val, output_dir)
     if ~do_val
         dataset.imdb_test = struct();
         dataset.roidb_test = struct();
@@ -10,5 +10,6 @@ function model_stage = do_fast_rcnn_train(conf, dataset, model_stage, do_val)
                                     'roidb_val',        dataset.roidb_test, ...
                                     'solver_def_file',  model_stage.solver_def_file, ...
                                     'net_file',         model_stage.init_net_file, ...
-                                    'cache_name',       model_stage.cache_name);
+                                    'cache_name',       model_stage.cache_name, ...
+                                    'output_dir',       output_dir);
 end

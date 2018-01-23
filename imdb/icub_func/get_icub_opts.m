@@ -3,7 +3,7 @@ function ICUBopts = get_icub_opts(path, image_set)
 tmp = pwd;
 cd(path);
 try
-  addpath('VOCcode');
+%   addpath('VOCcode');
   if strcmp(image_set, 'train') || strcmp(image_set, 'test')
     ICUBinit; %ELISA todo
   elseif strcmp(image_set, 'TASK2_train') || strcmp(image_set, 'TASK2_test')
@@ -12,9 +12,9 @@ try
     TASK1_ICUBinit;
   end
 catch
-  rmpath('VOCcode');
+%   rmpath('VOCcode');
   cd(tmp);
   error(sprintf('get_icub_opts: ICUBcode directory not found under %s', path));
 end
-rmpath('VOCcode');
+% rmpath('VOCcode');
 cd(tmp);

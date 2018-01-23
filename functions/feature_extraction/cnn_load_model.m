@@ -25,7 +25,6 @@ else
 end
 
 caffe_net = caffe.Net(cnn_model.net_def_file, cnn_model.binary_file, 'test');
-% caffe_net.copy_from(cnn_model.binary_file);
 
 % set gpu/cpu
 if conf.use_gpu
