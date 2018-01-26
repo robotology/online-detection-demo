@@ -69,9 +69,12 @@ port_gaze_rpc = yarp.RpcClient()
 port_ispeak = yarp.BufferedPortBottle()
 port_draw_image = yarp.BufferedPortBottle()
 
+
 if whichRobot == "icub" then
     port_gaze_tx = yarp.BufferedPortBottle()
     port_gaze_rx = yarp.BufferedPortBottle()
+    port_sfm_rpc = yarp.RpcClient()
+    port_are_rpc = yarp.RpcClient()
 else
     port_gaze_tx = yarp.BufferedPortProperty()
     port_gaze_rx = yarp.BufferedPortProperty()
@@ -85,6 +88,12 @@ port_gaze_rx:open("/detection/gaze/rx")
 port_ispeak:open("/detection/ispeak:o")
 port_draw_image:open("/detection/draw:o")
 
+
+if whichRobot == "icub" then
+    port_sfm_rpc:open("/detection/sfm/rpc")
+    port_are_rpc:open("/detection/are/rpc")
+end
+
 ret = true
 ret = ret and yarp.NetworkBase_connect("/pyfaster:detout", port_detection:getName(), "fast_tcp" )
 ret = ret and yarp.NetworkBase_connect(port_ispeak:getName(), "/iSpeak")
@@ -95,6 +104,8 @@ if whichRobot == "icub" then
     ret = ret and yarp.NetworkBase_connect(port_gaze_tx:getName(), "/iKinGazeCtrl/angles:i")
     ret = ret and yarp.NetworkBase_connect(port_gaze_rpc:getName(), "/iKinGazeCtrl/rpc")
     ret = ret and yarp.NetworkBase_connect("/iKinGazeCtrl/angles:o", port_gaze_rx:getName() )
+    ret = ret and yarp.NetworkBase_connect(port_sfm_rpc,"/SFM/rpc")
+    ret = ret and yarp.NetworkBase_connect(port_are_rpc,"/actionsrenderingengine/cmd:io")
 else
     print ("Going through R1's connection")
     ret = ret and yarp.NetworkBase_connect(port_gaze_tx:getName(), "/cer_gaze-controller/target:i")
@@ -132,6 +143,42 @@ function speak(port, str)
 end
 
 ---------------------------------------
+-- functions Point Control           --
+---------------------------------------
+
+function get_3D_point()
+    local cmd = yarp:Bottle
+    local reply = yarp:Bottle
+    cmd:clear()
+    cmd:addDouble(px)
+    cmd:addDouble(py)
+    print("command is ",cmd:toString())
+    port_sfm_rpc:write(cmd,reply)
+    print("reply is ",reply:toString())
+end
+
+function point_3D_point()
+    local cmd = yarp:Bottle
+    local reply = yarp:Bottle
+    cmd:clear()
+    cmd:addString("point")
+    local val = location:addList()
+    val:addDouble(x)
+    val:addDouble(y)
+    val:addDouble(z)
+    
+    if y < 0.0 then
+        cmd:addString("left")
+    else
+        cmd:addString("left")
+    end
+    
+    print("command is ",cmd:toString())
+    --port_are_rpc:write(cmd,reply)
+    print("reply is ",reply:toString())
+end
+
+---------------------------------------
 -- functions Gaze Control            --
 ---------------------------------------
 
@@ -148,6 +195,8 @@ function bind_roll()
     print("reply is", reply:toString())
 end
 
+---------------------------------------------------------------------------------------------------------------
+
 function set_tneck(value)
     local cmd = yarp.Bottle()
     local reply = yarp.Bottle()
@@ -160,16 +209,18 @@ function set_tneck(value)
     print("reply is", reply:get(0):asString())
 end
 
+---------------------------------------------------------------------------------------------------------------
+
 function look_at_angle(azi,ele,ver)
     local tx = port_gaze_tx:prepare()
     tx:clear()
     if whichRobot == "icub" then
-	    tx:addString("abs")
+        tx:addString("abs")
         tx:addDouble(azi)
         tx:addDouble(ele)
         tx:addDouble(ver)
     else
-	    tx:put("control-frame","gaze")
+        tx:put("control-frame","gaze")
         tx:put("target-type","angular")
         local location = yarp.Bottle()
         local val = location:addList()
@@ -177,10 +228,12 @@ function look_at_angle(azi,ele,ver)
         val:addDouble(ele)
         tx:put("target-location",location:get(0))
     end
-	port_gaze_tx:write()
+    port_gaze_tx:write()
 
     print("look_at_angle:", tx:toString())
 end
+
+---------------------------------------------------------------------------------------------------------------
 
 function look_at_pixel(mode,px,py)
 
@@ -205,7 +258,7 @@ function look_at_pixel(mode,px,py)
         print("reply is", reply:get(0):asString())
 
     else
-	local tx = port_gaze_tx:prepare()
+        local tx = port_gaze_tx:prepare()
         tx:clear()
         tx:put("control-frame","depth")
         tx:put("target-type","image")
@@ -220,6 +273,10 @@ function look_at_pixel(mode,px,py)
         print("look_at_pixel:", mode, tx:toString())
     end
 end
+
+---------------------------------------
+-- functions Drawing                 --
+---------------------------------------
 
 function sendDraw(bot)
     local cmd = port_draw_image:prepare()
@@ -236,6 +293,8 @@ function sendDraw(bot)
     port_draw_image:write()
 end
 
+---------------------------------------------------------------------------------------------------------------
+
 function clearDraw()
     local cmd = port_draw_image:prepare()
     cmd:clear()
@@ -243,6 +302,7 @@ function clearDraw()
     port_draw_image:write()
 end
 
+---------------------------------------------------------------------------------------------------------------
 
 function getObjectBB(det, objName)
     
@@ -263,6 +323,7 @@ function getObjectBB(det, objName)
     return objectList
 end
 
+---------------------------------------------------------------------------------------------------------------
 
 function getObjectIndex(det)
     local indexes = {}
@@ -287,6 +348,7 @@ function getObjectIndex(det)
     return indexes
 end
 
+---------------------------------------------------------------------------------------------------------------
 
 function getClosestObject(det)
     
@@ -334,6 +396,8 @@ function getClosestObject(det)
     return returnStr
 end
 
+---------------------------------------------------------------------------------------------------------------
+
 function selectObject(det)
     local indexes
                     
@@ -358,6 +422,8 @@ function selectObject(det)
         index = -1
     end
 end
+
+---------------------------------------------------------------------------------------------------------------
 
 function getObjectsAround(det)
 
