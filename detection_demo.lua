@@ -104,8 +104,8 @@ if whichRobot == "icub" then
     ret = ret and yarp.NetworkBase_connect(port_gaze_tx:getName(), "/iKinGazeCtrl/angles:i")
     ret = ret and yarp.NetworkBase_connect(port_gaze_rpc:getName(), "/iKinGazeCtrl/rpc")
     ret = ret and yarp.NetworkBase_connect("/iKinGazeCtrl/angles:o", port_gaze_rx:getName() )
-    ret = ret and yarp.NetworkBase_connect(port_sfm_rpc,"/SFM/rpc")
-    ret = ret and yarp.NetworkBase_connect(port_are_rpc,"/actionsrenderingengine/cmd:io")
+    ret = ret and yarp.NetworkBase_connect(port_sfm_rpc:getName(),"/SFM/rpc")
+    ret = ret and yarp.NetworkBase_connect(port_are_rpc:getName(),"/actionsRenderingEngine/cmd:io")
 else
     print ("Going through R1's connection")
     ret = ret and yarp.NetworkBase_connect(port_gaze_tx:getName(), "/cer_gaze-controller/target:i")
@@ -145,36 +145,77 @@ end
 ---------------------------------------
 -- functions Point Control           --
 ---------------------------------------
-
-function get_3D_point()
-    local cmd = yarp:Bottle
-    local reply = yarp:Bottle
+function ARE_home()
+    local cmd = yarp.Bottle()
+    local reply = yarp.Bottle()
     cmd:clear()
+    cmd:addString("home")
+    cmd:addString("arms")
+    print("command is ",cmd:toString())
+    port_are_rpc:write(cmd,reply)
+    print("reply is ",reply:toString())
+end
+
+function get_3D_point(px,py)
+    local cmd = yarp.Bottle()
+    local reply = yarp.Bottle()
+    cmd:clear()
+    cmd:addString("Root")
     cmd:addDouble(px)
     cmd:addDouble(py)
     print("command is ",cmd:toString())
     port_sfm_rpc:write(cmd,reply)
     print("reply is ",reply:toString())
+    return reply
 end
 
-function point_3D_point()
-    local cmd = yarp:Bottle
-    local reply = yarp:Bottle
+function point_3D_point(x,y,z)
+    local cmd = yarp.Bottle()
+    local reply = yarp.Bottle()
     cmd:clear()
     cmd:addString("point")
-    local val = location:addList()
-    val:addDouble(x)
-    val:addDouble(y)
+
+
+    if x < -0.60 then
+        x = -0.60          
+    end 
+    if x > -0.30 then 
+        x = -0.30 
+    end
+
+    if y < -0.30 then
+        y = -0.30
+    end
+    if y > 0.30 then
+        y = 0.30
+    end
+
+    if z < -0.07 then
+        z = -0.07
+    end
+    if z > 0.0 then
+        z = 0.0
+    end            
+
+    local val = cmd:addList()
+    val:addDouble(x+ 0.05)
+
+    if y < 0.0 then    
+        val:addDouble(y + 0.02) 
+    else
+        val:addDouble(y - 0.02)
+    end
+
     val:addDouble(z)
     
     if y < 0.0 then
         cmd:addString("left")
     else
-        cmd:addString("left")
+        cmd:addString("right")
     end
     
     print("command is ",cmd:toString())
-    --port_are_rpc:write(cmd,reply)
+    port_are_rpc:write(cmd,reply)
     print("reply is ",reply:toString())
 end
 
@@ -454,7 +495,7 @@ function getObjectsAround(det)
             
             print ("got as distance ", distance, det:get(i):asList():get(5):asString())
             
-            if distance < 5000 then
+            if distance < 5500 then
                 objectList:addString(det:get(i):asList():get(5):asString())
             end                         
         end
@@ -468,6 +509,7 @@ if whichRobot == "icub" then
     yarp.Time_delay(0.2)
     set_tneck(1.2)
     yarp.Time_delay(0.2)
+    ARE_home()
 end
 
 look_at_angle(azi, ele, ver)
@@ -599,39 +641,71 @@ while state ~= "quit" and not interrupting do
                     speak(port_ispeak, "I do not see any objects") 
                 end
             elseif state == "where-is" then
+                yarp.Time_delay(1.0)
                 object = cmd:get(1):asString()
                 object = object:lower()
                 local det = port_detection:read(false)
 
                 if det ~= nil then
-                    local list = yarp.Bottle()
-                    list = getObjectsAround(det)
-                    --multipleName:clear()
-                    drawNearObjs = true
-                    drawCloseObj = false
-                    print("size of near objects is ", list:size() )
-                    
-                    if list:get(0):asString() == "none" then 
-                        local tosay = "I cannot see the " .. object
-                        speak(port_ispeak, tosay)
-                        state = "look"
-                    elseif list:size() < 1 and list:get(0):asString() ~= "none" then
-                        local tosay = "Here is the  " .. object
-                        speak(port_ispeak, tosay)
-                        state = "look"
-                    else
-                        local tosay = "The " .. object .. " is next to the "
-                        for i=0,list:size()-1,1 do
-                            if i > 0 then
-                                tosay = tosay .. " and the "
+
+                    --first look at the object
+                    selectObject(det)
+
+                    local tx
+                    local ty
+                    if index >= 0 then
+ 
+                        tx = (det:get(index):asList():get(0):asInt() + det:get(index):asList():get(2):asInt()) / 2
+                        ty = (det:get(index):asList():get(1):asInt() + det:get(index):asList():get(3):asInt()) / 2
+
+                        print( "tx is", tx )
+                        print( "ty is", ty )
+                        
+                        local point3D = get_3D_point(tx, ty)
+
+                        local cartx = point3D:get(0):asDouble()
+                        local carty = point3D:get(1):asDouble()
+                        local cartz = point3D:get(2):asDouble()
+
+                        print("the 3D point is ", cartx, carty, cartz )
+
+                        look_at_pixel("left",tx,ty)
+
+                        --delay one second to let the head move ok...
+                        yarp.Time_delay(1.0)
+
+                        local list = yarp.Bottle()
+                        list = getObjectsAround(det)
+                        --multipleName:clear()
+                        drawNearObjs = true
+                        drawCloseObj = false
+                        print("size of near objects is ", list:size() )
+                        
+                        if list:get(0):asString() == "none" then 
+                            local tosay = "I cannot see the " .. object
+                            speak(port_ispeak, tosay)
+                            state = "look"
+                        elseif list:size() < 1 and list:get(0):asString() ~= "none" then
+                            local tosay = "Here is the  " .. object
+                            speak(port_ispeak, tosay)
+                            point_3D_point(cartx, carty, cartz) 
+                            state = "look"
+                        else
+                            local tosay = "The " .. object .. " is next to the "
+                            for i=0,list:size()-1,1 do
+                                if i > 0 then
+                                    tosay = tosay .. " and the "
+                                end
+                                tosay = tosay .. list:get(i):asString()
+                                --multipleName:addString(list:get(i):asString())
+                               
                             end
-                            tosay = tosay .. list:get(i):asString()
-                            --multipleName:addString(list:get(i):asString())
-                           
+                            print(tosay)
+                            speak(port_ispeak, tosay)
+                            point_3D_point(cartx, carty, cartz) 
+                            state = "look"
                         end
-                        print(tosay)
-                        speak(port_ispeak, tosay)
-                        state = "look"
+                        
                     end
                 else
                     print("det nil")
@@ -783,9 +857,9 @@ end
 clearDraw()
 
 if whichRobot == "icub" then
-    look_at_angle(0,-36,5)
+    look_at_angle(0, -36, 5)
 else
-    look_at_angle(0,-50,5)
+    look_at_angle(0, -50, 5)
 end
 
 
@@ -796,6 +870,9 @@ port_detection:close()
 port_gaze_tx:close()
 port_gaze_rx:close()
 port_gaze_rpc:close()
+port_ispeak:close()
+port_are_rpc:close()
+port_sfm_rpc:close()
 port_ispeak:close()
 clearDraw()
 port_draw_image:close()
