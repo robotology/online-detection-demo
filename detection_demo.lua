@@ -215,7 +215,10 @@ function point_3D_point(x,y,z)
     end
     
     print("command is ",cmd:toString())
-    port_are_rpc:write(cmd,reply)
+
+    if whichRobot == "icub" then
+        port_are_rpc:write(cmd,reply)
+    end
     print("reply is ",reply:toString())
 end
 
