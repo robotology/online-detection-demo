@@ -1,20 +1,4 @@
-function roidb = roidb_from_icub(imdb, varargin)
-% roidb = roidb_from_icub(imdb, rootDir)
-%   Builds an regions of interest database from imdb image
-%   database. Uses precomputed selective search boxes available
-%   in the R-CNN data package.
-%
-%   Inspired by Andrea Vedaldi's MKL imdb and roidb code.
-
-% AUTORIGHTS
-% ---------------------------------------------------------
-% Copyright (c) 2014, Ross Girshick
-% 
-% This file is part of the R-CNN code and is available 
-% under the terms of the Simplified BSD License provided in 
-% LICENSE. Please retain this notice and LICENSE if you use 
-% this file (or any portion of it) in your project.
-% ---------------------------------------------------------
+function roidb = roidb_from_icub(imdb, cache_name, varargin)
 
 ip = inputParser;
 ip.addRequired('imdb', @isstruct);
@@ -24,6 +8,8 @@ ip.addParamValue('with_edge_box',                   false,  @islogical);
 ip.addParamValue('with_self_proposal',              false,  @islogical);
 ip.addParamValue('rootDir',                         '.',    @ischar);
 ip.addParamValue('extension',                       '',     @ischar);
+ip.addParamValue('removed_classes',                 {},     @iscell);
+
 ip.parse(imdb, varargin{:});
 opts = ip.Results;
 
@@ -59,7 +45,8 @@ if opts.with_self_proposal
     end
 end
 
-cache_file = fullfile(opts.rootDir, ['/imdb/cache/roidb_' cache_file_ss cache_file_eb cache_file_sp imdb.name opts.extension]);
+cache_file_imdb = ['./imdb/' cache_name '/imdb_' imdb.name];
+cache_file = fullfile(opts.rootDir, ['/imdb/' cache_name '/roidb_' cache_file_ss cache_file_eb cache_file_sp imdb.name opts.extension]);
 if imdb.flip
     cache_file = [cache_file '_flip'];
 end
@@ -72,7 +59,7 @@ try
 catch
   ICUBopts = imdb.details.ICUBopts;
 
-  addpath(fullfile(ICUBopts.datadir, 'iCubWorld-Transformations_devkit/VOCcode')); 
+%   addpath(fullfile(ICUBopts.datadir, 'iCubWorld-Transformations_devkit/VOCcode')); 
 
   roidb.name = imdb.name;
 
@@ -98,32 +85,51 @@ catch
       end
   end
 
+  fid = fopen('to_remove.txt', 'w');
+  
   if ~imdb.flip
       for i = 1:length(imdb.image_ids)
         tic_toc_print('roidb (%s): %d/%d\n', roidb.name, i, length(imdb.image_ids));
+        %ELISA
+        ann_to_remove = false;
         try
-%           fprintf('try PASreadrecord, not flip\n');
-          icub_rec = PASreadrecord(sprintf(ICUBopts.annopath, imdb.image_ids{i}));
+          [ann_to_remove, voc_rec] = PASreadrecord(sprintf(ICUBopts.annopath, imdb.image_ids{i}), opts.removed_classes);
         catch
-           fprintf('catch PASreadrecord, not flip\n');
-          icub_rec = [];
+          voc_rec = [];
         end
         if ~isempty(regions)
             [~, image_name1] = fileparts(imdb.image_ids{i});
             [~, image_name2] = fileparts(regions.images{i});
             assert(strcmp(image_name1, image_name2));
         end
-        roidb.rois(i) = attach_proposals(icub_rec, regions.boxes{i}, imdb.class_to_id, opts.exclude_difficult_samples, false);
+        %ELISA
+        if ~ann_to_remove
+            roidb.rois(i) = attach_proposals(voc_rec, regions.boxes{i}, imdb.class_to_id, opts.exclude_difficult_samples, false);
+            if isempty(roidb.rois(i).gt)
+                 fprintf(fid, '%s\n', imdb.image_ids{i});
+                 imdb.image_ids{i} = []; 
+            end
+        else
+            fprintf(fid, '%s\n', imdb.image_ids{i});
+            imdb.image_ids{i} = [];           
+        end
       end
+      %ELISA
+    
+      index_to_mantain = ~cellfun('isempty',imdb.image_ids);
+      imdb.sizes = imdb.sizes(index_to_mantain,:);
+      roidb.rois = roidb.rois(index_to_mantain);
+      imdb.image_ids = imdb.image_ids(index_to_mantain);
+      imdb.image_at = @(i) ...
+         sprintf('%s/%s.%s', imdb.image_dir, imdb.image_ids{i}, imdb.extension);
+      imdb.removed_classes = opts.removed_classes;
   else
       for i = 1:length(imdb.image_ids)/2
         tic_toc_print('roidb (%s): %d/%d\n', roidb.name, i, length(imdb.image_ids)/2);
         try
-%           fprintf('try PASreadrecord');
-          icub_rec = PASreadrecord(sprintf(ICUBopts.annopath, imdb.image_ids{i*2-1}));
+          [ann_to_remove, voc_rec] = PASreadrecord(sprintf(ICUBopts.annopath, imdb.image_ids{i*2-1}), opts.removed_classes);
         catch
-%           fprintf('catch PASreadrecord');
-          icub_rec = [];
+          voc_rec = [];
         end
         if ~isempty(regions)
             [~, image_name1] = fileparts(imdb.image_ids{i*2-1});
@@ -131,16 +137,81 @@ catch
             assert(strcmp(image_name1, image_name2));
             assert(imdb.flip_from(i*2) == i*2-1);
         end
-        roidb.rois(i*2-1) = attach_proposals(icub_rec, regions.boxes{i}, imdb.class_to_id, opts.exclude_difficult_samples, false);
-        roidb.rois(i*2) = attach_proposals(icub_rec, regions.boxes{i}, imdb.class_to_id, opts.exclude_difficult_samples, true);
+        %ELISA
+        if ~ann_to_remove
+            roidb.rois(i*2-1) = attach_proposals(voc_rec, regions.boxes{i}, imdb.class_to_id, opts.exclude_difficult_samples, false);
+            roidb.rois(i*2) = attach_proposals(voc_rec, regions.boxes{i}, imdb.class_to_id, opts.exclude_difficult_samples, true);
+            if isempty(roidb.rois(i).gt)
+                 fprintf(fid, '%s\n', imdb.image_ids{i});
+                 imdb.sizes(i,:) = [];
+                 imdb.image_ids{i} = []; 
+            end
+        else
+            fprintf(fid, '%s\n', imdb.image_ids{i}); 
+            imdb.sizes(i,:) = [];
+            imdb.image_ids{i} = [];
+        end
       end
+      %ELISA
+      index_to_mantain = ~cellfun('isempty',imdb.image_ids);
+      imdb.sizes = imdb.sizes(index_to_mantain,:);
+      roidb.rois = roidb.rois(index_to_mantain);
+      imdb.image_ids = imdb.image_ids(index_to_mantain);
+      imdb.image_at = @(i) ...
+         sprintf('%s/%s.%s', imdb.image_dir, imdb.image_ids{i}, imdb.extension);
+      imdb.removed_classes = opts.removed_classes;
   end
 
-  rmpath(fullfile(ICUBopts.datadir, 'iCubWorld-Transformations_devkit/VOCcode')); 
-
+  %ELISA
   fprintf('Saving roidb to cache...');
   save(cache_file, 'roidb', '-v7.3');
+  save(cache_file_imdb, 'imdb', '-v7.3');
   fprintf('done\n');
+  
+  
+%   if ~imdb.flip
+%       for i = 1:length(imdb.image_ids)
+%         tic_toc_print('roidb (%s): %d/%d\n', roidb.name, i, length(imdb.image_ids));
+%         try
+% %           fprintf('try PASreadrecord, not flip\n');
+%           icub_rec = PASreadrecord(sprintf(ICUBopts.annopath, imdb.image_ids{i}));
+%         catch
+%            fprintf('catch PASreadrecord, not flip\n');
+%           icub_rec = [];
+%         end
+%         if ~isempty(regions)
+%             [~, image_name1] = fileparts(imdb.image_ids{i});
+%             [~, image_name2] = fileparts(regions.images{i});
+%             assert(strcmp(image_name1, image_name2));
+%         end
+%         roidb.rois(i) = attach_proposals(icub_rec, regions.boxes{i}, imdb.class_to_id, opts.exclude_difficult_samples, false);
+%       end
+%   else
+%       for i = 1:length(imdb.image_ids)/2
+%         tic_toc_print('roidb (%s): %d/%d\n', roidb.name, i, length(imdb.image_ids)/2);
+%         try
+% %           fprintf('try PASreadrecord');
+%           icub_rec = PASreadrecord(sprintf(ICUBopts.annopath, imdb.image_ids{i*2-1}));
+%         catch
+% %           fprintf('catch PASreadrecord');
+%           icub_rec = [];
+%         end
+%         if ~isempty(regions)
+%             [~, image_name1] = fileparts(imdb.image_ids{i*2-1});
+%             [~, image_name2] = fileparts(regions.images{i});
+%             assert(strcmp(image_name1, image_name2));
+%             assert(imdb.flip_from(i*2) == i*2-1);
+%         end
+%         roidb.rois(i*2-1) = attach_proposals(icub_rec, regions.boxes{i}, imdb.class_to_id, opts.exclude_difficult_samples, false);
+%         roidb.rois(i*2) = attach_proposals(icub_rec, regions.boxes{i}, imdb.class_to_id, opts.exclude_difficult_samples, true);
+%       end
+%   end
+% 
+%   rmpath(fullfile(ICUBopts.datadir, 'iCubWorld-Transformations_devkit/VOCcode')); 
+% 
+%   fprintf('Saving roidb to cache...');
+%   save(cache_file, 'roidb', '-v7.3');
+%   fprintf('done\n');
 end
 
 

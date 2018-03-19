@@ -9,12 +9,12 @@ function do_extract_features(conf, model, layer, imdb, roidb)
 % icub_dev                      = './datasets/iCubWorld-Transformations_devkit';
 % ------------------------------------------------
 
-
+% cache_name = 'features_full_voc2007_faster_80k40k';
 fprintf('Feature extraction details:\n');
 fprintf(strcat('layer: ', layer));
 fprintf(strcat('of dataset: ', imdb.name))
 
-cache_features(conf, model, imdb, roidb, layer);
+cache_features(conf, model, imdb, roidb, layer, 'cache_name', model.cache_name);
 
 
 

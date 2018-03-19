@@ -1,7 +1,7 @@
 function model = ZF_for_Faster_RCNN_VOC2007(model)
 
 % model.mean_image                                = fullfile(pwd, 'models', 'pre_trained_models', 'ZF', 'mean_image');
-model.mean_image                                = fullfile(pwd, 'voc2007_train_meanImage');
+model.mean_image                                = fullfile(pwd, 'mean_images', 'voc2007_train_meanImage');
 model.pre_trained_net_file                      = fullfile(pwd, 'models', 'pre_trained_models', 'ZF', 'ZF.caffemodel');
 % Stride in input image pixels at the last conv layer
 model.feat_stride                               = 16;

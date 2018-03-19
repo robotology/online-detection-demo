@@ -1,4 +1,4 @@
-function imdb = imdb_from_icub(root_dir, image_set, flip)
+function imdb = imdb_from_icub(root_dir, image_set, flip, cache_name, chosen_classes)
 % imdb = imdb_from_icub(root_dir, image_set, year)
 %   Builds an image database for the PASCAL ICUB devkit located
 %   at root_dir using the image_set and year.
@@ -31,19 +31,20 @@ if nargin < 4
     flip = false;
 end
 
-cache_file = ['./imdb/cache/imdb_icub_' image_set];
+cache_file = ['./imdb/' cache_name '/imdb_icub_' image_set];
 if flip
     cache_file = [cache_file, '_flip'];
 end
 try
   load(cache_file);
 catch
-  ICUBopts = get_icub_opts(root_dir, image_set); %ELISA cheanged
+  ICUBopts = get_icub_opts(root_dir, image_set, chosen_classes); %ELISA cheanged
   ICUBopts.testset = image_set;
 
   imdb.name = ['icub_' image_set];
   imdb.image_dir = fileparts(ICUBopts.imgpath);
-  imdb.image_ids = textread(sprintf(ICUBopts.imgsetpath, image_set), '%s');
+  imdb.image_ids = importdata(sprintf(ICUBopts.imgsetpath, image_set), '%s');
+  imdb.image_ids = imdb.image_ids(randperm(length(imdb.image_ids)));
   imdb.extension = 'jpg';
   imdb.flip = flip;
   if flip
@@ -74,8 +75,7 @@ catch
   % ICUB specific functions for evaluation and region of interest DB
   imdb.eval_func = @imdb_eval_icub; %ELISA changed
   imdb.roidb_func = @roidb_from_icub; %ELISA changed
-  imdb.image_at = @(i) ...
-      sprintf('%s/%s.%s', imdb.image_dir, imdb.image_ids{i}, imdb.extension);
+  imdb.image_at = @(i)sprintf('%s/%s.%s', imdb.image_dir, imdb.image_ids{i}, imdb.extension);
 
   for i = 1:length(imdb.image_ids)
     tic_toc_print('imdb (%s): %d/%d\n', imdb.name, i, length(imdb.image_ids));

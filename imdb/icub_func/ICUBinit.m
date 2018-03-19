@@ -2,39 +2,73 @@ clear ICUBopts
 
 % dataset
 
-ICUBopts.dataset='iCubWorld-Transformations_devkit';
+ICUBopts.dataset='iCubWorld-Transformations';
 
-% get devkit directory with forward slashes
-devkitroot=strrep(fileparts(fileparts(mfilename('fullpath'))),'\','/');
 
-% change this path to point to your copy of the iCubWorld-Transformations data
-ICUBopts.datadir=[devkitroot '/datasets/']; %ELISA to check
+
+
+
+cwd=cd;
+cwd(cwd=='\')='/';
+
+% change this path to point to your copy of the PASCAL VOC data
+ICUBopts.datadir=[cwd '/'];
 
 % change this path to a writable directory for your results
-ICUBopts.resdir=[devkitroot '/results/' ICUBopts.dataset '/'];
+ICUBopts.resdir=[cwd '/results/' ICUBopts.dataset '/'];
 
 % change this path to a writable local directory for the example code
-ICUBopts.localdir=[devkitroot '/local/' ICUBopts.dataset '/'];
-
-% initialize the training set
-
-ICUBopts.trainset='train'; % use train for development
-% ICUBopts.trainset='trainval'; % use train+val for final challenge
+ICUBopts.localdir=[cwd '/local/' ICUBopts.dataset '/'];
 
 % initialize the test set
-
 ICUBopts.testset='val'; % use validation data for development test set
-% ICUBopts.testset='test'; % use test  set for final challenge
+% VOCopts.testset='test'; % use test set for final challenge
 
 % initialize main challenge paths
 
-ICUBopts.annopath=[ICUBopts.datadir ICUBopts.dataset '/Annotations/%s.xml'];
-ICUBopts.imgpath=[ICUBopts.datadir ICUBopts.dataset '/Images/%s.jpg'];
-ICUBopts.imgsetpath=[ICUBopts.datadir ICUBopts.dataset '/ImageSets/%s.txt'];
-fprintf(ICUBopts.imgsetpath);
-ICUBopts.clsimgsetpath=[ICUBopts.datadir ICUBopts.dataset '/ImageSets/Main/%s_%s.txt'];
+ICUBopts.annopath=[ICUBopts.datadir '/Annotations/%s.xml'];
+ICUBopts.imgpath=[ICUBopts.datadir 'Images/%s.jpg'];
+ICUBopts.imgsetpath=[ICUBopts.datadir '/ImageSets/%s.txt'];
+ICUBopts.clsimgsetpath=[ICUBopts.datadir '/ImageSets/%s_%s.txt'];
 ICUBopts.clsrespath=[ICUBopts.resdir 'Main/%s_cls_' ICUBopts.testset '_%s.txt'];
 ICUBopts.detrespath=[ICUBopts.resdir 'Main/%s_det_' ICUBopts.testset '_%s.txt'];
+
+
+
+
+
+% 
+% % get devkit directory with forward slashes
+% devkitroot=strrep(fileparts(fileparts(mfilename('fullpath'))),'\','/');
+% 
+% % change this path to point to your copy of the iCubWorld-Transformations data
+% ICUBopts.datadir=[devkitroot '/datasets/']; %ELISA to check
+% 
+% % change this path to a writable directory for your results
+% ICUBopts.resdir=[devkitroot '/results/' ICUBopts.dataset '/'];
+% 
+% % change this path to a writable local directory for the example code
+% ICUBopts.localdir=[devkitroot '/local/' ICUBopts.dataset '/'];
+% 
+% % initialize the training set
+% 
+% ICUBopts.trainset='train'; % use train for development
+% % ICUBopts.trainset='trainval'; % use train+val for final challenge
+% 
+% % initialize the test set
+% 
+% ICUBopts.testset='val'; % use validation data for development test set
+% % ICUBopts.testset='test'; % use test  set for final challenge
+% 
+% % initialize main challenge paths
+% 
+% ICUBopts.annopath=[ICUBopts.datadir ICUBopts.dataset '/Annotations/%s.xml'];
+% ICUBopts.imgpath=[ICUBopts.datadir ICUBopts.dataset '/Images/%s.jpg'];
+% ICUBopts.imgsetpath=[ICUBopts.datadir ICUBopts.dataset '/ImageSets/%s.txt'];
+% fprintf(ICUBopts.imgsetpath);
+% ICUBopts.clsimgsetpath=[ICUBopts.datadir ICUBopts.dataset '/ImageSets/%s_%s.txt'];
+% ICUBopts.clsrespath=[ICUBopts.resdir 'Main/%s_cls_' ICUBopts.testset '_%s.txt'];
+% ICUBopts.detrespath=[ICUBopts.resdir 'Main/%s_det_' ICUBopts.testset '_%s.txt'];
 
 % initialize segmentation task paths
 
@@ -63,18 +97,7 @@ ICUBopts.detrespath=[ICUBopts.resdir 'Main/%s_det_' ICUBopts.testset '_%s.txt'];
 
 % classes
 
-ICUBopts.classes={... %ELISA todo
-%     '__background__'
-    'sprayer6'
-    'cellphone1'
-    'glass8'
-    'mouse9'
-    'book6'
-    'wallet6'
-    'bodylotion8'
-    'squeezer5'
-    'mug1'
-    'pencilcase5'};
+ICUBopts.classes=chosen_classes;
 
 ICUBopts.nclasses=length(ICUBopts.classes);	
 
@@ -119,7 +142,7 @@ ICUBopts.nposes=length(ICUBopts.poses);
 
 % overlap threshold
 
-ICUBopts.minoverlap=0.5;
+ICUBopts.minoverlap=0.4; %E QUESTO IL PARAMETRO VAFFANCULO!!!!!!!
 
 % annotation cache for evaluation
 

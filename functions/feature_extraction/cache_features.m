@@ -68,7 +68,7 @@ for i = opts.start:opts.end
   fprintf('%s: cache features: %d/%d\n', procid(), i, opts.end);
 
   save_file = [opts.output_dir image_ids{i} '.mat'];
-  save_path =save_file(1:end-13);
+  save_path =save_file(1:end-11);
   
   if exist(save_path) == 0
      fprintf('creation of %s', save_path);
@@ -99,3 +99,4 @@ for i = opts.start:opts.end
   fprintf(' [avg time: %.3fs (total: %.3fs)]\n', ...
       total_time/count, total_time);
 end
+caffe.reset_all();

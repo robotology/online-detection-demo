@@ -1,94 +1,105 @@
-
-function script_faster_rcnn_ICUB_ZF()
-% script_faster_rcnn_VOC0712_ZF()
-% Faster rcnn training and testing with Zeiler & Fergus model
-% --------------------------------------------------------
-% Faster R-CNN
-% Copyright (c) 2015, Shaoqing Ren
-% Licensed under The MIT License [see LICENSE for details]
-% --------------------------------------------------------
+function script_faster_rcnn_ICUB_ZF(gpu_id)
 
 clc;
-%clear mex;
+clear mex;
 clear is_valid_handle; % to clear init_key
 run(fullfile(fileparts(fileparts(mfilename('fullpath'))), 'startup'));
 %% -------------------- CONFIG --------------------
 opts.caffe_version          = 'caffe_faster_rcnn';
-opts.gpu_id                 = auto_select_gpu; %ELISA: todo
+opts.gpu_id                 = gpu_id;
 active_caffe_mex(opts.gpu_id, opts.caffe_version);
+addpath('./datasets/VOCdevkit2007/VOCdevkit/VOCcode_incremental');
 
 % do validation, or not 
-opts.do_val                 = false; %ELISA: changed
+opts.do_val                 = false;
 % model
-model                       = Model.ZF_for_Faster_RCNN_ICUB; %ELISA: changed
+model                       = Model.ZF_for_Faster_RCNN_ICUB_10objs;
 % cache base
-cache_base_proposal         = 'faster_rcnn_ICUB_ZF'; %ELISA: changed
+cache_base_proposal         = 'faster_rcnn_ICUB_ZF';
 cache_base_fast_rcnn        = '';
-% train/test data
-dataset                     = [];
-use_flipped                 = true;
-dataset                     = Dataset.icub_trainval(dataset, 'train', use_flipped); %ELISA: changed
-dataset                     = Dataset.icub_test(dataset, 'test', false); %ELISA: changed
-
+%dataset
+dataset.TASK1                     = [];
+use_flipped                 = false;
+imdb_cache_name = 'cache_iCWT_TASK1_10objs';
+mkdir(['imdb/' imdb_cache_name]);
+% chosen_classes = {'cellphone1','cellphone2', 'mouse2', 'mouse5', 'perfume1', 'perfume4', ...
+%                   'remote4', 'remote5', 'soapdispenser1', 'soapdispenser4', 'sunglasses4', ...
+%                   'sunglasses5',  'glass6', 'glass8', 'hairbrush1', 'hairbrush4', 'ovenglove1', ...
+%                   'ovenglove7', 'squeezer5', 'squeezer8'};
+chosen_classes = {'cellphone1', 'mouse2', 'perfume1', ...
+                  'remote4', 'soapdispenser1', ...
+                  'sunglasses5',  'glass8', 'hairbrush4', 'ovenglove1', ...
+                  'squeezer5'};              
+dataset.TASK1                     = Dataset.icub_dataset(dataset.TASK1, 'train', use_flipped, imdb_cache_name, 'train_TASK1_10objs', chosen_classes);
+dataset.TASK1                     = Dataset.icub_dataset(dataset.TASK1, 'test', false, imdb_cache_name, 'test_TASK1_10objs', chosen_classes);
+output_dir                        = 'output_iCWT_TASK1_10objs_40k20k_newBatchSize';
+dataset.TASK1.imdb_train{1}.removed_classes={};
+dataset.TASK1.imdb_test{1}.removed_classes={};
 %% -------------------- TRAIN --------------------
 % conf
+fprintf('preparing configurations...\n');
 conf_proposal               = proposal_config('image_means', model.mean_image, 'feat_stride', model.feat_stride);
-fprintf('proposal_config\n');
 conf_fast_rcnn              = fast_rcnn_config('image_means', model.mean_image);
-fprintf('fast_rcnn_config\n');
+
 % set cache folder for each stage
-model                       = Faster_RCNN_Train.set_cache_folder(cache_base_proposal, cache_base_fast_rcnn, model); %ELISA: to look if it is correct
-fprintf('Faster_RCNN_Train.set_cache_folder\n');
+fprintf('Setting cache folders...\n');
+model                       = Faster_RCNN_Train.set_cache_folder(cache_base_proposal, cache_base_fast_rcnn, model);
 
 % generate anchors and pre-calculate output size of rpn network 
+fprintf('Generating proposals anchors...\n');
 [conf_proposal.anchors, conf_proposal.output_width_map, conf_proposal.output_height_map] ...
                             = proposal_prepare_anchors(conf_proposal, model.stage1_rpn.cache_name, model.stage1_rpn.test_net_def_file); %ELISA: to look if it is correct
-fprintf('proposal_prepare_anchors\n');
 
 %%  stage one proposal
 fprintf('\n***************\n stage one proposal \n***************\n');
 % train
-model.stage1_rpn            = Faster_RCNN_Train.do_proposal_train(conf_proposal, dataset, model.stage1_rpn, opts.do_val);
-fprintf('Faster_RCNN_Train.do_proposal_train');
-
+model.stage1_rpn            = Faster_RCNN_Train.do_proposal_train(conf_proposal, dataset.TASK1, model.stage1_rpn, opts.do_val, output_dir);
 % test
-dataset.roidb_train        	= cellfun(@(x, y) Faster_RCNN_Train.do_proposal_test(conf_proposal, model.stage1_rpn, x, y), dataset.imdb_train, dataset.roidb_train, 'UniformOutput', false);
-
-% dataset.roidb_test        	= Faster_RCNN_Train.do_proposal_test(conf_proposal, model.stage1_rpn, dataset.imdb_test, dataset.roidb_test);
+dataset.TASK1.roidb_train        	= cellfun(@(x, y) Faster_RCNN_Train.do_proposal_test(conf_proposal, model.stage1_rpn, output_dir, x, y), dataset.TASK1.imdb_train, dataset.TASK1.roidb_train, 'UniformOutput', false);
 
 %%  stage one fast rcnn
 fprintf('\n***************\n stage one fast rcnn\n***************\n');
 % train
-model.stage1_fast_rcnn      = Faster_RCNN_Train.do_fast_rcnn_train(conf_fast_rcnn, dataset, model.stage1_fast_rcnn, opts.do_val);
-% test
-% opts.mAP                    = Faster_RCNN_Train.do_fast_rcnn_test(conf_fast_rcnn, model.stage1_fast_rcnn, dataset.imdb_test, dataset.roidb_test);
+model.stage1_fast_rcnn      = Faster_RCNN_Train.do_fast_rcnn_train(conf_fast_rcnn, dataset.TASK1, model.stage1_fast_rcnn, opts.do_val, output_dir);
 
 %%  stage two proposal
-% net proposal
 fprintf('\n***************\n stage two proposal\n***************\n');
 % train
 model.stage2_rpn.init_net_file = model.stage1_fast_rcnn.output_model_file;
-model.stage2_rpn            = Faster_RCNN_Train.do_proposal_train(conf_proposal, dataset, model.stage2_rpn, opts.do_val);
+model.stage2_rpn            = Faster_RCNN_Train.do_proposal_train(conf_proposal, dataset.TASK1, model.stage2_rpn, opts.do_val, output_dir);
 % test
-dataset.roidb_train       	= cellfun(@(x, y) Faster_RCNN_Train.do_proposal_test(conf_proposal, model.stage2_rpn, x, y), dataset.imdb_train, dataset.roidb_train, 'UniformOutput', false);
-% dataset.roidb_test       	= Faster_RCNN_Train.do_proposal_test(conf_proposal, model.stage2_rpn, dataset.imdb_test, dataset.roidb_test);
+dataset.TASK1.roidb_train       	= cellfun(@(x, y) Faster_RCNN_Train.do_proposal_test(conf_proposal, model.stage2_rpn, output_dir, x, y), dataset.TASK1.imdb_train, dataset.TASK1.roidb_train, 'UniformOutput', false);
 
 %%  stage two fast rcnn
 fprintf('\n***************\n stage two fast rcnn\n***************\n');
 % train
 model.stage2_fast_rcnn.init_net_file = model.stage1_fast_rcnn.output_model_file;
 % model.stage2_fast_rcnn.init_net_file = model.stage2_rpn.output_model_file;
-model.stage2_fast_rcnn      = Faster_RCNN_Train.do_fast_rcnn_train(conf_fast_rcnn, dataset, model.stage2_fast_rcnn, opts.do_val);
+model.stage2_fast_rcnn      = Faster_RCNN_Train.do_fast_rcnn_train(conf_fast_rcnn, dataset.TASK1, model.stage2_fast_rcnn, opts.do_val, output_dir);
 
 %% final test
-fprintf('\n***************\n final test\n***************\n');
-     
+fprintf('\n***************\nfinal test\n***************\n');
 model.stage2_rpn.nms        = model.final_test.nms;
-dataset.roidb_test       	= Faster_RCNN_Train.do_proposal_test(conf_proposal, model.stage2_rpn, dataset.imdb_test, dataset.roidb_test);
-opts.final_mAP              = Faster_RCNN_Train.do_fast_rcnn_test(conf_fast_rcnn, model.stage2_fast_rcnn, dataset.imdb_test, dataset.roidb_test);
+fprintf('saving workspace...');
+save('workspaces/ZF_iCWT_TASK1', '-v7.3');
 
-% save final models, for outside tester
-Faster_RCNN_Train.gather_rpn_fast_rcnn_models(conf_proposal, conf_fast_rcnn, model, dataset);
+fprintf('saving models...');
+%Faster_RCNN_Train.gather_rpn_fast_rcnn_models(conf_proposal, conf_fast_rcnn, model, dataset.TASK1);
+
+if isstruct(dataset.TASK1.roidb_test)
+   tmp_roi = dataset.TASK1.roidb_test;
+   dataset.TASK1 = rmfield(dataset.TASK1,'roidb_test');
+   dataset.TASK1.roidb_test{1} = tmp_roi;
+end
+if isstruct(dataset.TASK1.imdb_test)
+   tmp_imdb = dataset.TASK1.imdb_test;
+   dataset.TASK1 = rmfield(dataset.TASK1,'imdb_test');
+   dataset.TASK1.imdb_test{1} = tmp_imdb;
+end
+dataset.TASK1.roidb_test       	= cellfun(@(x, y) Faster_RCNN_Train.do_proposal_test(conf_proposal, model.stage2_rpn,output_dir, x, y), dataset.TASK1.imdb_test, dataset.TASK1.roidb_test, 'UniformOutput', false);
+opts.final_mAP                  = cellfun(@(x, y) Faster_RCNN_Train.do_fast_rcnn_test(conf_fast_rcnn, model.stage2_fast_rcnn, output_dir, x, y), dataset.TASK1.imdb_test, dataset.TASK1.roidb_test, 'UniformOutput', false);
+save('workspaces/ZF_iCWT_TASK1', '-v7.3');
+
 end
 
 function [anchors, output_width_map, output_height_map] = proposal_prepare_anchors(conf, cache_name, test_net_def_file)

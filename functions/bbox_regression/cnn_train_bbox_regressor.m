@@ -1,4 +1,4 @@
-function bbox_reg = cnn_train_bbox_regressor(conf, imdb, roidb, cnn_model, varargin)
+function bbox_reg = cnn_train_bbox_regressor(conf, imdb, roidb, cnn_model, bbox_model_suffix, varargin)
 % bbox_reg = rcnn_train_bbox_regressor(imdb, cnn_model, varargin)
 %   Trains a bounding box regressor on the image database imdb
 %   for use with the R-CNN model cnn_model. The regressor is trained
@@ -46,11 +46,12 @@ fprintf('~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n');
 cache_dir = 'bbox_reg/';
 clss = imdb.classes;
 num_clss = length(clss);
-caffe_net=[];
 
 % ------------------------------------------------------------------------
 % Get the average norm of the features
-[opts.feat_norm_mean, opts.stdd, opts.mean_feat] = cnn_feature_stats(imdb, opts.layer, cnn_model, caffe_net , cnn_model.cache_name);
+% caffe_net=[];
+% [opts.feat_norm_mean, opts.stdd, opts.mean_feat] = cnn_feature_stats(imdb, opts.layer, cnn_model, caffe_net , cnn_model.cache_name);
+opts.feat_norm_mean = rcnn_feature_stats(imdb, opts.layer, cnn_model); %OK
 
 % fprintf('average norm = %.3f\n', opts.feat_norm_mean);
 % ------------------------------------------------------------------------
@@ -70,16 +71,16 @@ for i = 1:num_clss
   fprintf('%14s has %6d samples\n', imdb.classes{i}, length(find(C == i)));
 end
 % X = rcnn_pool5_to_fcX(X, opts.layer, cnn_model);
-X = GURLS_subtract_mean_features(X, opts.mean_feat);
+% X = GURLS_subtract_mean_features(X, opts.mean_feat);
 % ------------------------------------------------------------------------
 
 % use ridge regression solved by cholesky factorization
 method = 'ridge_reg_chol';
 
 models = cell(num_clss, 1);
+tic
 for i = 1:num_clss
-  fprintf('Training regressors for class %s (%d/%d)\n', ...
-      imdb.classes{i}, i, num_clss);
+  fprintf('Training regressors for class %s (%d/%d)\n', imdb.classes{i}, i, num_clss);
   I = find(O > opts.min_overlap & C == i);
   Xi = X(I,:); 
   if opts.binarize
@@ -112,9 +113,11 @@ for i = 1:num_clss
     solve_robust(Xi, Yi(:,3), opts.lambda, method, opts.robust) ...
     solve_robust(Xi, Yi(:,4), opts.lambda, method, opts.robust)];
 end
+fprintf('time required for training 7 regressors: %f seconds\n',toc);
+
 bbox_reg.models = models;
 bbox_reg.training_opts = opts;
-save([cache_dir 'bbox_regressor_final'], 'bbox_reg');
+save([cache_dir 'bbox_regressor_final' bbox_model_suffix], 'bbox_reg');
 
 
 % ------------------------------------------------------------------------

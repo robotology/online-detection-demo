@@ -1,4 +1,4 @@
-function roidb = roidb_from_voc_reduced(imdb, varargin)
+function roidb = roidb_from_voc_reduced(imdb, cache_name, varargin)
 % roidb = roidb_from_voc(imdb, rootDir)
 %   Builds an regions of interest database from imdb image
 %   database. Uses precomputed selective search boxes available
@@ -25,6 +25,7 @@ ip.addParamValue('with_self_proposal',              false,  @islogical);
 ip.addParamValue('rootDir',                         '.',    @ischar);
 ip.addParamValue('extension',                       '',     @ischar);
 ip.addParamValue('removed_classes',                 {},     @iscell);
+
 
 ip.parse(imdb, varargin{:});
 opts = ip.Results;
@@ -61,8 +62,8 @@ if opts.with_self_proposal
     end
 end
 
-cache_file_imdb = ['./imdb/cache/imdb_' imdb.name '_new'];
-cache_file = fullfile(opts.rootDir, ['/imdb/cache/roidb_' cache_file_ss cache_file_eb cache_file_sp imdb.name opts.extension]);
+cache_file_imdb = ['./imdb/' cache_name '/imdb_' imdb.name '_new'];
+cache_file = fullfile(opts.rootDir, ['/imdb/' cache_name '/roidb_' cache_file_ss cache_file_eb cache_file_sp imdb.name opts.extension]);
 if imdb.flip
     cache_file = [cache_file '_flip'];
 end

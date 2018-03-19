@@ -11,7 +11,7 @@ function [ image_mean ] = image_mean_calculation( )
 % 
 % mdb.image_ids = textread(sprintf(ICUBopts.imgsetpath, image_set), '%s');
 
-fid = fopen('/home/IIT.LOCAL/emaiettini/workspace/Datasets/PascalVoc/VOCdevkit/VOC2007_test/ImageSets/Main/test.txt');
+fid = fopen('/home/IIT.LOCAL/emaiettini/workspace/Datasets/iCubWorld-Transformations/ImageSets/train_TASK1_10objs.txt');
 tline = fgetl(fid);
 counter = 0;
 % I0 = imread(strcat('/home/IIT.LOCAL/emaiettini/workspace/Datasets/PascalVoc/VOCdevkit/VOC2007/JPEGImages/',tline, '.jpg'));
@@ -20,7 +20,7 @@ sumImage = zeros(224,224);
 chosen_number = 0;
 while ischar(tline)
     disp(tline)
-    rgbImage = imread(strcat('/home/IIT.LOCAL/emaiettini/workspace/Datasets/PascalVoc/VOCdevkit/VOC2007_test/JPEGImages/',tline, '.jpg'));
+    rgbImage = imread(strcat('/home/IIT.LOCAL/emaiettini/workspace/Datasets/iCubWorld-Transformations/Images/',tline, '.jpg'));
     rgbImage = imresize(rgbImage,[224 224]);
     sumImage = sumImage + double(rgbImage);
     chosen_number = chosen_number +1;

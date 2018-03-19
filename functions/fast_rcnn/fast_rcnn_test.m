@@ -167,7 +167,7 @@ function mAP = fast_rcnn_test(conf, imdb, roidb, varargin)
     % Peform AP evaluation
     % ------------------------------------------------------------------------
 
-    if isequal(imdb.eval_func, @imdb_eval_voc_reduced)
+    if isequal(imdb.eval_func, @imdb_eval_icub)  | isequal(imdb.eval_func, @imdb_eval_voc_reduced)
         for model_ind = 1:num_classes
           cls = imdb.classes{model_ind};
           res(model_ind) = imdb.eval_func(cls, aboxes{model_ind}, imdb, opts.cache_name, opts.suffix);

@@ -917,6 +917,12 @@ const char* UpgradeV1LayerType(const V1LayerParameter_LayerType type) {
     return "WindowData";
   case V1LayerParameter_LayerType_THRESHOLD:
     return "Threshold";
+  case V1LayerParameter_LayerType_RESHAPE:
+    return "Reshape";
+  case V1LayerParameter_LayerType_ROIPOOLING:
+    return "ROIPooling";
+  case V1LayerParameter_LayerType_SMOOTH_L1_LOSS:
+    return "SmoothL1Loss";
   default:
     LOG(FATAL) << "Unknown V1LayerParameter layer type: " << type;
     return "";

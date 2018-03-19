@@ -1,19 +1,4 @@
 function res = imdb_eval_icub(cls, boxes, imdb, cache_name, suffix)
-% res = imdb_eval_icub(cls, boxes, imdb, suffix)
-%   Use the ICUBdevkit to evaluate detections specified in boxes
-%   for class cls against the ground-truth boxes in the image
-%   database imdb. Results files are saved with an optional
-%   suffix.
-
-% AUTORIGHTS
-% ---------------------------------------------------------
-% Copyright (c) 2014, Ross Girshick
-% 
-% This file is part of the R-CNN code and is available 
-% under the terms of the Simplified BSD License provided in 
-% LICENSE. Please retain this notice and LICENSE if you use 
-% this file (or any portion of it) in your project.
-% ---------------------------------------------------------
 
 % Add a random string ("salt") to the end of the results file name
 % to prevent concurrent evaluations from clobbering each other
@@ -37,10 +22,8 @@ conf = struct;
 conf.cache_dir = fullfile('output', 'fast_rcnn_cachedir', cache_name, imdb.name);
 ICUBopts  = imdb.details.ICUBopts;
 image_ids = imdb.image_ids;
-test_set = ICUBopts.testset;
-year = ICUBopts.dataset(4:end);
-
-% addpath(fullfile(ICUBopts.datadir, 'VOCcode')); 
+% test_set = ICUBopts.testset;
+% year = ICUBopts.dataset(4:end);
 
 if use_res_salt
   prev_rng = rng;
@@ -52,7 +35,7 @@ else
   res_id = comp_id;
 end
 res_fn = sprintf(ICUBopts.detrespath, res_id, cls);
-
+fprintf('schifo di path: %s \n',res_fn)
 % write out detections in PASCAL format and score
 fid = fopen(res_fn, 'w');
 for i = 1:length(image_ids);
@@ -75,7 +58,7 @@ do_eval = true;
 if do_eval
   % Bug in ICUBevaldet requires that tic has been called first
   tic;
-  [recall, prec, ap] = VOCevaldet(ICUBopts, res_id, cls, draw_curve);
+  [recall, prec, ap] = VOCevaldet_reduced(ICUBopts, res_id, cls, draw_curve,imdb.removed_classes);
   ap_auc = xVOCap(recall, prec);
 
   % force plot limits
@@ -97,5 +80,3 @@ res.ap_auc = ap_auc;
 if rm_res
   delete(res_fn);
 end
-
-% rmpath(fullfile(ICUBopts.datadir, 'VOCcode')); 

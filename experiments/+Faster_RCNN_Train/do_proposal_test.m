@@ -1,9 +1,16 @@
-function roidb_new = do_proposal_test(conf, model_stage, output_dir, imdb, roidb)
+function roidb_new = do_proposal_test(conf, model_stage, output_dir, imdb, roidb, varargin)
+
+    ip = inputParser;
+    ip.addParamValue('suffix',          '',             @isstr);
+    ip.parse(varargin{:});
+    opts = ip.Results;
+
     aboxes                      = proposal_test(conf, imdb, ...
                                         'net_def_file',     model_stage.test_net_def_file, ...
                                         'net_file',         model_stage.output_model_file, ...
                                         'cache_name',       model_stage.cache_name, ...
-                                        'output_dir',       output_dir);      
+                                        'output_dir',       output_dir, ...
+                                        'suffix',           opts.suffix);      
                                     
     aboxes                      = boxes_filter(aboxes, model_stage.nms.per_nms_topN, model_stage.nms.nms_overlap_thres, model_stage.nms.after_nms_topN, conf.use_gpu);    
     

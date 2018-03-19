@@ -104,7 +104,6 @@ catch
   fid = fopen('to_remove.txt', 'w');
   
   if ~imdb.flip
-%       new_sizes = imdb.sizes;
       for i = 1:length(imdb.image_ids)
         tic_toc_print('roidb (%s): %d/%d\n', roidb.name, i, length(imdb.image_ids));
         %ELISA

@@ -80,6 +80,8 @@ for i = 1:ceil(total_rois / batch_size)
     if i == 1
         if layer == 'fc7'
             feat_dim = 4096;
+        elseif layer == 'fc6'
+            feat_dim = 4096;
         elseif layer == 'pool5'
             feat_dim = 9216;
         else
@@ -147,32 +149,32 @@ function [batch_padding] = calculate_batch_padding(num_boxes,  batch_size)
     end
 end
 
-function max_rois_num = check_gpu_memory(conf, caffe_net)
-%%  try to determine the maximum number of rois
-
-    max_rois_num = 0;
-    for rois_num = 500:500:5000
-        % generate pseudo testing data with max size
-        im_blob = single(zeros(conf.max_size, conf.max_size, 3, 1));
-        rois_blob = single(repmat([0; 0; 0; conf.max_size-1; conf.max_size-1], 1, rois_num));
-        rois_blob = permute(rois_blob, [3, 4, 1, 2]);
-
-        net_inputs = {im_blob, rois_blob};
-
-        % Reshape net's input blobs
-        caffe_net.reshape_as_input(net_inputs);
-
-        caffe_net.forward(net_inputs);
-        gpuInfo = gpuDevice();
-
-        max_rois_num = rois_num;
-            
-        if gpuInfo.FreeMemory < 2 * 10^9  % 2GB for safety
-            break;
-        end
-    end
-
-end
+% function max_rois_num = check_gpu_memory(conf, caffe_net)
+% %%  try to determine the maximum number of rois
+% 
+%     max_rois_num = 0;
+%     for rois_num = 500:500:5000
+%         % generate pseudo testing data with max size
+%         im_blob = single(zeros(conf.max_size, conf.max_size, 3, 1));
+%         rois_blob = single(repmat([0; 0; 0; conf.max_size-1; conf.max_size-1], 1, rois_num));
+%         rois_blob = permute(rois_blob, [3, 4, 1, 2]);
+% 
+%         net_inputs = {im_blob, rois_blob};
+% 
+%         % Reshape net's input blobs
+%         caffe_net.reshape_as_input(net_inputs);
+% 
+%         caffe_net.forward(net_inputs);
+%         gpuInfo = gpuDevice();
+% 
+%         max_rois_num = rois_num;
+%             
+%         if gpuInfo.FreeMemory < 2 * 10^9  % 2GB for safety
+%             break;
+%         end
+%     end
+% 
+% end
 
 % %% RCNN
 % % make sure that caffe has been initialized for this model

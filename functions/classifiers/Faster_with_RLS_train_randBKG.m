@@ -1,50 +1,77 @@
-function [ rcnn_model ] = Faster_with_RLS_train_randBKG(train_options, config, cnn_model, imdb, varargin )
+function [ rcnn_model ] = Faster_with_RLS_train_randBKG(train_options, config, cnn_model, imdb, negatives_selection, rebalancing, fid, varargin )
 %FASTER_WITH_RLS_TRAIN Summary of this function goes here
 %   Detailed explanation goes here
 
 ip = inputParser;
-ip.addRequired('imdb', @isstruct);
-ip.addParamValue('svm_C',           10^-3,  @isscalar);
-ip.addParamValue('bias_mult',       10,     @isscalar);
-ip.addParamValue('pos_loss_weight', 2,      @isscalar);
-ip.addParamValue('layer',           7,      @isscalar);
-ip.addParamValue('k_folds',         2,      @isscalar);
-ip.addParamValue('checkpoint',      0,      @isscalar);
-ip.addParamValue('crop_mode',       'warp', @isstr);
-ip.addParamValue('crop_padding',    16,     @isscalar);
-ip.addParamValue('cache_name', 'feature_extraction_cache', @isstr);
-ip.addParamValue('rebalancing', false, @isboolean);
-% ip.addParamValue('net_file', './data/caffe_nets/finetune_voc_2007_trainval_iter_70k', @isstr);
+ip.addRequired('imdb',                                               @isstruct);
+ip.addRequired('negatives_selection',                                @isstruct);
 
-ip.parse(imdb, varargin{:});
+ip.addParamValue('layer',               7,                           @isscalar);
+ip.addParamValue('checkpoint',          0,                           @isscalar);
+ip.addParamValue('cache_name',          'feature_extraction_cache',  @isstr);
+ip.addParamValue('rebal_alpha',         0.5,                         @isscalar);
+
+ip.parse(imdb, negatives_selection, varargin{:});
 opts = ip.Results;
 
+opts.negatives_selection = negatives_selection;
+opts.train_classifier_options = train_options;
 opts.net_file = cnn_model.binary_file;
 opts.net_def_file = cnn_model.net_def_file;
-opts.negatives_selection.policy = 'all_from_M';
-opts.negatives_selection.N = 3000;
-opts.negatives_selection.M = 222;
 
+
+%% Negative selection options
+
+ if strcmp(opts.negatives_selection.policy, 'all_from_M')
+     fprintf('All_from_M negatives selection policy chosen \n');
+
+ elseif strcmp(opts.negatives_selection.policy, 'from_all')
+     fprintf('from_all negatives selection policy chosen \n');
+
+ else
+     fprintf('no negatives selection policy specified, default from_all chosen \n');
+ end
+ 
+%% Rebalancing options
+if ~exist('rebalancing', 'var') || isempty(rebalancing)
+    fprintf('rebalancing disabled \n');
+    opts.rebalancing.required = false;
+elseif strcmp(rebalancing, 'inv_freq')
+    fprintf('inv_freq rebalancing policy chosen \n');
+    opts.rebalancing.required = true;
+    opts.rebalancing.policy = rebalancing;
+    opts.rebalancing.alpha = opts.rebal_alpha;
+elseif strcmp(rebalancing, 'prod_freq')
+    fprintf('prod_freq rebalancing policy chosen \n');
+    opts.rebalancing.required = true;
+    opts.rebalancing.policy = rebalancing;
+    opts.rebalancing.alpha = opts.rebal_alpha;
+
+else
+    fprintf('unrecognized rebalancing policy, Rebalancing disabled \n');
+end
+
+%% Configure options
 conf = rcnn_config('sub_dir', imdb.name);
 conf.cache_dir = train_options.cache_dir;
 conf.use_gpu =   config.use_gpu;
 
-% Record a log of the training and test procedure
-timestamp = datestr(datevec(now()), 'dd.mmm.yyyy:HH.MM.SS');
-diary_file = [conf.cache_dir 'rcnn_train_' timestamp '.txt'];
-diary(diary_file);
-fprintf('Logging output in %s\n', diary_file);
+%% Record a log of the training and test procedure
+%timestamp = datestr(datevec(now()), 'dd.mmm.yyyy:HH.MM.SS');
+%diary_file = [conf.cache_dir 'rcnn_train_' timestamp '.txt'];
+%diary(diary_file);
+%fprintf('Logging output in %s\n', diary_file);
 
 fprintf('\n\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n');
 fprintf('Training options:\n');
 disp(opts);
 fprintf('~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n');
 
-% Create a new rcnn model
+%% Create a new rcnn model
 rcnn_model = gurls_create_model(opts.net_def_file, opts.net_file, opts.cache_name); %MODIFICATO
-[rcnn_model, caffe_net]  = cnn_load_model(config, cnn_model);
-rcnn_model.detectors.crop_mode = opts.crop_mode;
-rcnn_model.detectors.crop_padding = opts.crop_padding;
+%[rcnn_model, caffe_net]  = cnn_load_model(config, cnn_model);
+% rcnn_model.detectors.crop_mode = opts.crop_mode;
+% rcnn_model.detectors.crop_padding = opts.crop_padding;
 rcnn_model.classes = imdb.classes;
 
 
@@ -52,7 +79,7 @@ opts.feat_norm_mean = rcnn_feature_stats(imdb, opts.layer, rcnn_model); %OK
 fprintf('average norm = %.3f\n', opts.feat_norm_mean);
 rcnn_model.training_opts = opts;
 
-% ------------------------------------------------------------------------
+%% ------------------------------------------------------------------------
 % Get all positive examples
 save_file = sprintf('./feat_cache/%s/%s/gt_pos_layer_5_cache.mat', rcnn_model.cache_name, imdb.name);
 
@@ -67,15 +94,15 @@ end
 caches = {};
 for i = imdb.class_ids
   fprintf('%14s has %6d positive instances\n', imdb.classes{i}, size(X_pos{i},1));
-
+  fprintf(fid, '%14s has %6d positive instances\n', imdb.classes{i}, size(X_pos{i},1));
   X_pos{i} = rcnn_scale_features(X_pos{i}, opts.feat_norm_mean);
   caches{i} = init_cache(X_pos{i}, keys_pos{i});
 end
 % ------------------------------------------------------------------------
 
-% ------------------------------------------------------------------------
+%% ------------------------------------------------------------------------
 % Get negative examples
-save_file_negative = sprintf('./feat_cache/%s/%s/gt_neg_layer_5_cache.mat', rcnn_model.cache_name, imdb.name);
+save_file_negative = sprintf('./feat_cache/%s/%s/gt_neg_%d%s_cache.mat', rcnn_model.cache_name, imdb.name,opts.negatives_selection.N, opts.negatives_selection.policy);
 
 try
   load(save_file_negative);
@@ -87,8 +114,7 @@ end
 
 for i = imdb.class_ids
   fprintf('%14s has %6d negative instances\n', imdb.classes{i}, size(X_neg{i},1));
-
-%   X_neg{i} = rcnn_scale_features(X_neg{i}, opts.feat_norm_mean);
+  fprintf(fid, '%14s has %6d negative instances\n', imdb.classes{i}, size(X_neg{i},1));
   caches{i}.X_neg =  X_neg{i};
   caches{i}.keys_neg = keys_neg;
 end
@@ -96,6 +122,7 @@ end
 
 % ------------------------------------------------------------------------
 % Train models
+train_time = tic;
 for j = imdb.class_ids
     fprintf('>>> Updating %s detector <<<\n', imdb.classes{j});
     fprintf('Cache holds %d pos examples %d neg examples\n', size(caches{j}.X_pos,1), size(caches{j}.X_neg,1));
@@ -103,21 +130,16 @@ for j = imdb.class_ids
     rcnn_model.detectors.models{j} = update_model(caches{j}, opts);
 end
 
-% save the final rcnn_model
-save([conf.cache_dir 'rls_model'], 'rcnn_model');
+fprintf('time required for training 7 models: %f seconds\n',toc(train_time));
+fprintf(fid, 'time required for training 7 models: %f seconds\n',toc(train_time))
+
+model_name = ['rls_model_norm_alpha' strrep(num2str(opts.rebalancing.alpha),'.','') '_randBKG_' int2str(opts.negatives_selection.N) '_rebal_' opts.rebalancing.policy];
+% workspace_name = ['workspace_' strrep(num2str(opts.rebalancing.alpha),'.','') '_randBKG_' int2str(opts.negatives_selection.N) '_rebal_' opts.rebalancing.policy '.mat'];
+
+% save(workspace_name);
+save([conf.cache_dir model_name], 'rcnn_model');
 % -----------------------------------------------------------------------
 
-end
-
-% ------------------------------------------------------------------------
-
-function y_predicted = predict_all_gurls(x_test, models, class_ids)
-
-%FUNZIONE DA CONTROLLARE    
-y_predicted = zeros(size(x_test,1), length(class_ids));
-    for class_id = class_ids
-        y_predicted(:, cls_id) = gurls_test(models{cls_id}.gurlsOpt{1, 1}.model_classifier, x_test);
-    end
 end
 
 % ------------------------------------------------------------------------
@@ -141,43 +163,30 @@ else
       num_neg, size(cache.X_neg,1));
 end
 
-%DA VEDERE IN CHE FORMATO SONO I DATI
 X = zeros(size(cache.X_pos,2), num_pos+num_neg);
 X(:,1:num_pos) = cache.X_pos(pos_inds,:)';
 X(:,num_pos+1:end) = cache.X_neg(neg_inds,:)';
-
 %Features adpted to GURLS format: n x d matrix
 X = X';
 
 y = cat(1, ones(num_pos,1), -ones(num_neg,1));
-
 %Labels adpted to GURLS format: n x T matrix (T = 2, [bkg, cls])
 y = cat(2, -y, y);
 
-%AGGIUNTO
-% train_classifier_options definition
-train_classifier_options = struct;
-train_classifier_options.gurlsOptions = struct;
-train_classifier_options.gurlsOptions.kernelfun = 'linear';
-
-% train_classifier_options.gt_regions = 1; %1 = gt regions, 0 = proposals with iou > thresh
-% train_classifier_options.subtract_mean = 1; % 1 = feature mean subtraction
-% train_classifier_options.cache_dir = 'cache_classifiers/gurls/';
-
 %For rebalancing
-if opts.rebalancing
-    train_classifier_options.gurlsOptions.rebalancing = true;
-    train_classifier_options.gurlsOptions.AlphaElisa = 0.7;
-    train_classifier_options.gurlsOptions.GammaElisa = computeGamma(y);
+if opts.rebalancing.required
+    opts.train_classifier_options.gurlsOptions.rebalancing = true;
+    opts.train_classifier_options.gurlsOptions.Alpha = opts.rebalancing.alpha;
+    opts.train_classifier_options.gurlsOptions.Gamma = computeGamma(y,opts.rebalancing.policy);
 else
-    train_classifier_options.gurlsOptions.rebalancing = false;
+    opts.train_classifier_options.gurlsOptions.rebalancing = false;
 end
 
-model = gurls_train(X, y, train_classifier_options.gurlsOptions);
+model = gurls_train(X, y, opts.train_classifier_options.gurlsOptions);
 
 end
 
-function gamma = computeGamma(Y)
+function gamma = computeGamma(Y, policy)
     n_train = size(Y,1);
     [~,tmp] = find(Y == 1);
     a = unique(tmp);
@@ -187,9 +196,16 @@ function gamma = computeGamma(Y)
     t = numel(p);
     % Compute t x t recoding matrix C
     gamma = zeros(t);
-    for i = 1:t
-%         gamma(i,i) = prod( t * p([1:i-1 , i+1:t]));
-        gamma = 1 / p(i);
+    if strcmp(policy,'inv_freq')
+        for i = 1:t
+            gamma(i,i) = 1 / p(i);
+        end
+    elseif strcmp(policy,'prod_freq')
+        for i = 1:t
+            gamma(i,i) = prod( t * p([1:i-1 , i+1:t]));
+        end
+    else
+        error('policy for computing Gamma not recognized')
     end
 end
 
@@ -250,9 +266,10 @@ function [X_neg, keys] = get_negatives_features(imdb, opts)
 
         case {'all_from_M'}
             fprintf('selecting all negatives from %d images \n',opts.negatives_selection.M);
-            if(opts.negatives_selection.M<length(imdb.image_ids))
+            if(opts.negatives_selection.M>length(imdb.image_ids))
                 fprintf('Dataset contains only %d images, I cannot pick %d...\n',length(imdb.image_ids),opts.negatives_selection.M);
                 fprintf('Negatives from all the images will be considered.. \n')
+               
                 
                 for i = 1:length(imdb.image_ids)
                     tic_toc_print('%s: neg features %d/%d\n', procid(), i, length(imdb.image_ids));
@@ -273,12 +290,14 @@ function [X_neg, keys] = get_negatives_features(imdb, opts)
             else
                 fprintf('Dataset contains %d images, I will pick the negatives from %d of them...\n',length(imdb.image_ids),opts.negatives_selection.M);
                 
-                step = ceil(length(imdb.image_ids)/opts.negatives_selection.M);
+                rand_inds = randi([1 1071], 1,opts.negatives_selection.M);
+                fprintf('Chosen indexes are: \n')
+                disp(rand_inds);
                 
-                for i = 1:step:length(imdb.image_ids)
-                    tic_toc_print('%s: neg features %d/%d\n', procid(), i, length(imdb.image_ids));
+                for i = 1:length(rand_inds)
+                    tic_toc_print('%s: neg features %d/%d\n', procid(), i, length(rand_inds));
 
-                    d = cnn_load_cached_pool5_features(opts.cache_name, imdb.name, imdb.image_ids{i});        
+                    d = cnn_load_cached_pool5_features(opts.cache_name, imdb.name, imdb.image_ids{rand_inds(i)});        
                     d.feat = rcnn_scale_features(d.feat, opts.feat_norm_mean);
 
                     neg_ovr_thresh = 0.3;

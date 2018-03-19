@@ -1,7 +1,7 @@
-function [ res ] = cnn_test_bbox_regressor( conf, imdb, rcnn_model, bbox_reg, suffix )
+function [ res ] = cnn_test_bbox_regressor( conf, imdb, rcnn_model, bbox_reg, suffix, fid )
 % conf = rcnn_config('sub_dir', imdb.name);
 image_ids = imdb.image_ids;
-conf.cache_dir = 'cache_classifiers/gurls_VOC2007_gt_gauss_voc_mean/';
+conf.cache_dir = conf.boxes_dir;
 feat_opts.cache_name = 'feature_extraction_cache';
 feat_opts.layer = 7;
 caffe_net=[];
@@ -20,11 +20,11 @@ end
 
 %Try to load existing bbox predictions, otherwise predict them
 try
-  aboxes = cell(num_classes, 1);
-  for i = 1:num_classes
-    load([conf.cache_dir imdb.classes{i} '_boxes_' imdb.name suffix]);
-    aboxes{i} = boxes;
-  end
+ aboxes = cell(num_classes, 1);
+ for i = 1:num_classes
+   load([conf.cache_dir imdb.classes{i} '_boxes_' imdb.name suffix]);
+   aboxes{i} = boxes;
+ end
 catch
   aboxes = cell(num_classes, 1);
   box_inds = cell(num_classes, 1);
@@ -35,8 +35,10 @@ catch
     clear boxes inds;
   end
   
-  [feat_opts.feat_norm_mean, feat_opts.stdd, feat_opts.mean_feat] = cnn_feature_stats(imdb, feat_opts.layer, rcnn_model, caffe_net , feat_opts.cache_name);
+%   [feat_opts.feat_norm_mean, feat_opts.stdd, feat_opts.mean_feat] = cnn_feature_stats(imdb, feat_opts.layer, rcnn_model, caffe_net , feat_opts.cache_name);
+  feat_opts.feat_norm_mean = rcnn_feature_stats(imdb, feat_opts.layer, rcnn_model); %OK
 
+  tic
   for i = 1:length(image_ids)
     fprintf('%s: bbox reg test (%s) %d/%d\n', procid(), imdb.name, i, length(image_ids));
     d = cnn_load_cached_pool5_features(feat_opts.cache_name, ...
@@ -45,9 +47,9 @@ catch
       continue;
     end
 
-    d.feat = cnn_pool5_to_fcX(d.feat, feat_opts.layer, rcnn_model);
+%     d.feat = cnn_pool5_to_fcX(d.feat, feat_opts.layer, rcnn_model);
 %     d.feat = cnn_scale_features(d.feat, feat_opts.feat_norm_mean);
-    d.feat = GURLS_subtract_mean_features(d.feat, feat_opts.mean_feat);
+%     d.feat = GURLS_subtract_mean_features(d.feat, feat_opts.mean_feat);
 
 
     if feat_opts.binarize
@@ -84,14 +86,16 @@ catch
       end
     end
   end
+  fprintf('time required for testing 7 regressors over %d images: %f seconds\n', length(image_ids),toc);
+  fprintf(fid, 'time required for testing 7 regressors over %d images: %f seconds\n', length(image_ids),toc)
 
-  for i = 1:num_classes
-    save_file = [conf.cache_dir imdb.classes{i} '_boxes_' imdb.name suffix];
-    boxes = aboxes{i};
-    inds = box_inds{i};
-    save(save_file, 'boxes', 'inds');
-    clear boxes inds;
-  end
+ for i = 1:num_classes
+   save_file = [conf.cache_dir imdb.classes{i} '_boxes_' imdb.name suffix];
+   boxes = aboxes{i};
+   inds = box_inds{i};
+   save(save_file, 'boxes', 'inds');
+   clear boxes inds;
+ end
 end
 
 % ------------------------------------------------------------------------
@@ -114,4 +118,11 @@ aps = [res(:).ap]'* 100;
 disp(aps);
 disp(mean(aps));
 fprintf('~~~~~~~~~~~~~~~~~~~~\n');
+
+fprintf(fid, '\n~~~~~~~~~~~~~~~~~~~~\n');
+fprintf(fid, 'Results:\n');
+aps = [res(:).ap]'* 100;
+fprintf(fid, '%f\n%f\n%f\n%f\n%f\n%f\n%f\n\n',aps);
+fprintf(fid, 'mAP: %f\n',mean(aps));
+fprintf(fid, '~~~~~~~~~~~~~~~~~~~~\n');
 

@@ -34,7 +34,7 @@ else
   end
 end
 
-conf.cache_dir = fullfile('output_VOC2007_ZF_voc_reduced', 'fast_rcnn_cachedir', cache_name, imdb.name);
+conf.cache_dir = fullfile('tmp_cache', cache_name, imdb.name);
 VOCopts  = imdb.details.VOCopts;
 image_ids = imdb.image_ids;
 test_set = VOCopts.testset;
@@ -51,8 +51,8 @@ if use_res_salt
 else
   res_id = comp_id;
 end
-res_fn = sprintf(VOCopts.detrespath, res_id, cls);
-
+%res_fn = sprintf(VOCopts.detrespath, res_id, cls);
+res_fn = sprintf('/home/IIT.LOCAL/emaiettini/workspace/Repos/Incremental_Faster_RCNN/results__/%s_det_val_%s.txt', res_id, cls);
 % write out detections in PASCAL format and score
 fid = fopen(res_fn, 'w');
 for i = 1:length(image_ids);

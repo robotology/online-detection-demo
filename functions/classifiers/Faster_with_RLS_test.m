@@ -1,4 +1,4 @@
-function [ res ] = Faster_with_RLS_test( rcnn_model, imdb, suffix )
+function [ res ] = Faster_with_RLS_test( rcnn_model, imdb, suffix, fid )
 %FASTER_WITH_RLS_TEST Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -27,6 +27,8 @@ try
     aboxes{i} = cell(length(image_ids), 1);
     box_inds{i} = cell(length(image_ids), 1);
   end
+  
+  test_time = tic; %test time recordeing
   
   % heuristic that yields at most 100k pre-NMS boxes
   % per 2500 images
@@ -77,6 +79,9 @@ try
       end
     end
   end
+  
+fprintf('time required for testing over %d: %f seconds\n',length(image_ids),toc(test_time));
+fprintf(fid, 'time required for testing over %d: %f seconds\n',length(image_ids),toc(test_time));
 
   for i = 1:num_classes
     % go back through and prune out detections below the found threshold
@@ -110,4 +115,10 @@ disp(aps);
 disp(mean(aps));
 fprintf('~~~~~~~~~~~~~~~~~~~~\n');
 
+fprintf(fid, '\n~~~~~~~~~~~~~~~~~~~~\n');
+fprintf(fid, 'Results:\n');
+aps = [res(:).ap]'* 100;
+fprintf(fid, '%f\n%f\n%f\n%f\n%f\n%f\n%f\n\n',aps);
+fprintf(fid, 'mAP: %f\n',mean(aps));
+fprintf(fid, '~~~~~~~~~~~~~~~~~~~~\n');
 

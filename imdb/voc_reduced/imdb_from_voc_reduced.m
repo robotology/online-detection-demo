@@ -1,4 +1,4 @@
-function imdb = imdb_from_voc_reduced(root_dir, image_set, year, flip, removed_classes)
+function imdb = imdb_from_voc_reduced(root_dir, image_set, year, flip, removed_classes, cache_name)
 % imdb = imdb_from_voc(root_dir, image_set, year)
 %   Builds an image database for the PASCAL VOC devkit located
 %   at root_dir using the image_set and year.
@@ -31,7 +31,7 @@ if nargin < 4
     flip = false;
 end
 
-cache_file = ['./imdb/cache/imdb_voc_' year '_' image_set];
+cache_file = ['./imdb/' cache_name '/imdb_voc_' year '_' image_set '_new'];
 if flip
     cache_file = [cache_file, '_flip'];
 end
