@@ -14,7 +14,7 @@ props.setProperty('mail.smtp.socketFactory.port','465');
 
 try
     startup;
-    script_faster_rcnn_ICUB_ZF();
+    script_faster_rcnn_ICUB_ZF(3);
     sendmail({'elisa.maiettini@gmail.com'}, ['Done faster icub']);
     quit;
 catch error_struct
