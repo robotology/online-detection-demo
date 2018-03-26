@@ -1,8 +1,7 @@
-function [ new_boxes thresholded_scores ] = predict_FALKON( feat, cls_model, thresh, boxes )
+function [ new_boxes, thresholded_scores ] = predict_FALKON( feat, cls_model, thresh, boxes )
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
 num_classes = length(cls_model.classes);
-% dets = cell(num_classes, 1);
 X_test = gpuArray(feat);
 thresholded_scores = cell(num_classes, 1);
 new_boxes = cell(num_classes, 1);

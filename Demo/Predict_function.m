@@ -1,4 +1,4 @@
-function [  ] = Predict( image_set, classes, cnn_model_dir, cls_model, bbox_model, gpu_id )
+function [  ] = Predict_function( image_set, classes, cnn_model_dir, cls_model, bbox_model, gpu_id )
 %INFERENCE Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -15,7 +15,6 @@ opts.use_gpu                = true;
 opts.test_scales            = 600;
 detect_thresh               = 0.5;
 
-dataset_path = '/home/IIT.LOCAL/emaiettini/workspace/Repos/Incremental_Faster_RCNN/datasets/iCubWorld-Transformations/';
 
 %% -------------------- INIT_MODEL --------------------
 proposal_detection_model    = load_proposal_detection_model(cnn_model_dir);
