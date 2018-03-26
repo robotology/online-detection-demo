@@ -15,8 +15,6 @@ opts.use_gpu                = true;
 opts.test_scales            = 600;
 detect_thresh               = 0.5;
 
-dataset_path = '/home/IIT.LOCAL/emaiettini/workspace/Repos/Incremental_Faster_RCNN/datasets/iCubWorld-Transformations/';
-
 %% -------------------- INIT_MODEL --------------------
 proposal_detection_model    = load_proposal_detection_model(cnn_model_dir);
 proposal_detection_model.conf_proposal.test_scales = opts.test_scales;
@@ -29,7 +27,7 @@ end
 % proposal net
 rpn_net = caffe.Net(proposal_detection_model.proposal_net_def, 'test');
 rpn_net.copy_from(proposal_detection_model.proposal_net);
-% fast rcnn net
+% % fast rcnn net
 fast_rcnn_net = caffe.Net(proposal_detection_model.detection_net_def, 'test');
 fast_rcnn_net.copy_from(proposal_detection_model.detection_net);
 
@@ -43,13 +41,14 @@ end
 %% -------------------- START PREDICTION --------------------
 prediction_tic = tic;
 
-image_ids = textread([dataset_path, 'ImageSets/', image_set, '.txt']);
+image_ids = textread(sprintf(VOCopts.imgsetpath, image_set), '%s');
+dataset_path = '/home/IIT.LOCAL/emaiettini/workspace/Repos/Incremental_Faster_RCNN/datasets/iCubWorld-Transformations';
 
 for j = 1:length(image_ids)
     %% Fetch image
     fetch_tic = tic;
     
-    im = imread(fullfile(dataset_path, 'Images', image_ids{j}));    
+    im = imread(fullfile(dataset_path, image_ids{j}));    
     im_gpu = gpuArray(im);
     
     fprintf('fetching images required %f seconds', toc(fetch_tic));
@@ -78,7 +77,7 @@ for j = 1:length(image_ids)
     
     %% Regions classification and scores thresholding
     cls_tic = tic;
-    [boxes, cls_scores] = predict_FALKON(features, cls_model, detect_thresh);
+    [boxes, scores] = predict_FALKON(features, cls_model, detect_thresh);
     fprintf('Region classification required %f seconds', toc(cls_tic));
 
     %% Bounding boxes refinement
@@ -90,7 +89,8 @@ for j = 1:length(image_ids)
     vis_tic = tic;
     boxes_cell = cell(length(classes), 1);
     for i = 1:length(boxes_cell)
-        boxes_cell{i} = [boxes(:, (1+(i-1)*4):(i*4)), cls_scores(:, i)];
+        boxes_cell{i} = [boxes(:, (1+(i-1)*4):(i*4)), scores(:, i)];
+        boxes_cell{i} = boxes_cell{i}(I, :);
     end
     f = figure(j);
     showboxes(im, boxes_cell, classes, 'voc');
