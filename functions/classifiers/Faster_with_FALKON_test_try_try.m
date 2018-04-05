@@ -1,7 +1,7 @@
 function [ res ] = Faster_with_FALKON_test_try_try( rcnn_model, config, imdb, suffix, fid )
 %FASTER_WITH_RLS_TEST Summary of this function goes here
 %   Detailed explanation goes here
-
+tosave = true;
 conf = rcnn_config('sub_dir', imdb.name);
 conf.cache_dir = config.boxes_dir;
 image_ids = imdb.image_ids;
@@ -88,11 +88,30 @@ fprintf(fid, 'time required for testing over %d: %f seconds\n',length(image_ids)
 
   for i = 1:num_classes
     % go back through and prune out detections below the found threshold
+    dir_name =  ['det_images/' rcnn_model.classes{i}];
+    mkdir(dir_name);
+    counter = 1;
+    bb = cell(num_classes,1);
     for j = 1:length(image_ids)
       if ~isempty(aboxes{i}{j})
         I = find(aboxes{i}{j}(:,end) < thresh(i));
         aboxes{i}{j}(I,:) = [];
         box_inds{i}{j}(I,:) = [];
+        
+          if 1
+          % debugging visualizations
+              im = imread(imdb.image_at(j));
+              keep = nms(aboxes{i}{j}, 0.3);
+              if aboxes{i}{j}(keep,:) > -0.9
+                  bb{i}=aboxes{i}{j}(keep,:);
+                  bb{i} = bb{i}((find(bb{i}(:,5)>0.5)),:);
+                  im_filename = [dir_name '/' int2str(counter) '.jpg'];
+                  showboxes(im, bb, rcnn_model.classes, 'voc', tosave, im_filename);
+                  counter = counter + 1;
+              end
+          end
+        
+        
       end
     end
 
@@ -108,7 +127,7 @@ end
 % ------------------------------------------------------------------------
 for model_ind = 1:num_classes
   cls = rcnn_model.classes{model_ind};
-  res(model_ind) = imdb.eval_func(cls, aboxes{model_ind}, imdb, suffix);
+  res(model_ind) = imdb.eval_func(cls, aboxes{model_ind}, imdb, suffix);  
 end
 
 fprintf('\n~~~~~~~~~~~~~~~~~~~~\n');

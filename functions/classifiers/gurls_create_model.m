@@ -47,7 +47,7 @@ cnn.batch_size = 256;
 cnn.init_key = -1;
 cnn.input_size = 224;
 % load the ilsvrc image mean
-data_mean_file = './models/pre_trained_models/ZF/mean_image.mat';
+data_mean_file = './models10/pre_trained_models/ZF/mean_image.mat';
 assert(exist(data_mean_file, 'file') ~= 0);
 ld = load(data_mean_file);
 image_mean = ld.image_mean; clear ld;

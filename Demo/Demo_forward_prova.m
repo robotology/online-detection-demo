@@ -1,4 +1,7 @@
-function script_FALKON_on_iCWT_ZF_single(bkg_numb, sigma, lambda, gpu_id)
+function [  ] = Demo_forward_prova(bkg_numb, sigma, lambda, gpu_id)
+%DEMO_FORWARD Summary of this function goes here
+%   Detailed explanation goes here
+
 clear mex;
 gpuDevice(gpu_id);
 
@@ -49,13 +52,52 @@ addpath('./datasets/VOCdevkit2007/VOCdevkit/VOCcode_incremental');
 rmdir(boxes_dir,'s');
 mkdir(boxes_dir);
 
-% test classifiers
-res_cls = cellfun(@(x) Incremental_Faster_RCNN_Train.do_classifiers_test(train_classifier_options.cache_dir, conf_fast_rcnn, '',  cls_mode, ...
-                                                                  model.classifiers.falkon{1}, x, fid), dataset.TASK2.imdb_test, 'UniformOutput', false);
+for j = 1:3000
+    
+    %% Fetch image
+    
+    %% Regions classification and scores thresholding
+    cls_tic = tic;
+    d = cnn_load_cached_pool5_features(model.classifiers.falkon{1}.cache_name, ...
+          dataset.TASK2.imdb_test{1}.name, dataset.TASK2.imdb_test{1}.image_ids{j});
+    [cls_boxes, cls_scores, inds] = predict_FALKON(d.feat(2:end,:), model.classifiers.falkon{1}, 0.5, d.boxes(2:end,:));
+    fprintf('Region classification required %f seconds\n', toc(cls_tic));
 
-% test regressors
-res_reg = cellfun(@(x) Incremental_Faster_RCNN_Train.do_regressor_test(conf_fast_rcnn,bbox_model, model.feature_extraction, x, fid), ...
-                                                                  dataset.TASK2.imdb_test, 'UniformOutput', false);
+    %% Bounding boxes refinement
+    bbox_tic = tic;
+    boxes = predict_bbox_refinement( model.bbox_regressors, d.feat(2:end,:), cls_boxes, 10, inds );
+    fprintf('Bounding box refinement required %f seconds\n', toc(bbox_tic));
+    
+    %% Detections visualization
+    vis_tic = tic;
+    boxes_cell = cell(10, 1);
+    im = imread([dataset_path '/Images/' dataset.TASK2.imdb_test{1}.image_ids{j} '.jpg']);    
+    for i = 1:length(boxes_cell)
+      boxes_cell{i} = [boxes{i}, cls_scores{i}];
+      keep = nms(boxes_cell{i}, 0.3);
+      boxes_cell{i} = boxes_cell{i}(keep,:);
+    end
+    f = figure(j);
+    showboxes(im, boxes_cell, chosen_classes_T2, 'voc', false); %TO-STUDY what it does
+    fprintf('Visualization required %f seconds\n', toc(vis_tic));
+%     pause(0.1);
+%     close(f);
+end
 
 end
+
+function proposal_detection_model = load_proposal_detection_model(model_dir)
+    ld                          = load(fullfile(model_dir, 'model'));
+    proposal_detection_model    = ld.proposal_detection_model;
+    clear ld;
     
+    proposal_detection_model.proposal_net_def ...
+                                = fullfile(model_dir, proposal_detection_model.proposal_net_def);
+    proposal_detection_model.proposal_net ...
+                                = fullfile(model_dir, proposal_detection_model.proposal_net);
+    proposal_detection_model.detection_net_def ...
+                                = fullfile(model_dir, proposal_detection_model.detection_net_def);
+    proposal_detection_model.detection_net ...
+                                = fullfile(model_dir, proposal_detection_model.detection_net);
+    
+end

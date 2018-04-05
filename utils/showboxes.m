@@ -1,28 +1,28 @@
-function showboxes(im, boxes, legends, color_conf)
+function showboxes(im, boxes, legends, color_conf, save_det, im_filename)
 % Draw bounding boxes on top of an image.
 %   showboxes(im, boxes)
 %
 % -------------------------------------------------------
 
-fix_width = 800;
+% fix_width = 480;
 if isa(im, 'gpuArray')
     im = gather(im);
 end
 imsz = size(im);
-scale = fix_width / imsz(2);
-im = imresize(im, scale);
+% scale = fix_width / imsz(2);
+% im = imresize(im, scale);
 
-if size(boxes{1}, 2) >= 5
-    boxes = cellfun(@(x) [x(:, 1:4) * scale, x(:, 5)], boxes, 'UniformOutput', false);
-else
-    boxes = cellfun(@(x) x(:, 1:4) * scale, boxes, 'UniformOutput', false);
-end
+% if size(boxes{1}, 2) >= 5
+%     boxes = cellfun(@(x) [x(:, 1:4) * scale, x(:, 5)], boxes, 'UniformOutput', false);
+% else
+%     boxes = cellfun(@(x) x(:, 1:4) * scale, boxes, 'UniformOutput', false);
+% end
 
 if ~exist('color_conf', 'var')
     color_conf = 'default';
 end
 
-image(im); 
+new_im = image(im); 
 axis image;
 axis off;
 set(gcf, 'Color', 'white');
@@ -67,6 +67,9 @@ if valid_boxes_num > 0
             end
         end
 
+    end
+    if save_det
+      saveas(new_im, im_filename)
     end
 end
 end

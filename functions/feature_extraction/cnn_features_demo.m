@@ -1,22 +1,40 @@
-function feat = cnn_features_shared_conv(conf, im, boxes, caffe_net, cnn_model, layer, conv_feat_blob, batch_size)
+function feat = cnn_features_demo(conf, im, boxes, caffe_net, cnn_model, layer)
+% feat = rcnn_features(im, boxes, cnn_model)
+%   Compute CNN features on a set of boxes.
+%
+%   im is an image in RGB order as returned by imread
+%   boxes are in [x1 y1 x2 y2] format with one box per row
+%   cnn_model specifies the CNN Caffe net file to use.
 
-[rois_blob, ~] = get_blobs(conf, im, boxes);
+% AUTORIGHTS
+% ---------------------------------------------------------
+% Copyright (c) 2014, Ross Girshick
+% 
+% This file is part of the R-CNN code and is available 
+% under the terms of the Simplified BSD License provided in 
+% LICENSE. Please retain this notice and LICENSE if you use 
+% this file (or any portion of it) in your project.
+% ---------------------------------------------------------
+[im_blob, rois_blob, ~] = get_blobs(conf, im, boxes);
     
+% When mapping from image ROIs to feature map ROIs, there's some aliasing
+% (some distinct image ROIs get mapped to the same feature ROI).
 % Here, we identify duplicate feature ROIs, so we only compute features
 % on the unique subset.
-% [~, index, inv_index] = unique(rois_blob, 'rows');
-% rois_blob = rois_blob(index, :);
-% boxes = boxes(index, :);
+[~, index, inv_index] = unique(rois_blob, 'rows');
+rois_blob = rois_blob(index, :);
+boxes = boxes(index, :);
 
 % permute data into caffe c++ memory, thus [num, channels, height, width]
-% im_blob = im_blob(:, :, [3, 2, 1], :); % from rgb to brg
-% im_blob = permute(im_blob, [2, 1, 3, 4]);
-% im_blob = single(im_blob);
+im_blob = im_blob(:, :, [3, 2, 1], :); % from rgb to brg
+im_blob = permute(im_blob, [2, 1, 3, 4]);
+im_blob = single(im_blob);
 rois_blob = rois_blob - 1; % to c's index (start from 0)
 rois_blob = permute(rois_blob, [3, 4, 2, 1]);
 rois_blob = single(rois_blob);
 
-caffe_net.blobs('data').copy_data_from(conv_feat_blob);
+% total_scores = cell(ceil(total_rois / max_rois_num_in_gpu), 1);
+% total_box_deltas = cell(ceil(total_rois / max_rois_num_in_gpu), 1);
 
 total_rois = size(rois_blob, 4);
 % max_rois_num_in_gpu = cnn_model.max_rois_num_in_gpu;
@@ -26,7 +44,7 @@ total_rois = size(rois_blob, 4);
 feat_dim = -1;
 feat = [];
 curr = 1;
-% batch_size = 256;
+batch_size = 256;
 
 batch_padding = calculate_batch_padding(total_rois, batch_size);
 
@@ -36,7 +54,7 @@ for i = 1:ceil(total_rois / batch_size)
     sub_ind_end = min(total_rois, i * batch_size);
     sub_rois_blob = rois_blob(:, :, :, sub_ind_start:sub_ind_end);
 
-    net_inputs = {[], sub_rois_blob};
+    net_inputs = {im_blob, sub_rois_blob};
 
     % Reshape net's input blobs
     caffe_net.reshape_as_input(net_inputs);

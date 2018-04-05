@@ -47,8 +47,8 @@ train_classifier_options = struct;
 train_classifier_options.cache_dir = '';
 train_classifier_options.memToUse = 10;          % GB of memory to use (using "[]" will allow the machine to use all the free memory)
 train_classifier_options.useGPU = 1;             % flag for using or not the GPU
-train_classifier_options.M = 1500;       % number of Nystrom centers
-train_classifier_options.T = 100;                 %number of iterations
+train_classifier_options.M = 1500;               % number of Nystrom centers
+train_classifier_options.T = 100;                % number of iterations
 
 train_classifier_options.cross_validation = struct;
 train_classifier_options.cross_validation.required = true;

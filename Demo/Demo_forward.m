@@ -9,19 +9,23 @@ active_caffe_mex(cnn_model.opts.gpu_id, cnn_model.opts.caffe_version);
 %% -------------------- INIT_MODEL --------------------
 
 % classifier
-cls_model = load(cls_model_path);  %------------------------------------------------------------------- %TO-CHECK
+load(cls_model_path);  %------------------------------------------------------------------- %TO-CHECK
+
+if ~isempty(setdiff(model_cls{1}.classes, classes))
+    error('classes provided are not the same used for training');
+end
 
 % bbox regressor
-bbox_model = load(bbox_model_path); %-------------------------------------------------------------------%TO-CHECK
+load(bbox_model_path); %-------------------------------------------------------------------%TO-CHECK
 
 % cnn model
 cnn_model.proposal_detection_model    = load_proposal_detection_model(cnn_model_path);
 cnn_model.proposal_detection_model.conf_proposal.test_scales = cnn_model.opts.test_scales;
 cnn_model.proposal_detection_model.conf_detection.test_scales = cnn_model.opts.test_scales;
-if opts.use_gpu
-    cnn_model.proposal_detection_model.conf_proposal.image_means = gpuArray(cnn_model.proposal_detection_model.conf_proposal.image_means);
-   cnn_model.proposal_detection_model.conf_detection.image_means = gpuArray(cnn_model.proposal_detection_model.conf_detection.image_means);
-end
+% if cnn_model.opts.use_gpu
+%     cnn_model.proposal_detection_model.conf_proposal.image_means = gpuArray(cnn_model.proposal_detection_model.conf_proposal.image_means);
+%    cnn_model.proposal_detection_model.conf_detection.image_means = gpuArray(cnn_model.proposal_detection_model.conf_detection.image_means);
+% end
 
 % proposal net
 cnn_model.rpn_net = caffe.Net(cnn_model.proposal_detection_model.proposal_net_def, 'test');
@@ -39,7 +43,7 @@ end
 
 %% -------------------- DATASET --------------------
 
-image_ids = textread([dataset_path, 'ImageSets/', image_set, '.txt']);
+image_ids = importdata([dataset_path, 'ImageSets/', image_set, '.txt']);
 
 %% -------------------- START PREDICTION --------------------
 
@@ -48,26 +52,30 @@ for j = 1:length(image_ids)
     %% Fetch image
     fetch_tic = tic;
     
-    im = imread(fullfile(dataset_path, 'Images', image_ids{j}));    
-    im_gpu = gpuArray(im);
+    im = imread([dataset_path '/Images/' image_ids{j} '.jpg']);    
+%      im_gpu = gpuArray(im);
     
-    fprintf('fetching images required %f seconds', toc(fetch_tic));
+    fprintf('fetching images required %f seconds\n', toc(fetch_tic));
     
     %% Performing detection
     prediction_tic = tic;
     
-    [cls_scores boxes] = Detect(im_gpu, classes, cnn_model, cls_model, bbox_model, detect_thresh);
-    fprintf('Prediction required %f seconds', toc(prediction_tic));
+    [cls_scores boxes] = Detect(im, classes, cnn_model, model_cls{1}, bbox_model, detect_thresh);
+    fprintf('Prediction required %f seconds\n', toc(prediction_tic));
     
     %% Detections visualization
     vis_tic = tic;
     boxes_cell = cell(length(classes), 1);
     for i = 1:length(boxes_cell)
-        boxes_cell{i} = [boxes(:, (1+(i-1)*4):(i*4)), cls_scores(:, i)];
+      boxes_cell{i} = [boxes{i}, cls_scores{i}];
+      keep = nms(boxes_cell{i}, 0.3);
+      boxes_cell{i} = boxes_cell{i}(keep,:);
     end
     f = figure(j);
-    showboxes(im, boxes_cell, classes, 'voc'); %TO-STUDY what it does
-    fprintf('Visualization required %f seconds', toc(vis_tic));
+    showboxes(im, boxes_cell, classes, 'voc', false); %TO-STUDY what it does
+    fprintf('Visualization required %f seconds\n', toc(vis_tic));
+%     pause(0.1);
+%     close(f);
 end
 
 end
