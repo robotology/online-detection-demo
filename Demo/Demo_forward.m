@@ -72,7 +72,7 @@ for j = 1:length(image_ids)
       boxes_cell{i} = boxes_cell{i}(keep,:);
     end
     f = figure(j);
-    showboxes(im, boxes_cell, classes, 'voc', false); %TO-STUDY what it does
+    showboxes(im, boxes_cell, classes, 'voc', true, ['det_images_pipeline/' int2str(j) '.jpg']); %TO-STUDY what it does
     fprintf('Visualization required %f seconds\n', toc(vis_tic));
 %     pause(0.1);
 %     close(f);

@@ -1,0 +1,33 @@
+<annotation>
+	<folder>bodylotion/bodylotion1/MIX/day1/left</folder>
+	<filename>00002942</filename>
+	<source>
+		<database>iCubWorld-Transformation</database>
+	</source>
+	<size>
+		<width>640</width>
+		<height>480</height>
+		<depth>3</depth>
+	</size>
+	<segmented>0</segmented>
+	<imgtstamp>2194.343745</imgtstamp>
+	<day>day1</day>
+	<camera>left</camera>
+	<object>
+		<category>bodylotion</category>
+		<name>bodylotion1</name>
+		<pose>MIX</pose>
+		<truncated>0</truncated>
+		<difficult>0</difficult>
+		<bndbox>
+			<xmin>186</xmin>
+			<ymin>186</ymin>
+			<xmax>310</xmax>
+			<ymax>386</ymax>
+		</bndbox>
+		<bbtstamp>2194.343235</bbtstamp>
+		<xcentroid>248</xcentroid>
+		<ycentroid>286</ycentroid>
+		<blobpixels>9076</blobpixels>
+	</object>
+</annotation>

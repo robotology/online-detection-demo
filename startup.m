@@ -12,7 +12,8 @@ function startup()
     addpath(genpath(fullfile(curdir, 'bin')));
     addpath(genpath(fullfile(curdir, 'experiments')));
     addpath(genpath(fullfile(curdir, 'imdb')));
-    addpath([curdir '/../yarp-matlab-bindings/build/install/mex']);
+     addpath(genpath(fullfile(curdir, 'Demo')));
+%     addpath([curdir '/../yarp-matlab-bindings/build/install/mex']);
 %     javaaddpath('/home/IIT.LOCAL/emaiettini/workspace/yarp/build');
 %     javaaddpath('/home/IIT.LOCAL/emaiettini/workspace/yarp/build/yarp');
 %     javaaddpath('/home/IIT.LOCAL/emaiettini/workspace/yarp/build/lib');

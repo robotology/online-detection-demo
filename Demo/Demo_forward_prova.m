@@ -6,6 +6,16 @@ clear mex;
 gpuDevice(gpu_id);
 
 FALKON_iCWT_TASK2_single_init_variables;
+current_path = pwd;
+% classes = importdata([current_path '/Demo/Conf/Classes_T2.txt' ]);
+% cls_model_path = [current_path '/Demo/Models/cls_model.mat' ];
+% bbox_model_path = [current_path '/Demo/Models/bbox_model.mat' ];
+dataset_path = [current_path '/datasets/iCubWorld-Transformations/'];
+% cnn_model_path=[current_path '/output_iCWT_TASK1_10objs_40k20k_newBatchSize/faster_rcnn_final'];
+
+%% FILES
+% image_set = 'test_TASK2_10objs';
+
 
 % region proposals generation
 dataset.TASK2.roidb_train  = cellfun(@(x, y) Faster_RCNN_Train.do_proposal_test(conf_proposal,model.stage2_rpn, output_dir, x, y), ...
@@ -51,7 +61,7 @@ addpath('./datasets/VOCdevkit2007/VOCdevkit/VOCcode_incremental');
 % TEST
 rmdir(boxes_dir,'s');
 mkdir(boxes_dir);
-
+mkdir ('det_images')
 for j = 1:3000
     
     %% Fetch image
@@ -77,8 +87,8 @@ for j = 1:3000
       keep = nms(boxes_cell{i}, 0.3);
       boxes_cell{i} = boxes_cell{i}(keep,:);
     end
-    f = figure(j);
-    showboxes(im, boxes_cell, chosen_classes_T2, 'voc', false); %TO-STUDY what it does
+%     f = figure(j);
+    showboxes(im, boxes_cell, chosen_classes_T2, 'voc', true, ['det_images_new_regions/' int2str(j) '.jpg' ]); %TO-STUDY what it does
     fprintf('Visualization required %f seconds\n', toc(vis_tic));
 %     pause(0.1);
 %     close(f);

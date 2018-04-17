@@ -1,30 +1,30 @@
-function showboxes(im, boxes, legends, color_conf, save_det, im_filename)
+function [] = showboxes(im, boxes, legends, color_conf, save_det, im_filename)
 % Draw bounding boxes on top of an image.
 %   showboxes(im, boxes)
 %
 % -------------------------------------------------------
 
-% fix_width = 480;
+fix_width = 640;
 if isa(im, 'gpuArray')
     im = gather(im);
 end
 imsz = size(im);
-% scale = fix_width / imsz(2);
+scale = fix_width / imsz(2);
 % im = imresize(im, scale);
-
+% 
 % if size(boxes{1}, 2) >= 5
-%     boxes = cellfun(@(x) [x(:, 1:4) * scale, x(:, 5)], boxes, 'UniformOutput', false);
+%     boxes = cellfun(@(x) scale_boxes(x,scale), boxes, 'UniformOutput', false);
 % else
 %     boxes = cellfun(@(x) x(:, 1:4) * scale, boxes, 'UniformOutput', false);
 % end
-
-if ~exist('color_conf', 'var')
-    color_conf = 'default';
-end
+% 
+% if ~exist('color_conf', 'var')
+%     color_conf = 'default';
+% end
 
 new_im = image(im); 
-axis image;
-axis off;
+% axis image;
+% axis off;
 set(gcf, 'Color', 'white');
 
 valid_boxes = cellfun(@(x) ~isempty(x), boxes, 'UniformOutput', true);
@@ -71,6 +71,7 @@ if valid_boxes_num > 0
     if save_det
       saveas(new_im, im_filename)
     end
+%     out_image = getframe(gcf);
 end
 end
 
@@ -78,5 +79,12 @@ function [ rectsLTWH ] = RectLTRB2LTWH( rectsLTRB )
 %rects (l, t, r, b) to (l, t, w, h)
 
 rectsLTWH = [rectsLTRB(:, 1), rectsLTRB(:, 2), rectsLTRB(:, 3)-rectsLTRB(:,1)+1, rectsLTRB(:,4)-rectsLTRB(2)+1];
+end
+
+function rescaled_box = scale_boxes(box, scale)
+rescaled_box = [];
+if ~size(box, 1) == 0
+   rescaled_box = [box(:, 1:4) * scale, box(:, 5)];
+end
 end
 

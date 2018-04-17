@@ -15,15 +15,16 @@ for j = 1:num_classes
     scores = z(:,2);
     
     % apply NMS to each class and return final scored detections
-%     fprintf('Applying NMS...');
     I=[];
     I = find(scores(:) > thresh);
     if ~isempty(I)
         scored_boxes = cat(2, boxes(I, :), scores(I));
         inds{j} = I;
+        
         keep = nms(scored_boxes, 0.3); 
         scored_boxes = scored_boxes(keep, :);
         inds{j} = inds{j}(keep);
+        
         thresholded_scores{j} = scored_boxes(:,5);
         new_boxes{j} = scored_boxes(:,1:4);
 
