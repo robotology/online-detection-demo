@@ -60,6 +60,7 @@ while (true)
     %% Fetch image
     total_tic = tic;
     fetch_tic = tic;
+   
     
     disp('Waiting image from port...');
     yarpImage=portImage.read(true); % get the yarp image from port
@@ -69,15 +70,15 @@ while (true)
          im=uint8(zeros(h, w, pixSize)); % create an empty image with the correct dimentions
          im(:,:,1)= cast(TEST(:,:,1),'uint8'); % copy the image to the previoulsy create matrix
          im(:,:,2)= cast(TEST(:,:,2),'uint8');
-         im(:,:,3)= cast(TEST(:,:,3),'uint8');         
-         im_gpu = gpuArray(im);
+         im(:,:,3)= cast(TEST(:,:,3),'uint8');        
+%          im_gpu = gpuArray(im);               %TO-CHECK
 
          fprintf('Fetching images required %f seconds\n', toc(fetch_tic));
 
          %% Performing detection
          prediction_tic = tic;
 
-         [cls_scores boxes] = Detect(im_gpu, classes, cnn_model, model_cls{1}, model_bbox, detect_thresh);
+         [cls_scores boxes] = Detect(im, classes, cnn_model, model_cls{1}, model_bbox, detect_thresh);
          fprintf('Prediction required %f seconds\n', toc(prediction_tic));
 
          %% Sending detections        
@@ -93,9 +94,8 @@ while (true)
          
          fprintf('Sending image and detections required %f seconds\n', toc(send_tic));
          fprintf('Complete process required %f seconds\n\n', toc(total_tic));
-    end
+     end
 end
-
 end
 
 function proposal_detection_model = load_proposal_detection_model(model_dir)

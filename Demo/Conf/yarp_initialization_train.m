@@ -14,7 +14,7 @@ import yarp.PixelRgb
 
 port           = yarp.BufferedPortBottle;        %port for reading "quit" signal
 portImage      = yarp.BufferedPortImageRgb;      %Buffered Port for reading image
-portAnnotation = yarp.BufferedPortBottle;        %port for sending detections
+portAnnotation = yarp.Port;        %port for receiving annotations
 
 %first close the port just in case
 %(this is to try to prevent matlab from beuing unresponsive)
@@ -30,7 +30,7 @@ pause(0.5);
 portImage.open('/detection/img:i');
 disp('opened port /detection/img:i');
 pause(0.5);
-portAnnotation.open('/detection/detimg:o');
+portAnnotation.open('/detection/annotations:i');
 disp('opened port /detection/detimg:o');
 pause(0.5);
 
