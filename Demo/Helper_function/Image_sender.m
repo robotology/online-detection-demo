@@ -85,7 +85,7 @@ for j = 1:length(image_ids)
     annotationSender.write();   
     
     fprintf('Sending image annotation required %f seconds\n\n', toc(send_tic));
-    pause(0.5);
+    pause(0.35);
 end
 
 

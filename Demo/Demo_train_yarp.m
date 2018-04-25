@@ -134,7 +134,7 @@ for i=1:length(classes)
             overlaps = boxoverlap(aboxes, gt_boxes); %TO-CHECK-------------------------------------------------------------------------------------------------
 
             % Positive regions for bounding box regressor
-            [cur_bbox_pos, cur_bbox_y]      = select_positives_for_bbox(aboxes, gt_boxes, overlaps, bbox_opts.min_overlap); %TO-CHECK-------------------------------------------------------
+            [cur_bbox_pos, cur_bbox_y]      = select_positives_for_bbox(aboxes(:,1:4), gt_boxes, overlaps, bbox_opts.min_overlap); %TO-CHECK-------------------------------------------------------
             pos_bbox_regressor.box          = cat(1, pos_bbox_regressor.box, cur_bbox_pos);
             y_bbox_regressor                = cat(1,y_bbox_regressor,cur_bbox_y);          
           
@@ -143,7 +143,7 @@ for i=1:length(classes)
 
             %% Select negative samples for region classifier
             if curr_negative_number < total_negatives
-                curr_cls_neg                = select_negatives_for_cls(aboxes, overlaps, negatives_selection); % TO-CHECK-------------------------------------------------
+                curr_cls_neg                = select_negatives_for_cls(aboxes(:,1:4), overlaps, negatives_selection); % TO-CHECK-------------------------------------------------
                 neg_region_classifier.box = cat(1, neg_region_classifier.box, curr_cls_neg);
                 curr_negative_number        = curr_negative_number + size(curr_cls_neg,1);
             else
@@ -169,7 +169,7 @@ for i=1:length(classes)
             neg_region_classifier.feat     = cat(1, neg_region_classifier.feat, cur_neg_region_classifier_feat);
 
             curr_instances = curr_instances +1;
-            fprintf('one image processed in %d seconds',toc(process_tic));
+            fprintf('One image processed in %d seconds',toc(process_tic));
         end
     end
     %% Update dataset with data from new class
@@ -188,25 +188,25 @@ for i=1:length(classes)
     region_classifier = Train_region_classifier(dataset.reg_classifier, cls_opts); %TO-CHECK-------------------------------------------------------------------------
     
     %% Train Bounding box regressors
-    bbox_regressor    = train_bbox_regressor(dataset.bbox_regressor); %TO-CHECK----------------------------------------------------------------------------
+    bbox_regressor    = Train_bbox_regressor(dataset.bbox_regressor); %TO-CHECK----------------------------------------------------------------------------
     
     fprintf('All training process required %f seconds\n', toc(total_tic));
     %% Save dataset
-    save('boh_dataset.mat', 'dataset')
+    save('boh1_dataset.mat', 'dataset')
 end
 end
-function [cur_bbox_X, cur_bbox_Y] = select_positives_for_bbox(boxes, gt_boxes, overlaps, min_overlap)
+function [cur_bbox_X, cur_bbox_Y] = select_positives_for_bbox(boxes, gt_box, overlaps, min_overlap)
 
 sel_ex = find(overlaps >= min_overlap); 
 
-cur_bbox_X = boxes(sel_ex, :);
+cur_bbox_X = cat(1,gt_box, boxes(sel_ex, :));
 cur_bbox_Y = [];
 
 for j = 1:size(cur_bbox_X, 1)
     ex_box = cur_bbox_X(j, :);
 %     ov = boxoverlap(gt_boxes, ex_box);
 %     [max_ov, assignment] = max(ov);
-    gt_box = gt_boxes;
+%     gt_box = gt_boxes;
 %     cls = gt_classes(assignment);
 
     src_w = ex_box(3) - ex_box(1) + eps;

@@ -1,15 +1,26 @@
-function [ bbox_reg ] = Train_bbox_regressor( dataset )
+function [ bbox_reg ] = Train_bbox_regressor( dataset, varargin )
 %TRAIN_BBOX_REGRESSOR Summary of this function goes here
 %   Detailed explanation goes here
 
+ip = inputParser;
+
+% ip.addParamValue('min_overlap', 0.6,   @isscalar);
+% ip.addParamValue('layer',       5,     @isscalar);
+ip.addParamValue('lambda',      1000,  @isscalar);
+ip.addParamValue('robust',      0,     @isscalar);
+% ip.addParamValue('binarize',    false, @islogical);
+
+ip.parse(varargin{:});
+opts = ip.Results;
+
     num_classes = length(dataset);
     models = cell(num_classes, 1);
-
+method = 'ridge_reg_chol';
     tic
     for i = 1:num_classes
-      fprintf('Training regressors for class %s (%d/%d)\n', imdb.classes{i}, i, num_clss);
+%       fprintf('Training regressors for class %s (%d/%d)\n', imdb.classes{i}, i, num_clss);
 %       I = find(O > opts.min_overlap & C == i);
-      Xi = dataset{i}.pos_bbox_regressor ; 
+      Xi = dataset{i}.pos_bbox_regressor.feat ; 
 %       if opts.binarize
 %         Xi = single(Xi > 0);
 %       end

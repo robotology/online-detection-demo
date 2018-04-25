@@ -42,7 +42,7 @@ clear ld;
 
 %% Classifier options
 fprintf('Classifier options setting...\n');
-opts.cls_mod = 'FALKON';
+cls_opts.cls_mod = 'FALKON';
 max_img_per_class                      = 978;
 
 negatives_selection.policy             = 'bootStrap';
@@ -64,7 +64,7 @@ train_classifier_options.sigma         = 10;
 train_classifier_options.kernel        = gaussianKernel(train_classifier_options.sigma); 
 
 %% Bbox regression options
-bbox_opts.min_overlap = 0.5;
+bbox_opts.min_overlap = 0.6;
 
 %% opts
 cls_opts.negatives_selection               = negatives_selection;

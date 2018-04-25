@@ -10,11 +10,11 @@ for i =1:num_classes
     X_neg = dataset{i}.neg_region_classifier;
     
     cache       = struct;
-    cache.X_pos = zscores_standardization(X_pos, opts.statistics.standard_deviation,...
+    cache.X_pos = zscores_standardization(X_pos.feat, opts.statistics.standard_deviation,...
                                                  opts.statistics.mean_feat, ...
                                                  opts.statistics.mean_norm);
     
-    X_neg       = zscores_standardization(X_neg, opts.statistics.standard_deviation,...
+    X_neg       = zscores_standardization(X_neg.feat, opts.statistics.standard_deviation,...
                                                  opts.statistics.mean_feat, ...
                                                  opts.statistics.mean_norm);
     
@@ -32,8 +32,8 @@ for i =1:num_classes
         else
             X_neg_batch = X_neg(first_neg_idx:last_neg_idx,:);
             X_neg_GPU = gpuArray(X_neg_batch);  % TO-CHECK-----------------------------------------------------------------------------------------
-            z_neg = KtsProd_onGPU(X_neg_GPU,  model.detectors.models{i}.opts.C, ...
-                            model.detectors.models{i}.alpha, 1, model.detectors.models{i}.opts.kernel);
+            z_neg = KtsProd_onGPU(X_neg_GPU,  rcnn_model.detectors.models{i}.opts.C, ...
+                            rcnn_model.detectors.models{i}.alpha, 1, rcnn_model.detectors.models{i}.opts.kernel);
                         
             z_neg = z_neg(:,2);
             hard = find(z_neg > opts.negatives_selection.select_hard_thresh);
@@ -60,7 +60,7 @@ for i =1:num_classes
             new_z_neg = new_z_neg(:,2);
             easy = find(new_z_neg < opts.negatives_selection.evict_easy_thresh);
             cache.X_neg(easy,:) = [];
-            cache.keys_neg(easy,:) = [];
+%             cache.keys_neg(easy,:) = [];
             fprintf('  Cache holds %d pos examples %d neg examples\n', ...
                     size(cache.X_pos,1), size(cache.X_neg,1));
         end
