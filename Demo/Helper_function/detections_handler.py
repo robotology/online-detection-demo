@@ -28,18 +28,20 @@ import yarp
 import scipy.ndimage
 import matplotlib.pylab
 import time
+from random import randint
 
 # Initialise YARP
 yarp.Network.init()
 
 class DetectionsHandler (yarp.RFModule):
-    def __init__(self, input_image_port_name, out_det_img_port_name, input_detections_port_name, rpc_thresh_port_name, classes, image_w, image_h):
+    def __init__(self, input_image_port_name, out_det_img_port_name, input_detections_port_name, rpc_thresh_port_name, image_w, image_h):
 
          print 'Setting classes and colors...\n'
-         self._classes = classes
-         self._colors = ((0,0,60),(0,0,120),(0,0,180),(0,0,240),(60,0,0),(120,0,0),(180,0,0),(240,0,0),(0,60,0),(0,120,0),(0,180,0),
-                         (0,240,0),(0,60,60),(60,0,60),(0,120,120),(120,0,120),(0,180,180),(180,180,0),(240,0,240),(240,240,0),(180,180,180))
-         print self._classes
+         #self._classes = classes
+         #self._colors = ((0,0,60),(0,0,120),(0,0,180),(0,0,240),(60,0,0),(120,0,0),(180,0,0),(240,0,0),(0,60,0),(0,120,0),(0,180,0),
+         #                (0,240,0),(0,60,60),(60,0,60),(0,120,120),(120,0,120),(0,180,180),(180,180,0),(240,0,240),(240,240,0),(180,180,180))
+         self._cls2colors = {};
+         #print self._classes
 
          print 'Opening yarp ports...\n'
 
@@ -97,11 +99,16 @@ class DetectionsHandler (yarp.RFModule):
                 bbox = [dets.get(0).asDouble(), dets.get(1).asDouble(), dets.get(2).asDouble(), dets.get(3).asDouble()]  # bbox format: [tl_x, tl_y, br_x, br_y]
                 score = dets.get(4).asDouble() # score of i-th detection
                 cls = dets.get(5).asString()   # label of i-th detection
+                
+                if not cls in self._cls2colors:
+                    new_color = ( randint(0, 255),  randint(0, 255),  randint(0, 255))
+                    self._cls2colors[cls] = new_color
 
+                
                 # Threshold detections by scores
                 if score >=thresh:
                     # Draw bounding box for i-th detection
-                    color = self._colors[self._classes.index(cls)]
+                    color = self._cls2colors.get(cls)
                     cv2.rectangle(im,(int(round(bbox[0])), int(round(bbox[1]))),(int(round(bbox[2])), int(round(bbox[3]))),color, 2)
 
                     # Print text for i-th detection
@@ -203,8 +210,8 @@ def parse_args():
                         default='/detHandler:thresh')
 
     # File name for classes
-    parser.add_argument('--classes_file', dest='classes_file', help='path to the file of all classes with format: cls1,cls2,cls3...',
-                        default='../Conf/Classes_T2.txt')
+    # parser.add_argument('--classes_file', dest='classes_file', help='path to the file of all classes with format: cls1,cls2,cls3...',
+    #                     default='../Conf/Classes_T2.txt')
 
     # Image dimensions
     parser.add_argument('--image_w', type=int, dest='image_width', help='width of the images',
@@ -221,18 +228,18 @@ if __name__ == '__main__':
     args = parse_args()
 
     # Read classes to be detected
-    print 'Reading classes of interest...\n'
-    if not os.path.isfile(args.classes_file):
-        raise IOError(('Specified classes file {:s} not found.\n').format(args.classes_file))
-    with open(args.classes_file, 'r') as f:
-        lines = f.readlines()
-        new_lines = [x.strip('\n') for x in lines]
-        classes = tuple(new_lines)
-    print 'Classes to be detected are:\n'
-    print classes
+    #print 'Reading classes of interest...\n'
+    #if not os.path.isfile(args.classes_file):
+    #    raise IOError(('Specified classes file {:s} not found.\n').format(args.classes_file))
+    #with open(args.classes_file, 'r') as f:
+    #    lines = f.readlines()
+    #    new_lines = [x.strip('\n') for x in lines]
+    #    classes = tuple(new_lines)
+    #print 'Classes to be detected are:\n'
+    #print classes
     #raw_input('press any key to continue')
 
-    detHandler = DetectionsHandler(args.input_image_port_name, args.out_det_img_port_name, args.input_detections_port_name, args.rpc_thresh_port_name, classes, args.image_width, args.image_height)
+    detHandler = DetectionsHandler(args.input_image_port_name, args.out_det_img_port_name, args.input_detections_port_name, args.rpc_thresh_port_name, args.image_width, args.image_height)
     #raw_input('Detector initialized. \n press any key to continue')
 
     try:

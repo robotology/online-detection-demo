@@ -77,15 +77,16 @@ for j = 1:length(image_ids)
     
     %% Set timestamp for the two ports
     stamp = yarp.Stamp();
-%     annotationSender.setEnvelope(stamp);
-%     imageSender.setEnvelope(stamp);
+    stamp.update(j);
+    annotationSender.setEnvelope(stamp);
+    imageSender.setEnvelope(stamp);
     
     %% Send image and annotation
     imageSender.write(yarp_img);                             
     annotationSender.write();   
     
     fprintf('Sending image annotation required %f seconds\n\n', toc(send_tic));
-    pause(0.35);
+    pause(0.25);
 end
 
 

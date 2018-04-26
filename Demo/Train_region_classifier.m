@@ -1,4 +1,4 @@
-function [ model ] = Train_region_classifier( dataset, opts )
+function [ rcnn_model ] = Train_region_classifier( dataset, opts )
 %TRAIN_REGION_CLASSIFIER Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -11,12 +11,12 @@ for i =1:num_classes
     
     cache       = struct;
     cache.X_pos = zscores_standardization(X_pos.feat, opts.statistics.standard_deviation,...
-                                                 opts.statistics.mean_feat, ...
-                                                 opts.statistics.mean_norm);
+                                                      opts.statistics.mean_feat, ...
+                                                      opts.statistics.mean_norm);
     
     X_neg       = zscores_standardization(X_neg.feat, opts.statistics.standard_deviation,...
-                                                 opts.statistics.mean_feat, ...
-                                                 opts.statistics.mean_norm);
+                                                      opts.statistics.mean_feat, ...
+                                                      opts.statistics.mean_norm);
     
     train_time    = tic;
     
@@ -24,16 +24,24 @@ for i =1:num_classes
     first_neg_idx = 1;
     last_neg_idx  = opts.negatives_selection.batch_size;
     for b = 1:opts.negatives_selection.iterations
-        if first_time           
+        if first_time     
+            if last_neg_idx > size(X_neg,1)
+                last_neg_idx = size(X_neg,1);
+                disp('last_neg_idx lower than X_neg size*******************');
+            end
             cache.X_neg =  X_neg(first_neg_idx:last_neg_idx,:); % TO-CHECK-----------------------------------------------------------------------------------------
             fprintf('Cache holds %d pos examples %d neg examples\n', ...
                     size(cache.X_pos,1), size(cache.X_neg,1));
             first_time = false;
         else
+            if last_neg_idx > size(X_neg,1)
+                last_neg_idx = size(X_neg,1);
+                disp('last_neg_idx lower than X_neg size*******************');
+            end
             X_neg_batch = X_neg(first_neg_idx:last_neg_idx,:);
             X_neg_GPU = gpuArray(X_neg_batch);  % TO-CHECK-----------------------------------------------------------------------------------------
             z_neg = KtsProd_onGPU(X_neg_GPU,  rcnn_model.detectors.models{i}.opts.C, ...
-                            rcnn_model.detectors.models{i}.alpha, 1, rcnn_model.detectors.models{i}.opts.kernel);
+                                  rcnn_model.detectors.models{i}.alpha, 1, rcnn_model.detectors.models{i}.opts.kernel);
                         
             z_neg = z_neg(:,2);
             hard = find(z_neg > opts.negatives_selection.select_hard_thresh);
@@ -48,8 +56,7 @@ for i =1:num_classes
 %         fprintf('>>> Updating %s detector <<<\n', imdb.classes{j});
         fprintf('>>> Updating %d detector <<<\n', i);
         
-        [model] = update_model(cache, opts);
-        rcnn_model.detectors.models{i} = model;
+        rcnn_model.detectors.models{i} = update_model(cache, opts);
         
         if b ~= opts.negatives_selection.iterations % Don't do it after last update (or maybe yes......???)
             fprintf('  Pruning easy negatives\n');           
@@ -64,6 +71,8 @@ for i =1:num_classes
             fprintf('  Cache holds %d pos examples %d neg examples\n', ...
                     size(cache.X_pos,1), size(cache.X_neg,1));
         end
+        first_neg_idx = first_neg_idx + opts.negatives_selection.batch_size;
+        last_neg_idx  = last_neg_idx  + opts.negatives_selection.batch_size;
     end
 
 end

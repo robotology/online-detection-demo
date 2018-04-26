@@ -54,7 +54,6 @@ h=480;
 w=640;
 pixSize=3;
 tool=yarp.matlab.YarpImageHelper(h, w);
-
 while (true)
     
     %% Fetch image

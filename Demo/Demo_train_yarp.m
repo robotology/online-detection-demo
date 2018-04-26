@@ -35,8 +35,9 @@ else
     caffe.set_mode_cpu();
 end   
 
-%% -------------------- START TRAIN--------------------
+%% ------------------------------------------- START TRAIN-------------------------------------------------
 
+%% Prepare Negative selection parameters
 h=480;
 w=640;
 pixSize=3;
@@ -73,16 +74,16 @@ for i=1:length(classes)
     
     dataset.classes{length(dataset.classes)+1} = classes{i};
     
-    pos_region_classifier         = struct;
-    pos_region_classifier.box    = [];
-    pos_region_classifier.feat    = [];
+    pos_region_classifier      = struct;
+    pos_region_classifier.box  = [];
+    pos_region_classifier.feat = [];
     
     neg_region_classifier      = struct;
     neg_region_classifier.box  = [];
     neg_region_classifier.feat = [];
     
     pos_bbox_regressor         = struct;
-    pos_bbox_regressor.box    = [];
+    pos_bbox_regressor.box     = [];
     pos_bbox_regressor.feat    = [];
     
     y_bbox_regressor           = [];
@@ -131,10 +132,10 @@ for i=1:length(classes)
             fprintf('--Region proposal prediction required %f seconds\n', toc(regions_tic));
 
             %% Select positive regions
-            overlaps = boxoverlap(aboxes, gt_boxes); %TO-CHECK-------------------------------------------------------------------------------------------------
+            overlaps = boxoverlap(aboxes, gt_boxes); 
 
             % Positive regions for bounding box regressor
-            [cur_bbox_pos, cur_bbox_y]      = select_positives_for_bbox(aboxes(:,1:4), gt_boxes, overlaps, bbox_opts.min_overlap); %TO-CHECK-------------------------------------------------------
+            [cur_bbox_pos, cur_bbox_y]      = select_positives_for_bbox(aboxes(:,1:4), gt_boxes, overlaps, bbox_opts.min_overlap); 
             pos_bbox_regressor.box          = cat(1, pos_bbox_regressor.box, cur_bbox_pos);
             y_bbox_regressor                = cat(1,y_bbox_regressor,cur_bbox_y);          
           
@@ -143,7 +144,7 @@ for i=1:length(classes)
 
             %% Select negative samples for region classifier
             if curr_negative_number < total_negatives
-                curr_cls_neg                = select_negatives_for_cls(aboxes(:,1:4), overlaps, negatives_selection); % TO-CHECK-------------------------------------------------
+                curr_cls_neg                = select_negatives_for_cls(aboxes(:,1:4), overlaps, negatives_selection); 
                 neg_region_classifier.box = cat(1, neg_region_classifier.box, curr_cls_neg);
                 curr_negative_number        = curr_negative_number + size(curr_cls_neg,1);
             else
@@ -153,15 +154,15 @@ for i=1:length(classes)
 
             %% Extract features from regions         
             % Select regions to extract features from
-            regions_for_features           = cat(1, cur_bbox_pos, curr_cls_neg); % cur_bbox_pos contains gt_box too so no need to repeat it  % TO-CHECK
+            regions_for_features           = cat(1, cur_bbox_pos, curr_cls_neg); % cur_bbox_pos contains gt_box too so no need to repeat it  
            
             % Network forward
             features                       = cnn_features_demo(cnn_model.proposal_detection_model.conf_detection, im, regions_for_features(:, 1:4), ...
                                                        cnn_model.fast_rcnn_net, [], 'fc7');            
             % Divide extracted features by usage 
-            cur_pos_bbox_regressor_feat    = features(1:size(cur_bbox_pos,1),:); % TO-CHECK---------------------------------------------------
-            cur_pos_region_classifier_feat = features(1,:); % TO-CHECK-----------------------------------------------------------------------------------
-            cur_neg_region_classifier_feat = features(size(cur_bbox_pos,1)+1:(size(cur_bbox_pos,1)+size(curr_cls_neg,1)),:); % TO-CHECK----------------
+            cur_pos_bbox_regressor_feat    = features(1:size(cur_bbox_pos,1),:);
+            cur_pos_region_classifier_feat = features(1,:); 
+            cur_neg_region_classifier_feat = features(size(cur_bbox_pos,1)+1:(size(cur_bbox_pos,1)+size(curr_cls_neg,1)),:);
             
             % Update total features datasets
             pos_bbox_regressor.feat        = cat(1, pos_bbox_regressor.feat, cur_pos_bbox_regressor_feat);

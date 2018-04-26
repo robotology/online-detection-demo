@@ -2,7 +2,7 @@ function [ new_boxes, thresholded_scores, inds ] = predict_FALKON( feat, cls_mod
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
 num_classes = length(cls_model.classes);
-feat = zscores_standardization(feat, cls_model.training_opts.standard_deviation, cls_model.training_opts.mean_feat, cls_model.training_opts.mean_norm);
+feat = zscores_standardization(feat, cls_model.training_opts.statistics.standard_deviation, cls_model.training_opts.statistics.mean_feat, cls_model.training_opts.statistics.mean_norm);
 
 X_test = gpuArray(feat);
 thresholded_scores = cell(num_classes, 1);
