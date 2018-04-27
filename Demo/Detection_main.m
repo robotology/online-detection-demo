@@ -50,6 +50,9 @@ while ~strcmp(state,'quit')
                state = 'quit';
                
            case{'train'}
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                %%%%%%%%%%%%%%%%%%%%%%% TO ADD CASE OF OLD CLASS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                train_tic = tic;
                acquisition_tic = tic;
                disp('switching to state train...');
@@ -86,7 +89,7 @@ while ~strcmp(state,'quit')
                state = 'test';
                cnn_model.opts.after_nms_topN = 200;
                
-           case{'forget'}
+           case{'forget'} %TO-TEST-------------------------------------------------------------------------------
                if ~isempty(dataset.classes)
                    % Find class to remove
                    remove_label = cmd_bottle.get(1).asString().toCharArray';
@@ -140,9 +143,9 @@ while ~strcmp(state,'quit')
                 
                 disp('Training model with old dataset...');              
                 % Train region classifier
-                region_classifier = Train_region_classifier(dataset.reg_classifier, cls_opts); %TO-CHECK-------------------------------------------------------------------------
+                region_classifier = Train_region_classifier(dataset.reg_classifier, cls_opts); 
                 % Train Bounding box regressors
-                bbox_regressor    = Train_bbox_regressor(dataset.bbox_regressor); %TO-CHECK----------------------------------------------------------------------------
+                bbox_regressor    = Train_bbox_regressor(dataset.bbox_regressor);
      
             catch
                 disp('Old dataset not found, creating a new one...');
@@ -231,11 +234,6 @@ while ~strcmp(state,'quit')
                                                            cnn_model.fast_rcnn_net, [], 'fc7'); 
                 fprintf('--Feature extraction required %f seconds\n', toc(feature_tic));
 
-                % Divide extracted features by usage 
-%                 cur_pos_bbox_regressor_feat    = features(1:size(cur_bbox_pos,1),:);
-%                 cur_pos_region_classifier_feat = features(1,:); 
-%                 cur_neg_region_classifier_feat = features(size(cur_bbox_pos,1)+1:(size(cur_bbox_pos,1)+size(curr_cls_neg,1)),:);
-
                 % Update total features datasets
                 pos_bbox_regressor.feat        = cat(1, pos_bbox_regressor.feat, features(1:size(cur_bbox_pos,1),:));
                 pos_region_classifier.feat     = cat(1, pos_region_classifier.feat, features(1,:));
@@ -245,6 +243,9 @@ while ~strcmp(state,'quit')
                 fprintf('One image processed in %d seconds',toc(process_tic));
            end
            if train_images_counter >= max_img_per_class
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                %%%%%%%%%%%%%%%%%%%%%%% TO ADD CASE OF OLD CLASS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 fprintf('Sufficient dataset acquired in %d seconds.\nTraining...',toc(acquisition_tic));
                 % Update dataset with data from new class
                 new_cls_idx = length(dataset.bbox_regressor) + 1;
@@ -299,10 +300,9 @@ while ~strcmp(state,'quit')
            for i = 1:length(boxes_cell)
              boxes_cell{i} = [boxes{i}, cls_scores{i}];
            end
-           is_dets_per_class = cell2mat(cellfun(@(x) ~isempty(x), boxes_cell, 'UniformOutput', false));
-           if sum(is_dets_per_class)
-              sendDetections(boxes_cell, portDets, portImg, im, dataset.classes, tool, [h,w,pixSize]);
-           end
+%            is_dets_per_class = cell2mat(cellfun(@(x) ~isempty(x), boxes_cell, 'UniformOutput', false));
+           
+           sendDetections(boxes_cell, portDets, portImg, im, dataset.classes, tool, [h,w,pixSize]);
            fprintf('Sending image and detections required %f seconds\n', toc(send_tic));
            
         case{'forget'}
@@ -406,11 +406,11 @@ function aboxes = boxes_filter(aboxes, per_nms_topN, nms_overlap_thres, after_nm
 end
 
 function sendDetections(detections, detPort, imgPort, image, classes, tool, img_dims)
-%     is_dets_per_class = cell2mat(cellfun(@(x) ~isempty(x), detections, 'UniformOutput', false));
-%     if sum(is_dets_per_class)
-        b = detPort.prepare();
-        b.clear();
+    b = detPort.prepare();
+    b.clear();
 
+    is_dets_per_class = cell2mat(cellfun(@(x) ~isempty(x), detections, 'UniformOutput', false));
+    if sum(is_dets_per_class)
         % Prepare bottle b with detections and labels
         for i = 1:length(detections)
             for j = 1:size(detections{i},1)
@@ -422,10 +422,12 @@ function sendDetections(detections, detPort, imgPort, image, classes, tool, img_
                 det_list.addDouble(detections{i}(j,3));       % x_max
                 det_list.addDouble(detections{i}(j,4));       % y_max
                 det_list.addDouble(detections{i}(j,5));       % score
-                det_list.addString(classes{i}); % string label
+                det_list.addString(classes{i});               % string label
             end
         end
-%     end
+    else
+        det_list = b.addList();
+    end
     
     % Prepare image to send
     yarp_img = yarp.ImageRgb();                                                 % create a new yarp image to send results to ports
@@ -435,10 +437,12 @@ function sendDetections(detections, detPort, imgPort, image, classes, tool, img_
     tempImg = cast(image ,'int16');                                             % cast it to int16
     yarp_img = tool.setRawImg(tempImg, img_dims(1), img_dims(2), img_dims(3));  % pass it to the setRawImg function (returns the full image)
     
-    % Set timestamp for the two ports and send
+    % Set timestamp for the two ports
     stamp = yarp.Stamp();
-    imgPort.setEnvelope(stamp);   
-    imgPort.write(yarp_img);   
+    imgPort.setEnvelope(stamp); 
     detPort.setEnvelope(stamp);
+    
+    %Send image and list of detections
+    imgPort.write(yarp_img);   
     detPort.write();
 end

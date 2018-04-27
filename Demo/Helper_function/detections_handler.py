@@ -201,7 +201,7 @@ def parse_args():
 
     # Port names
     parser.add_argument('--inputImagePort', dest='input_image_port_name', help='input image port',
-                        default='/detHandler/image:in')
+                        default='/detHandler/image:i')
     parser.add_argument('--outputDetImgPort', dest='out_det_img_port_name', help='output port for detected images',
                         default='/detHandler/image:o')
     parser.add_argument('--inputDetectionsPort', dest='input_detections_port_name', help='input port for detections',
