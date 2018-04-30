@@ -24,6 +24,8 @@
 #include <yarp/os/LogStream.h>
 #include <yarp/os/Semaphore.h>
 #include <yarp/sig/Image.h>
+#include <yarp/sig/Vector.h>
+#include <yarp/math/Math.h>
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/opencv.hpp>
@@ -32,6 +34,8 @@
 #include <vector>
 #include <iostream>
 #include <utility>
+
+using namespace yarp::math;
 
 /********************************************************/
 class Processing : public yarp::os::BufferedPort<yarp::os::Bottle>
@@ -82,6 +86,7 @@ public:
         yarp::os::Network::connect("/yarpOpenPose/propag:o", imageInPort.getName().c_str());
         yarp::os::Network::connect(imageOutPort.getName().c_str(), "/human");
         yarp::os::Network::connect(camPort.getName().c_str(), "/depthCamera/rpc:i");
+        yarp::os::Network::connect("/depthCamera/depthImage:o", depthPort.getName().c_str());
 
         camera_configured=false;
 
@@ -134,6 +139,32 @@ public:
             }
         }
 
+        return false;
+    }
+
+    /****************************************************************/
+    bool getPoint3D(const int u, const int v, yarp::sig::Vector &p) const
+    {
+
+        yDebug() << "Sizes: " << u << depth.width() << v << depth.height() ;
+
+        if ((u>=0) && (u<depth.width()) && (v>=0) && (v<depth.height()))
+        {
+            double f=depth.width()/(2.0*tan(fov_h*(M_PI/180.0)/2.0));
+            double d=depth(u,v);
+            if ((d>0.0) && (f>0.0))
+            {
+                double x=u-0.5*(depth.width()-1);
+                double y=v-0.5*(depth.height()-1);
+
+                p=d*ones(3);
+                p[0]*=x/f;
+                p[1]*=y/f;
+
+                return true;
+            }
+        }
+        
         return false;
     }
 
@@ -320,10 +351,31 @@ public:
                 cv::rectangle(out_cv, topLeft, bottomRight, colour, 2, 8);
 
                 
-                if (leftWrist2D[i].x > 0 && rightWrist2D[i].x > 0)
+                yarp::sig::Vector pLeft;
+                yarp::sig::Vector pNeck;
+                yarp::sig::Vector pRight;
+                
+                if (neck2D[i].x > 0 && neck2D[i].y > 0)
                 {
-                    circle(out_cv, cv::Point(leftWrist2D[i].x, leftWrist2D[i].y), 10, colourHands, -1, 8);
-                    circle(out_cv, cv::Point(rightWrist2D[i].x, rightWrist2D[i].y), 10, colourHands, -1, 8);
+                    circle(out_cv, cv::Point(neck2D[i].x, neck2D[i].y), 7, colour, -1, 8);
+
+                    if (getPoint3D(neck2D[i].x, neck2D[i].y, pNeck))  
+                        yInfo() << "3D NECK ******************************************" << pNeck.toString() ;
+                }
+
+                if (leftWrist2D[i].x > 0 && leftWrist2D[i].y > 0)
+                {
+                    circle(out_cv, cv::Point(leftWrist2D[i].x, leftWrist2D[i].y), 7, colourHands, -1, 8);
+
+                    if (getPoint3D(leftWrist2D[i].x, leftWrist2D[i].y, pLeft))  
+                        yInfo() << "3D LEFT ******************************************" << pLeft.toString(3,3) ;
+                }
+
+                if (rightWrist2D[i].x > 0 && rightWrist2D[i].y > 0)
+                {
+                    circle(out_cv, cv::Point(rightWrist2D[i].x, rightWrist2D[i].y), 7, colourHands, -1, 8);
+                    if (getPoint3D(rightWrist2D[i].x, rightWrist2D[i].y, pRight))  
+                        yInfo() << "3D RIGHT ******************************************" << pRight.toString(3,3) ;
                 }
 
 
