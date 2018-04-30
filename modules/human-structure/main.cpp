@@ -16,6 +16,7 @@
  */
 
 #include <yarp/os/BufferedPort.h>
+#include <yarp/os/RpcClient.h>
 #include <yarp/os/ResourceFinder.h>
 #include <yarp/os/RFModule.h>
 #include <yarp/os/Network.h>
@@ -42,6 +43,13 @@ class Processing : public yarp::os::BufferedPort<yarp::os::Bottle>
     yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> >    imageOutPort;
     yarp::os::BufferedPort<yarp::os::Bottle >    targetPort;
     yarp::os::BufferedPort<yarp::os::Bottle >    blobPort;
+    yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelFloat>>   depthPort;
+    yarp::os::RpcClient camPort;
+
+    yarp::sig::ImageOf<yarp::sig::PixelFloat> depth;
+    bool    camera_configured;
+    double  fov_h;
+    double  fov_v;
 
 public:
     /********************************************************/
@@ -67,10 +75,15 @@ public:
         imageOutPort.open("/" + moduleName + "/image:o");
         targetPort.open("/" + moduleName + "/target:o");
         blobPort.open("/" + moduleName + "/blobs:o");
+        camPort.open("/" + moduleName + "/cam:rpc");
+        depthPort.open("/" + moduleName + "/depth:i");
 
         yarp::os::Network::connect("/yarpOpenPose/target:o", BufferedPort<yarp::os::Bottle >::getName().c_str());
         yarp::os::Network::connect("/yarpOpenPose/propag:o", imageInPort.getName().c_str());
         yarp::os::Network::connect(imageOutPort.getName().c_str(), "/human");
+        yarp::os::Network::connect(camPort.getName().c_str(), "/depthCamera/rpc:i");
+
+        camera_configured=false;
 
         return true;
     }
@@ -83,17 +96,62 @@ public:
         BufferedPort<yarp::os::Bottle >::close();
         targetPort.close();
         blobPort.close();
+        camPort.close();
+        depthPort.close();
     }
 
     /********************************************************/
     void interrupt()
     {
         BufferedPort<yarp::os::Bottle >::interrupt();
+        imageOutPort.interrupt();
+        imageInPort.interrupt();
+        targetPort.interrupt();
+        blobPort.interrupt();
+        camPort.interrupt();
+        depthPort.interrupt();
+    }
+
+    /****************************************************************/
+    bool getCameraOptions()
+    {
+        if (camPort.getOutputCount()>0)
+        {
+            yarp::os::Bottle cmd,rep;
+            cmd.addVocab(yarp::os::Vocab::encode("visr"));
+            cmd.addVocab(yarp::os::Vocab::encode("get"));
+            cmd.addVocab(yarp::os::Vocab::encode("fov"));
+            if (camPort.write(cmd,rep))
+            {
+                if (rep.size()>=5)
+                {
+                    fov_h=rep.get(3).asDouble();
+                    fov_v=rep.get(4).asDouble();
+                    yInfo()<<"camera fov_h (from sensor) ="<<fov_h;
+                    yInfo()<<"camera fov_v (from sensor) ="<<fov_v;
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /********************************************************/
     void onRead( yarp::os::Bottle &data )
     {
+
+        if (!camera_configured)
+        {
+            camera_configured=getCameraOptions();
+        }
+
+        if (yarp::sig::ImageOf<yarp::sig::PixelFloat> *depth=depthPort.read(false))
+        {
+            this->depth=*depth;
+        }
+
+
         yarp::sig::ImageOf<yarp::sig::PixelRgb> &outImage  = imageOutPort.prepare();
         yarp::sig::ImageOf<yarp::sig::PixelRgb> *inImage = imageInPort.read();
 
