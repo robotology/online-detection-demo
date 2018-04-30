@@ -11,5 +11,5 @@ if(OpenCV_FOUND)
     target_link_libraries(${PROJECT_NAME} ${YARP_LIBRARIES} ${OpenCV_LIBRARIES})
     install(TARGETS ${PROJECT_NAME} DESTINATION bin)
 
-    add_subdirectory(app)
+    #add_subdirectory(app)
 endif()

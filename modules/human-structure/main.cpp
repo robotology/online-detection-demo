@@ -68,6 +68,10 @@ public:
         targetPort.open("/" + moduleName + "/target:o");
         blobPort.open("/" + moduleName + "/blobs:o");
 
+        yarp::os::Network::connect("/yarpOpenPose/target:o", BufferedPort<yarp::os::Bottle >::getName().c_str());
+        yarp::os::Network::connect("/yarpOpenPose/propag:o", imageInPort.getName().c_str());
+        yarp::os::Network::connect(imageOutPort.getName().c_str(), "/human");
+
         return true;
     }
 
@@ -194,6 +198,9 @@ public:
             cv::Point topLeft;
             cv::Point bottomRight;
 
+            cv::Point leftWrist;
+            cv::Point rightWrist;
+
             int length = 0;
             int shift = 10;
 
@@ -245,10 +252,22 @@ public:
                 else if (bottomRight.y > 239)
                     bottomRight.y = 239;
 
-                circle(out_cv, topLeft, 3, cv::Scalar(0, 255 , 0), 1, 8);
-                circle(out_cv, bottomRight, 3, cv::Scalar(0, 255 , 0), 1, 8);
+                
+                cv::Scalar colour(0,76, 153);
+                cv::Scalar colourHands(0,102, 51);
 
-                cv::rectangle(out_cv, topLeft, bottomRight, cv::Scalar(0, 255, 0), 2, 8);
+                circle(out_cv, topLeft, 3, colour, 1, 8);
+                circle(out_cv, bottomRight, 3, colour, 1, 8);
+
+                cv::rectangle(out_cv, topLeft, bottomRight, colour, 2, 8);
+
+                
+                if (leftWrist2D[i].x > 0 && rightWrist2D[i].x > 0)
+                {
+                    circle(out_cv, cv::Point(leftWrist2D[i].x, leftWrist2D[i].y), 10, colourHands, -1, 8);
+                    circle(out_cv, cv::Point(rightWrist2D[i].x, rightWrist2D[i].y), 10, colourHands, -1, 8);
+                }
+
 
                 yarp::os::Bottle tmp;
                 yInfo() << "###########";
