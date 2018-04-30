@@ -49,7 +49,6 @@ class Processing : public yarp::os::BufferedPort<yarp::os::Bottle>
     yarp::os::BufferedPort<yarp::os::Bottle >    blobPort;
     yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelFloat>>   depthPort;
     yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelMono> >   depthImageInPort;
-    yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelMono> >   depthImageOutPort;
     yarp::os::RpcClient camPort;
 
     yarp::sig::ImageOf<yarp::sig::PixelFloat> depth;
@@ -86,7 +85,6 @@ public:
         camPort.open("/" + moduleName + "/cam:rpc");
         depthPort.open("/" + moduleName + "/depth:i");
         depthImageInPort.open("/" + moduleName + "/depthImage:i");
-        depthImageOutPort.open("/" + moduleName + "/depthImage:o");
 
         yarp::os::Network::connect("/yarpOpenPose/target:o", BufferedPort<yarp::os::Bottle >::getName().c_str());
         yarp::os::Network::connect("/yarpOpenPose/propag:o", imageInPort.getName().c_str());
@@ -94,7 +92,6 @@ public:
         yarp::os::Network::connect(camPort.getName().c_str(), "/depthCamera/rpc:i");
         yarp::os::Network::connect("/depthCamera/depthImage:o", depthPort.getName().c_str());
         yarp::os::Network::connect("/depthCamera/depthImage:o", depthImageInPort.getName().c_str(), "fast_tcp+recv.portmonitor+type.dll+file.depthimage");
-        yarp::os::Network::connect(depthImageOutPort.getName().c_str(), "/crop");
 
         camera_configured=false;
 
@@ -112,7 +109,6 @@ public:
         camPort.close();
         depthPort.close();
         depthImageInPort.close();
-        depthImageOutPort.close();
     }
 
     /********************************************************/
@@ -126,7 +122,6 @@ public:
         camPort.interrupt();
         depthPort.interrupt();
         depthImageInPort.interrupt();
-        depthImageOutPort.interrupt();
     }
 
     /****************************************************************/
@@ -195,14 +190,14 @@ public:
         }
 
         yarp::sig::ImageOf<yarp::sig::PixelRgb> &outImage  = imageOutPort.prepare();
-        yarp::sig::ImageOf<yarp::sig::PixelMono> &outImageDepth  = depthImageOutPort.prepare();
+        yarp::sig::ImageOf<yarp::sig::PixelMono> imageDepth;
 
         yarp::sig::ImageOf<yarp::sig::PixelRgb> *inImage = imageInPort.read();
 
         yarp::os::Bottle &target  = targetPort.prepare();
 
         if (yarp::sig::ImageOf<yarp::sig::PixelMono> *depth=depthImageInPort.read())
-            outImageDepth = *depth;
+            imageDepth = *depth;
 
         int skeletonSize = data.get(0).asList()->size();
         int internalElements = 0;
@@ -223,6 +218,9 @@ public:
         std::vector<cv::Point> rightShoulder2D;
         std::vector<cv::Point> rightWrist2D;
         std::vector<cv::Point> leftWrist2D;
+        std::vector<cv::Point> rightElbow2D;    
+        std::vector<cv::Point> leftElbow2D;
+
         cv::Point point;
 
         std::vector<cv::Point3d> neck3D;
@@ -276,6 +274,18 @@ public:
                             point.y = (int)propFieldPos->get(2).asDouble();
                             rightShoulder2D.push_back(point);
                         }
+                        if ( std::strcmp (propFieldPos->get(0).asString().c_str(),"RElbow") == 0)
+                        {
+                            point.x = (int)propFieldPos->get(1).asDouble();
+                            point.y = (int)propFieldPos->get(2).asDouble();
+                            rightElbow2D.push_back(point);
+                        }
+                        if ( std::strcmp (propFieldPos->get(0).asString().c_str(),"LElbow") == 0)
+                        {
+                            point.x = (int)propFieldPos->get(1).asDouble();
+                            point.y = (int)propFieldPos->get(2).asDouble();
+                            leftElbow2D.push_back(point);
+                        }
 
                         if ( std::strcmp (propFieldPos->get(0).asString().c_str(),"RWrist") == 0)
                         {
@@ -295,7 +305,7 @@ public:
         }
 
         cv::Mat out_cv = cv::cvarrToMat((IplImage *)outImage.getIplImage());
-        cv::Mat out_depth_cv = cv::cvarrToMat((IplImage *)outImageDepth.getIplImage());
+        cv::Mat out_depth_cv = cv::cvarrToMat((IplImage *)imageDepth.getIplImage());
 
         //need this increment as case might be that skeleton does not
         //satisfy conditions to fill in bottle
@@ -386,13 +396,12 @@ public:
                         point3D.y = pNeck[1];
                         point3D.z = pNeck[2];
                         neck3D.push_back(point3D);
-                        yInfo() << "3D NECK ******************************************" << pNeck.toString(3) ;
                     }       
                 
 
                     if (leftWrist2D[i].x > 0 && leftWrist2D[i].y > 0)
                     {
-                        circle(out_cv, cv::Point(leftWrist2D[i].x, leftWrist2D[i].y), 7, colourHands, -1, 8);
+                        //circle(out_cv, cv::Point(leftWrist2D[i].x, leftWrist2D[i].y), 7, colourHands, -1, 8);
 
                         if (getPoint3D(leftWrist2D[i].x, leftWrist2D[i].y, pLeft)) 
                         {
@@ -400,8 +409,14 @@ public:
                             point3D.y = pLeft[1];
                             point3D.z = pLeft[2];
                             leftWrist3D.push_back(point3D);
-                            yInfo() << "3D LEFT ******************************************" << pLeft.toString(3) ;
-                        }   
+                        }
+                        else
+                        {
+                            point3D.x = 0.0;
+                            point3D.y = 0.0;
+                            point3D.z = 0.0;
+                            leftWrist3D.push_back(point3D);
+                        }
                             
                     }
                     else
@@ -416,14 +431,20 @@ public:
 
                     if (rightWrist2D[i].x > 0 && rightWrist2D[i].y > 0)
                     {
-                        circle(out_cv, cv::Point(rightWrist2D[i].x, rightWrist2D[i].y), 7, colourHands, -1, 8);
+                        //circle(out_cv, cv::Point(rightWrist2D[i].x, rightWrist2D[i].y), 7, colourHands, -1, 8);
                         if (getPoint3D(rightWrist2D[i].x, rightWrist2D[i].y, pRight))  
                         {
                             point3D.x = pRight[0];
                             point3D.y = pRight[1];
                             point3D.z = pRight[2];
                             rightWrist3D.push_back(point3D);
-                            yInfo() << "3D RIGHT ******************************************" << pRight.toString(3) ;
+                        }
+                        else
+                        {
+                            point3D.x = 0.0;
+                            point3D.y = 0.0;
+                            point3D.z = 0.0;
+                            rightWrist3D.push_back(point3D);
                         }
                     }
                     else
@@ -546,36 +567,106 @@ public:
                 targetPort.write();
             }
         }
-        imageOutPort.write();
-        blobPort.write();
         
-
+       
         
-        //CHECK FOR HAND SHOWING SOMETHING
-
-        //std::vector<std::vector<cv::Point> > cnt;
-        //std::vector<cv::Vec4i> hrch;
-        //findContours( image_roi, cnt, hrch, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE );
+        cv::Point hand;
+        cv::Point elbow;
 
         yDebug() << "NECK size " << neck2D.size();
-        if (neck2D.size() >0)
+        
+        for (int i = 0; i < neck3D.size(); i++)
         {
-            double value = out_depth_cv.at<uchar>(neck2D[0]);
-            yDebug() << "VALUE IS " << value << "at " << neck2D[0].x << neck2D[0].y ;
-            int maxValThreshed = (value - 10 );
+            if (neck2D[i].x > 0 && rightShoulder2D[i].x > 0 && leftShoulder2D[i].x >0)
+            {
+                yDebug() << "3D NECK ******************************************" << neck3D[i].x << neck3D[i].y << neck3D[i].z ;
+                yDebug() << "3D LEFT HAND *************************************" << leftWrist3D[i].x << leftWrist3D[i].y << leftWrist3D[i].z ;
+                yDebug() << "3D RIGHT HAND ************************************" << rightWrist3D[i].x << rightWrist3D[i].y << rightWrist3D[i].z ;
+
+                if (neck3D[i].z > 0 && leftWrist3D[i].z >0 && fabs(neck3D[i].z - leftWrist3D[i].z) > 0.3)
+                {
+                    yError() << "SHOULD LOOK AT LEFT HAND AS" << fabs(neck3D[i].z - leftWrist3D[i].z); 
+                    hand.x = leftWrist2D[i].x;
+                    hand.y = leftWrist2D[i].y;
+                    elbow.x = leftElbow2D[i].x;
+                    elbow.y = leftElbow2D[i].y;
+                } 
+
+                if (neck3D[i].z > 0 && rightWrist3D[i].z >0 && fabs(neck3D[i].z - rightWrist3D[i].z) > 0.3)
+                {
+                    yError() << "SHOULD LOOK AT RIGHT HAND AS" << fabs(neck3D[i].z - rightWrist3D[i].z); 
+                    hand.x = rightWrist2D[i].x;
+                    hand.y = rightWrist2D[i].y;
+                    elbow.x = rightElbow2D[i].x;
+                    elbow.y = rightElbow2D[i].y;
+                }
+            }                
+            
+        }
+        
+        if (hand.x > 0 && hand.y > 0)
+        {
+            int chosenValue = -1;
+
+            double value = out_depth_cv.at<uchar>(hand);
+            yDebug() << "VALUE IS " << value << "at " << hand.x << hand.y ;
+            int maxValThreshed = (value - 3);
             cv::Mat cleanedImg;
             cv::threshold(out_depth_cv, cleanedImg, maxValThreshed, 255, cv::THRESH_BINARY);
-            imwrite("thrsholded.png", cleanedImg);
-        } 
+            
+            std::vector<std::vector<cv::Point> > cnt;
+            std::vector<cv::Vec4i> hrch;
+            
+            findContours( cleanedImg, cnt, hrch, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE );
 
-        //outImageDepth.zero();
+            //outImageDepth.zero();
 
-        //for (int x = 0; x < cnt.size(); x++)
-           //cv::drawContours( image_roi, cnt, x, cvScalar(255, 255, 255), 2, 8, hrch, 0, cv::Point() );
+            std::vector<std::vector<cv::Point> > contours_poly( cnt.size() );
+            std::vector<cv::Rect> boundRect( cnt.size() );
 
-        //imwrite("outImage.png", image_roi);
-        depthImageOutPort.write();
+            std::vector<cv::Moments> mu(cnt.size() );
+            std::vector<cv::Point2f> mc( cnt.size() );
 
+            for (int x = 0; x < cnt.size(); x++)
+            {
+                mu[x] = moments( cnt[x], false );
+                mc[x] = cv::Point2f( mu[x].m10/mu[x].m00 , mu[x].m01/mu[x].m00 );
+                
+                yError() << "MOMENTS" << mc[x].x << elbow.x << abs(elbow.x-mc[x].x);
+                yError() << "AREA" << contourArea(cnt[x]) ;
+
+                if ( abs(elbow.x-mc[x].x) < 50 && contourArea(cnt[x]) > 1000 && contourArea(cnt[x]) < 6000)
+                    chosenValue = x;
+
+            }      
+
+            if (chosenValue >= 0)
+            {   
+
+                cv::Mat overlayFrame;
+                out_cv.copyTo(overlayFrame);
+                cv::drawContours( overlayFrame, cnt, chosenValue, cvScalar(0, 102, 0), CV_FILLED, 8, hrch, 0, cv::Point() );
+                double opacity = 0.4;
+                cv::addWeighted(overlayFrame, opacity, out_cv, 1 - opacity, 0, out_cv);
+
+                //circle(out_cv, mc[chosenValue], 3, cv::Scalar(0, 255, 0), -1, 8, 0);
+                //cv::drawContours( out_cv, cnt, chosenValue, cvScalar(160, 160, 160), CV_FILLED, 8, hrch, 0, cv::Point() );
+                approxPolyDP( cv::Mat(cnt[chosenValue]), contours_poly[chosenValue], 3, true );
+                boundRect[chosenValue] = boundingRect( cv::Mat(contours_poly[chosenValue]) );
+
+                cv::rectangle(out_cv, boundRect[chosenValue].tl(), boundRect[chosenValue].br(), cv::Scalar( 224, 224, 224), 2, 8);
+                //yarp::os::Bottle &t=outTargets.addList();
+                //t.addDouble(boundRect[chosenValue].tl().x);
+                //t.addDouble(boundRect[chosenValue].tl().y);
+                //t.addDouble(boundRect[chosenValue].br().x);
+                //t.addDouble(boundRect[chosenValue].br().y);
+            }
+            
+            
+        }        
+        
+        imageOutPort.write();
+        blobPort.write();
         
     }
 };
