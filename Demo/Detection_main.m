@@ -46,7 +46,7 @@ while ~strcmp(state,'quit')
        command = cmd_bottle.get(0).asString().toCharArray';
        switch command
            case{'quit'}
-               disp('switching to state quit...');
+               disp('switching to state Quit...');
                state = 'quit';
                
            case{'train'}
@@ -55,14 +55,21 @@ while ~strcmp(state,'quit')
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                train_tic = tic;
                acquisition_tic = tic;
-               disp('switching to state train...');
+               disp('switching to state Train...');
                state = 'train';
                
                disp('Initializing train variables...');
                train_images_counter = 0;
                new_label = cmd_bottle.get(1).asString().toCharArray';
-               dataset.classes{length(dataset.classes)+1} = new_label;
-               cnn_model.opts.after_nms_topN          = 800;
+               new_to_add = ~isempty(find(strcmp(dataset.classes,new_label)));
+               if new_to_add
+                   new_cls_idx = length(dataset.bbox_regressor) + 1;
+                   dataset.classes{length(dataset.classes)+1} = new_label;
+               else
+                   new_cls_idx = find(strcmp(dataset.classes,new_label));
+               end
+               
+               cnn_model.opts.after_nms_topN          = after_nms_topN_train;
                           
                % Region classifier variables
                curr_negative_number = 0;
@@ -87,7 +94,7 @@ while ~strcmp(state,'quit')
            case{'test'}
                disp('switching to state test...');
                state = 'test';
-               cnn_model.opts.after_nms_topN = 200;
+               cnn_model.opts.after_nms_topN = after_nms_topN_test;
                
            case{'forget'} %TO-TEST-------------------------------------------------------------------------------
                if ~isempty(dataset.classes)
@@ -95,19 +102,47 @@ while ~strcmp(state,'quit')
                    remove_label = cmd_bottle.get(1).asString().toCharArray';
                    idx_to_remove = find(strcmp(dataset.classes,remove_label));
                    if idx_to_remove > 0
-                       disp('switching to state forget...');
+                       disp('switching to state Forget...');
                        state = 'forget';
                        % Remove class from dataset
                        dataset.bbox_regressor(idx_to_remove) = [];
                        dataset.reg_classifier(idx_to_remove) = [];
                        dataset.classes(idx_to_remove)        = [];
                    else
-                       disp('Could not find class to forget. Going back to test state...');
+                       disp('Could not find class to forget. Going back to Test state...');
                        state = 'test';
                    end
                else
                    disp('Dataset is empty. Could not forget requested label.');
                end
+               
+           case{'load'}
+               if strcmp(cmd_bottle.get(1).asString().toCharArray', 'dataset')
+                   disp('switching to state Load_dataset...');
+                   state = 'load_dataset';
+                   load_dataset_name = cmd_bottle.get(2).asString().toCharArray';
+               else
+                   disp('Loading old model not implemented.')
+                   disp('Switching to state Test...');
+                   state = 'test';
+               end
+               
+               
+               
+           case{'save'}
+               if strcmp(cmd_bottle.get(1).asString().toCharArray', 'dataset')
+                   disp('Switching to state Save_dataset...');
+                   state = 'save_dataset';
+                   save_dataset_name = cmd_bottle.get(2).asString().toCharArray';
+               elseif strcmp(cmd_bottle.get(1).asString().toCharArray', 'model')
+                   disp('Switching to state Save_model...');
+                   state = 'save_model';
+                   save_model_name = cmd_bottle.get(2).asString().toCharArray';
+               else
+                   disp('Unrecognized save command. Switching to state Test...');
+                   state = 'test';
+               end
+             
            otherwise
               fprintf('Command unknown\n'); 
        end     
@@ -117,9 +152,19 @@ while ~strcmp(state,'quit')
 
     switch state
        case{'quit'}
-           disp('Saving dataset...');
-           save([current_path '/Demo/Datasets/' dataset_name], 'dataset');
+           if ~exist([current_path '/Demo/Datasets/' default_dataset_name] , 'file')
+               disp('Saving dataset...');
+               save([current_path '/Demo/Datasets/' default_dataset_name], 'dataset');
+           end
            
+           if ~exist([current_path '/Demo/Models/' default_model_name] , 'file')
+               disp('Saving model...');      
+               model = struct;
+               model.region_classifier = region_classifier;
+               model.bbox_regressor = bbox_regressor;
+               save([current_path '/Demo/Models/' default_model_name], 'model');
+           end
+                  
            disp('Shutting down...');
            
        case{'init'}
@@ -132,35 +177,21 @@ while ~strcmp(state,'quit')
             else
                 negatives_selection.neg_per_image = 1;
             end
-
-            % Load old dataset if there is any or create a new empty one
-            try                               
-                disp('Loading dataset..');
-                dataset = struct;               
-                load ([current_path '/Demo/Datasets/' dataset_name]);
-                disp('Loaded dataset for classes:');
-                disp(dataset.classes);
-                
-                disp('Training model with old dataset...');              
-                % Train region classifier
-                region_classifier = Train_region_classifier(dataset.reg_classifier, cls_opts); 
-                % Train Bounding box regressors
-                bbox_regressor    = Train_bbox_regressor(dataset.bbox_regressor);
-     
-            catch
-                disp('Old dataset not found, creating a new one...');
-                dataset = struct;
-                dataset.bbox_regressor = cell(0);
-                dataset.reg_classifier = cell(0);
-                dataset.classes        = cell(0);
-                
-                region_classifier      = [];
-                bbox_regressor         = [];
-                disp('Done.')
-            end
             
+            disp('Creating empty dataset and model...')
+            dataset = struct;
+            dataset.bbox_regressor = cell(0);
+            dataset.reg_classifier = cell(0);
+            dataset.classes        = cell(0);
+
+            region_classifier      = [];
+            bbox_regressor         = [];
+            disp('Done.')
+            disp('If you want to load an old dataset, please type: load dataset *datasetname*.')
+        
+            disp('Switching to state Test...');
             state = 'test';
-            cnn_model.opts.after_nms_topN          = 200;
+            cnn_model.opts.after_nms_topN          = after_nms_topN_test;
             
        case{'train'} 
            %% -------------------------------------------- TRAIN -------------------------------------------------------
@@ -248,8 +279,7 @@ while ~strcmp(state,'quit')
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 fprintf('Sufficient dataset acquired in %d seconds.\nTraining...',toc(acquisition_tic));
                 % Update dataset with data from new class
-                new_cls_idx = length(dataset.bbox_regressor) + 1;
-
+%                 if new_to_add
                 dataset.bbox_regressor{new_cls_idx}                       = struct;
                 dataset.bbox_regressor{new_cls_idx}.pos_bbox_regressor    = pos_bbox_regressor;
                 dataset.bbox_regressor{new_cls_idx}.y_bbox_regressor      = y_bbox_regressor; 
@@ -257,18 +287,30 @@ while ~strcmp(state,'quit')
                 dataset.reg_classifier{new_cls_idx}                       = struct;
                 dataset.reg_classifier{new_cls_idx}.pos_region_classifier = pos_region_classifier;
                 dataset.reg_classifier{new_cls_idx}.neg_region_classifier = neg_region_classifier;
+%                 else
+%                     dataset.bbox_regressor{new_cls_idx}.pos_bbox_regressor.box    = cat(1, pos_bbox_regressor.box;
+%                     dataset.bbox_regressor{new_cls_idx}.pos_bbox_regressor.feat   = pos_bbox_regressor.feat;
+%                     dataset.bbox_regressor{new_cls_idx}.y_bbox_regressor
+%                     
+%                     dataset.reg_classifier{new_cls_idx}.pos_region_classifier.box
+%                     dataset.reg_classifier{new_cls_idx}.pos_region_classifier.feat
+%                     dataset.reg_classifier{new_cls_idx}.neg_region_classifier.box
+%                     dataset.reg_classifier{new_cls_idx}.neg_region_classifier.feat
+%                       disp('unimplemented function');
+%                 end
 
                 actual_train_tic = tic;
                 %Train region classifier
-                region_classifier = Train_region_classifier(dataset.reg_classifier, cls_opts); %TO-CHECK-------------------------------------------------------------------------
+                region_classifier = Train_region_classifier(dataset.reg_classifier, cls_opts);
 
                 % Train Bounding box regressors
-                bbox_regressor    = Train_bbox_regressor(dataset.bbox_regressor); %TO-CHECK----------------------------------------------------------------------------
+                bbox_regressor    = Train_bbox_regressor(dataset.bbox_regressor);
                 fprintf('Train region classifier and bbox regressor required %f seconds\n', toc(actual_train_tic));
                 fprintf('Train process required %f seconds\n', toc(train_tic));
-                disp('Train done.\n Restoring test state...')
+                
+                disp('Train done.\n Restoring Test state...')
                 state = 'test';
-                cnn_model.opts.after_nms_topN          = 200;
+                cnn_model.opts.after_nms_topN          = after_nms_topN_test;
            end
 
          case{'test'}
@@ -299,9 +341,7 @@ while ~strcmp(state,'quit')
            boxes_cell = cell(length(dataset.classes), 1);
            for i = 1:length(boxes_cell)
              boxes_cell{i} = [boxes{i}, cls_scores{i}];
-           end
-%            is_dets_per_class = cell2mat(cellfun(@(x) ~isempty(x), boxes_cell, 'UniformOutput', false));
-           
+           end           
            sendDetections(boxes_cell, portDets, portImg, im, dataset.classes, tool, [h,w,pixSize]);
            fprintf('Sending image and detections required %f seconds\n', toc(send_tic));
            
@@ -310,14 +350,72 @@ while ~strcmp(state,'quit')
            disp('----------------------FORGET----------------------');
            disp('Training new model without forgotten class...');
            if ~isempty(dataset.reg_classifier)
-               % Train region classifier
                region_classifier = Train_region_classifier(dataset.reg_classifier, cls_opts);
-               % Train Bounding box regressors
                bbox_regressor    = Train_bbox_regressor(dataset.bbox_regressor); 
            else
                region_classifier = [];
                bbox_regressor = [];
            end
+           
+           disp('Switching to state Test...');
+           state = 'test';
+           cnn_model.opts.after_nms_topN          = after_nms_topN_test;
+           
+        case{'load_dataset'}
+           %% ------------------------------------------- LOAD DATASET----------------------------------------------------
+           disp('----------------------LOAD_DATASET----------------------');
+           if exist([current_path '/Demo/Datasets/' load_dataset_name], 'file')
+               disp('Loading dataset...');
+               load([current_path '/Demo/Datasets/' load_dataset_name]);
+               disp('Loaded dataset for classes:');
+               disp(dataset.classes);
+               
+               disp('Training new models with the loaded dataset...');
+               region_classifier = Train_region_classifier(dataset.reg_classifier, cls_opts);
+               bbox_regressor    = Train_bbox_regressor(dataset.bbox_regressor); 
+              
+               disp('Done.');
+           else
+               disp('Specified dataset does not exist.');
+           end
+           
+           disp('Switching to state Test...');
+           state = 'test';
+           cnn_model.opts.after_nms_topN          = after_nms_topN_test;
+           
+        case{'save_dataset'}
+           %% ------------------------------------------- SAVE DATASET----------------------------------------------------
+           disp('----------------------SAVE_DATASET----------------------');
+           disp('Saving dataset...');
+           if exist([current_path '/Demo/Datasets/' save_dataset_name], 'file')
+               disp('dataset file already exists, adding a _new flag to the specified name...');
+               save_dataset_name = [ 'new_' save_dataset_name];
+           end
+           save([current_path '/Demo/Datasets/' save_dataset_name], 'dataset');
+           disp('Done.');
+           
+           disp('Switching to state Test...');
+           state = 'test';
+           cnn_model.opts.after_nms_topN          = after_nms_topN_test;
+           
+        case{'save_model'}
+           %% ------------------------------------------- SAVE MODEL----------------------------------------------------
+           disp('----------------------SAVE_MODEL----------------------');
+           disp('Saving model...');
+           if exist([current_path '/Demo/Models/' save_model_name], 'file')
+               disp('dataset file already exists, adding a new_ flag to the specified name...');
+               save_model_name = ['new_' save_model_name];
+           end
+           model = struct;
+           model.region_classifier = region_classifier;
+           model.bbox_regressor = bbox_regressor;
+           save([current_path '/Demo/Models/' save_model_name], 'model');
+           disp('Done.');
+           
+           disp('Switching to state Test...');
+           state = 'test';
+           cnn_model.opts.after_nms_topN          = after_nms_topN_test;
+           
         otherwise
           fprintf('State unknown\n'); 
    end     
@@ -403,6 +501,9 @@ function aboxes = boxes_filter(aboxes, per_nms_topN, nms_overlap_thres, after_nm
     if after_nms_topN > 0
         aboxes = aboxes(1:min(length(aboxes), after_nms_topN), :);
     end
+end
+
+function forwardAnnotations(image, annotations)
 end
 
 function sendDetections(detections, detPort, imgPort, image, classes, tool, img_dims)
