@@ -201,6 +201,7 @@ while ~strcmp(state,'quit')
            fetch_tic = tic;
            yarpImage   = portImage.read(true);  
            annotations = portAnnotation.read(true);
+           
            % Gathering mat image and gpuarray
            TEST = reshape(tool.getRawImg(yarpImage), [h w pixSize]); % need to reshape the matrix from 1D to h w pixelSize       
            im=uint8(zeros(h, w, pixSize));                           % create an empty image with the correct dimentions
@@ -222,7 +223,7 @@ while ~strcmp(state,'quit')
                     gt_boxes = [ann.asList().get(0).asDouble(), ann.asList().get(1).asDouble(), ...
                                 ann.asList().get(2).asDouble(), ann.asList().get(3).asDouble()];  % bbox format: [tl_x, tl_y, br_x, br_y]
                 end
-
+                forwardAnnotations(yarpImage, gt_boxes, new_label, imgPort, portAnnOut);
                 fprintf('Fetching image and annotation required %f seconds\n', toc(fetch_tic));
 
                 % Extract regions from image and filtering
@@ -503,7 +504,25 @@ function aboxes = boxes_filter(aboxes, per_nms_topN, nms_overlap_thres, after_nm
     end
 end
 
-function forwardAnnotations(image, annotations)
+function forwardAnnotations(yarp_img, box, new_label, imgPort, portAnnOut) % TO-CHECK----------------------------
+    b = portAnnOut.prepare();
+    b.clear();
+    
+    det_list = b.addList();
+    % Add bounding box coordinates, score and string label of detected the object
+    det_list.addString('Train');
+    det_list.addDouble(box(1));       % x_min
+    det_list.addDouble(box(2));       % y_min
+    det_list.addDouble(box(3));       % x_max
+    det_list.addDouble(box(4));       % y_max
+    det_list.addString(new_label);               % string label
+        
+    stamp = yarp.Stamp();
+    imgPort.setEnvelope(stamp); 
+    portAnnOut.setEnvelope(stamp);
+    
+    imgPort.write(yarp_img);   
+    portAnnOut.write();
 end
 
 function sendDetections(detections, detPort, imgPort, image, classes, tool, img_dims)
