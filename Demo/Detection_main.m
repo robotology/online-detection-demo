@@ -87,10 +87,8 @@ while ~strcmp(state,'quit')
                pos_bbox_regressor.box     = [];
                pos_bbox_regressor.feat    = [];
 
-               y_bbox_regressor           = [];
+               y_bbox_regressor           = [];               
                
-               
-
            case{'test'}
                disp('switching to state test...');
                state = 'test';
@@ -223,7 +221,7 @@ while ~strcmp(state,'quit')
                     gt_boxes = [ann.asList().get(0).asDouble(), ann.asList().get(1).asDouble(), ...
                                 ann.asList().get(2).asDouble(), ann.asList().get(3).asDouble()];  % bbox format: [tl_x, tl_y, br_x, br_y]
                 end
-                forwardAnnotations(yarpImage, gt_boxes, new_label, imgPort, portAnnOut);
+                forwardAnnotations(yarpImage, gt_boxes, new_label, portImg, portDets);
                 fprintf('Fetching image and annotation required %f seconds\n', toc(fetch_tic));
 
                 % Extract regions from image and filtering
@@ -325,7 +323,7 @@ while ~strcmp(state,'quit')
            im(:,:,1)= cast(TEST(:,:,1),'uint8');                     % copy the image to the previoulsy create matrix
            im(:,:,2)= cast(TEST(:,:,2),'uint8');
            im(:,:,3)= cast(TEST(:,:,3),'uint8');         
-        %     im_gpu = gpuArray(im);
+%            im_gpu = gpuArray(im);
            % Performing detection
            if ~isempty(region_classifier)
                prediction_tic = tic;
@@ -334,7 +332,7 @@ while ~strcmp(state,'quit')
                [cls_scores boxes] = Detect(im, dataset.classes, cnn_model, region_classifier, bbox_regressor, detect_thresh);
                fprintf('Prediction required %f seconds\n', toc(prediction_tic));
            else
-               boxes     = [];
+               boxes      = [];
                cls_scores = [];
            end
            % Sending detections        
@@ -442,10 +440,6 @@ cur_bbox_Y = [];
 
 for j = 1:size(cur_bbox_X, 1)
     ex_box = cur_bbox_X(j, :);
-%     ov = boxoverlap(gt_boxes, ex_box);
-%     [max_ov, assignment] = max(ov);
-%     gt_box = gt_boxes;
-%     cls = gt_classes(assignment);
 
     src_w = ex_box(3) - ex_box(1) + eps;
     src_h = ex_box(4) - ex_box(2) + eps;

@@ -138,7 +138,7 @@ class DetectionsHandler (yarp.RFModule):
 			cls = ann.get(5).asString()                                                                          # label 
 			
 			# Draw bounding box
-			color = (255,0,0)
+			color = (0,0,255)
 			cv2.rectangle(im,(int(round(bbox[0])), int(round(bbox[1]))),(int(round(bbox[2])), int(round(bbox[3]))),color, 2)
 
 			# Print text
