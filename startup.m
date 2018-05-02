@@ -12,11 +12,7 @@ function startup()
     addpath(genpath(fullfile(curdir, 'bin')));
     addpath(genpath(fullfile(curdir, 'experiments')));
     addpath(genpath(fullfile(curdir, 'imdb')));
-     addpath(genpath(fullfile(curdir, 'Demo')));
-%     addpath([curdir '/../yarp-matlab-bindings/build/install/mex']);
-%     javaaddpath('/home/IIT.LOCAL/emaiettini/workspace/yarp/build');
-%     javaaddpath('/home/IIT.LOCAL/emaiettini/workspace/yarp/build/yarp');
-%     javaaddpath('/home/IIT.LOCAL/emaiettini/workspace/yarp/build/lib');
+    addpath(genpath(fullfile(curdir, 'Demo')));
 
     mkdir_if_missing(fullfile(curdir, 'datasets'));
 
@@ -36,6 +32,4 @@ function startup()
 
     fprintf('fast_rcnn startup done\n');
     
-%     run(fullfile(getenv('Gurls_ROOT'),'gurls/utils/gurls_install.m'))
-    run('/home/IIT.LOCAL/emaiettini/workspace/Repos/GURLS/gurls/utils/gurls_install.m')
 end
