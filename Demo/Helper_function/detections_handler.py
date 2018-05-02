@@ -34,7 +34,7 @@ from random import randint
 yarp.Network.init()
 
 class DetectionsHandler (yarp.RFModule):
-    def __init__(self, input_image_port_name, out_det_img_port_name, input_detections_port_name, rpc_thresh_port_name, input_train_port_name, image_w, image_h):
+    def __init__(self, input_image_port_name, out_det_img_port_name, input_detections_port_name, rpc_thresh_port_name, image_w, image_h):
 
          print 'Setting classes dictionary...\n'
          self._cls2colors = {};
@@ -50,11 +50,6 @@ class DetectionsHandler (yarp.RFModule):
          self._input_detections_port_name = input_detections_port_name
          self._input_detections_port.open(self._input_detections_port_name)
          print '{:s} opened'.format(self._input_detections_port_name)
-
-         self._input_train_port = yarp.Port()
-         self._input_train_port_name = input_train_port_name
-         self._input_train_port.open(self._input_train_port_name)
-         print '{:s} opened'.format(self._input_train_port_name)
 
          self._out_det_img_port = yarp.Port()
          self._out_det_img_port_name = out_det_img_port_name
@@ -223,8 +218,6 @@ def parse_args():
                         default='/detHandler/detections:i')
     parser.add_argument('--thresh_port', dest='rpc_thresh_port_name', help='rpc port name where to set detection threshold',
                         default='/detHandler:thresh')
-    parser.add_argument('--inputTrainPort', dest='input_train_port_name', help='input port for annotations',
-                        default='/detHandler/annotations:i')
 
     # Image dimensions
     parser.add_argument('--image_w', type=int, dest='image_width', help='width of the images',
@@ -240,7 +233,7 @@ if __name__ == '__main__':
     # Read input parametres
     args = parse_args()
 
-    detHandler = DetectionsHandler(args.input_image_port_name, args.out_det_img_port_name, args.input_detections_port_name, args.rpc_thresh_port_name, args.input_train_port_name, args.image_width, args.image_height)
+    detHandler = DetectionsHandler(args.input_image_port_name, args.out_det_img_port_name, args.input_detections_port_name, args.rpc_thresh_port_name, args.image_width, args.image_height)
 
     try:
         detHandler.run()
