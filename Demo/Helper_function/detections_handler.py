@@ -1,12 +1,4 @@
 #!/usr/bin/env python
-
-# --------------------------------------------------------
-# Faster R-CNN
-# Copyright (c) 2015 Microsoft
-# Licensed under The MIT License [see LICENSE for details]
-# Written by Ross Girshick
-# --------------------------------------------------------
-
 """
 Demo script showing detections in sample images.
 
@@ -82,8 +74,7 @@ class DetectionsHandler (yarp.RFModule):
     	 cv2.rectangle(im, label_origin, label_bottom, color, -2)
          cv2.putText(im, text, (int(bbox[0]) + 1, int(bbox[1]) - 5), font, scale, (255,255,255))
 
-    def _drawDetections(self, im, all_dets, thresh=0.57, vis=False):
-            #if all_dets is not None:
+    def _drawDetections(self, im, all_dets, thresh=0.45, vis=False):
 	    for i in range(0,all_dets.size()):
 	        dets = all_dets.get(i).asList()
                 if dets.get(0).isDouble():

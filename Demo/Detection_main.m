@@ -56,23 +56,36 @@ while ~strcmp(state,'quit')
                train_tic = tic;
                acquisition_tic = tic;
                disp('switching to state Train...');
-               state = 'train';
+               state = 'train'; 
                
                disp('Initializing train variables...');
-               train_images_counter = 0;
                new_label = cmd_bottle.get(1).asString().toCharArray';
-               new_to_add = ~isempty(find(strcmp(dataset.classes,new_label)));
+               new_to_add = isempty(find(strcmp(dataset.classes,new_label)));
                if new_to_add
                    new_cls_idx = length(dataset.bbox_regressor) + 1;
                    dataset.classes{length(dataset.classes)+1} = new_label;
+                   max_img_per_class                          = max_img_for_new_class;
+                   
+                   total_negatives = negatives_selection.batch_size*negatives_selection.iterations;
+                  
                else
                    new_cls_idx = find(strcmp(dataset.classes,new_label));
+                   max_img_per_class                      = max_img_for_old_class;
+                   
+                   total_negatives = (negatives_selection.batch_size*negatives_selection.iterations)/2;
+               end
+               
+               if total_negatives > max_img_per_class
+                   negatives_selection.neg_per_image = round(total_negatives/max_img_per_class);
+               else
+                   negatives_selection.neg_per_image = 1;
                end
                
                cnn_model.opts.after_nms_topN          = after_nms_topN_train;
                           
                % Region classifier variables
                curr_negative_number = 0;
+               train_images_counter = 0;
 
                pos_region_classifier      = struct;
                pos_region_classifier.box  = [];
@@ -169,12 +182,6 @@ while ~strcmp(state,'quit')
            %% -----------------------------------------INITIALIZATION ------------------------------------------------
            disp('----------------------INITIALIZATION----------------------');
            % Set the number of negative regions per image to pick
-            total_negatives = negatives_selection.batch_size*negatives_selection.iterations;
-            if total_negatives > max_img_per_class
-                negatives_selection.neg_per_image = round(total_negatives/max_img_per_class);
-            else
-                negatives_selection.neg_per_image = 1;
-            end
             
             disp('Creating empty dataset and model...')
             dataset = struct;
@@ -194,84 +201,90 @@ while ~strcmp(state,'quit')
        case{'train'} 
            %% -------------------------------------------- TRAIN -------------------------------------------------------
            disp('----------------------TRAIN----------------------');
-           % get the yarp image from port
-           disp('Waiting image from port...');
-           fetch_tic = tic;
+           disp('Waiting image and annotations from ports...');
+           
+           fetch_tic = tic;           
+           annotations_bottle = portAnnotation.read(true);
            yarpImage   = portImage.read(true);  
-           annotations = portAnnotation.read(true);
            
-           % Gathering mat image and gpuarray
-           TEST = reshape(tool.getRawImg(yarpImage), [h w pixSize]); % need to reshape the matrix from 1D to h w pixelSize       
-           im=uint8(zeros(h, w, pixSize));                           % create an empty image with the correct dimentions
-           im(:,:,1)= cast(TEST(:,:,1),'uint8');                     % copy the image to the previoulsy create matrix
-           im(:,:,2)= cast(TEST(:,:,2),'uint8');
-           im(:,:,3)= cast(TEST(:,:,3),'uint8');         
-        %     im_gpu = gpuArray(im);
+           if (annotations_bottle.size() ~= 0 && sum(size(yarpImage)) ~= 0)
+%                annotations = annotations_bottle.pop();
+%                if (annotations.asList().get(0).isString() && strcmp(annotations.asList().get(0).asString(), 'hand'))
+                                
+                   % Gathering mat image and gpuarray
+                   TEST = reshape(tool.getRawImg(yarpImage), [h w pixSize]); % need to reshape the matrix from 1D to h w pixelSize       
+                   im=uint8(zeros(h, w, pixSize));                           % create an empty image with the correct dimentions
+                   im(:,:,1)= cast(TEST(:,:,1),'uint8');                     % copy the image to the previoulsy create matrix
+                   im(:,:,2)= cast(TEST(:,:,2),'uint8');
+                   im(:,:,3)= cast(TEST(:,:,3),'uint8');         
+                   % im_gpu = gpuArray(im);
+
+                   process_tic = tic;
+                   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                   %%%%%%%%%%%%%%%%%%%%%%% NEED FOR A TSTAMP CHECK %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+                   % Gathering GT box and label 
+                   for j = 1:length(annotations_bottle)
+%                        ann = annotations.asList().get(1);
+                       ann = annotations_bottle.pop();
+                       gt_boxes = [ann.asList().get(0).asDouble(), ann.asList().get(1).asDouble(), ...
+                                   ann.asList().get(2).asDouble(), ann.asList().get(3).asDouble()];  % bbox format: [tl_x, tl_y, br_x, br_y]
+                   end
+                   forwardAnnotations(yarpImage, gt_boxes, new_label, portImg, portDets);
+                   fprintf('Fetching image and annotation required %f seconds\n', toc(fetch_tic));
+                    % Extract regions from image and filtering
+                    regions_tic = tic;
+                    [boxes, scores]                 = proposal_im_detect(cnn_model.proposal_detection_model.conf_proposal, cnn_model.rpn_net, im);
+                    aboxes                          = boxes_filter([boxes, scores], cnn_model.opts.per_nms_topN, cnn_model.opts.nms_overlap_thres, ...
+                                                                    cnn_model.opts.after_nms_topN, cnn_model.opts.use_gpu);
+                    fprintf('--Region proposal prediction required %f seconds\n', toc(regions_tic));
+
+                    % Select positive regions
+                    selection_tic = tic;
+                    overlaps = boxoverlap(aboxes, gt_boxes); 
+
+                    % Positive regions for bounding box regressor
+                    [cur_bbox_pos, cur_bbox_y]      = select_positives_for_bbox(aboxes(:,1:4), gt_boxes, overlaps, bbox_opts.min_overlap); 
+                    pos_bbox_regressor.box          = cat(1, pos_bbox_regressor.box, cur_bbox_pos);
+                    y_bbox_regressor                = cat(1,y_bbox_regressor,cur_bbox_y);          
+
+                    % Positive regions for region classifier
+                    pos_region_classifier.box       = cat(1, pos_region_classifier.box, gt_boxes);
+
+                    % Select negative regions for region classifier
+                    if curr_negative_number < total_negatives
+                        curr_cls_neg                = select_negatives_for_cls(aboxes(:,1:4), overlaps, negatives_selection); 
+                        neg_region_classifier.box   = cat(1, neg_region_classifier.box, curr_cls_neg);
+                        curr_negative_number        = curr_negative_number + size(curr_cls_neg,1);
+                    else
+                        curr_cls_neg = [];
+                        neg_region_classifier.box = [];
+                    end
+                    fprintf('--Positives and negatives selection required %f seconds\n', toc(selection_tic));
+
+                    % Extract features from regions 
+                    feature_tic = tic;
+                    % Select regions to extract features from
+                    regions_for_features           = cat(1, cur_bbox_pos, curr_cls_neg); % cur_bbox_pos contains gt_box too so no need to repeat it  
+
+                    % Network forward
+                    features                       = cnn_features_demo(cnn_model.proposal_detection_model.conf_detection, im, regions_for_features(:, 1:4), ...
+                                                               cnn_model.fast_rcnn_net, [], 'fc7'); 
+                    fprintf('--Feature extraction required %f seconds\n', toc(feature_tic));
+
+                    % Update total features datasets
+                    pos_bbox_regressor.feat        = cat(1, pos_bbox_regressor.feat, features(1:size(cur_bbox_pos,1),:));
+                    pos_region_classifier.feat     = cat(1, pos_region_classifier.feat, features(1,:));
+                    neg_region_classifier.feat     = cat(1, neg_region_classifier.feat, features(size(cur_bbox_pos,1)+1:(size(cur_bbox_pos,1)+size(curr_cls_neg,1)),:));
+
+                    train_images_counter = train_images_counter +1;
+                    fprintf('One image processed in %d seconds',toc(process_tic));
+%                end
+           end         
            
-           if (sum(size(yarpImage)) ~= 0 && annotations.size() ~= 0)     % check size of bottle 
                
-                process_tic = tic;
-                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                %%%%%%%%%%%%%%%%%%%%%%% NEED FOR A TSTAMP CHECK %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-               
-                % Gathering GT box and label 
-                for j = 1:length(annotations)
-                    ann = annotations.pop();
-                    gt_boxes = [ann.asList().get(0).asDouble(), ann.asList().get(1).asDouble(), ...
-                                ann.asList().get(2).asDouble(), ann.asList().get(3).asDouble()];  % bbox format: [tl_x, tl_y, br_x, br_y]
-                end
-                forwardAnnotations(yarpImage, gt_boxes, new_label, portImg, portDets);
-                fprintf('Fetching image and annotation required %f seconds\n', toc(fetch_tic));
 
-                % Extract regions from image and filtering
-                regions_tic = tic;
-                [boxes, scores]                 = proposal_im_detect(cnn_model.proposal_detection_model.conf_proposal, cnn_model.rpn_net, im);
-                aboxes                          = boxes_filter([boxes, scores], cnn_model.opts.per_nms_topN, cnn_model.opts.nms_overlap_thres, ...
-                                                                cnn_model.opts.after_nms_topN, cnn_model.opts.use_gpu);
-                fprintf('--Region proposal prediction required %f seconds\n', toc(regions_tic));
-
-                % Select positive regions
-                selection_tic = tic;
-                overlaps = boxoverlap(aboxes, gt_boxes); 
-
-                % Positive regions for bounding box regressor
-                [cur_bbox_pos, cur_bbox_y]      = select_positives_for_bbox(aboxes(:,1:4), gt_boxes, overlaps, bbox_opts.min_overlap); 
-                pos_bbox_regressor.box          = cat(1, pos_bbox_regressor.box, cur_bbox_pos);
-                y_bbox_regressor                = cat(1,y_bbox_regressor,cur_bbox_y);          
-
-                % Positive regions for region classifier
-                pos_region_classifier.box       = cat(1, pos_region_classifier.box, gt_boxes);
-                
-                % Select negative regions for region classifier
-                if curr_negative_number < total_negatives
-                    curr_cls_neg                = select_negatives_for_cls(aboxes(:,1:4), overlaps, negatives_selection); 
-                    neg_region_classifier.box   = cat(1, neg_region_classifier.box, curr_cls_neg);
-                    curr_negative_number        = curr_negative_number + size(curr_cls_neg,1);
-                else
-                    curr_cls_neg = [];
-                    neg_region_classifier.box = [];
-                end
-                fprintf('--Positives and negatives selection required %f seconds\n', toc(selection_tic));
-
-                % Extract features from regions 
-                feature_tic = tic;
-                % Select regions to extract features from
-                regions_for_features           = cat(1, cur_bbox_pos, curr_cls_neg); % cur_bbox_pos contains gt_box too so no need to repeat it  
-
-                % Network forward
-                features                       = cnn_features_demo(cnn_model.proposal_detection_model.conf_detection, im, regions_for_features(:, 1:4), ...
-                                                           cnn_model.fast_rcnn_net, [], 'fc7'); 
-                fprintf('--Feature extraction required %f seconds\n', toc(feature_tic));
-
-                % Update total features datasets
-                pos_bbox_regressor.feat        = cat(1, pos_bbox_regressor.feat, features(1:size(cur_bbox_pos,1),:));
-                pos_region_classifier.feat     = cat(1, pos_region_classifier.feat, features(1,:));
-                neg_region_classifier.feat     = cat(1, neg_region_classifier.feat, features(size(cur_bbox_pos,1)+1:(size(cur_bbox_pos,1)+size(curr_cls_neg,1)),:));
-
-                train_images_counter = train_images_counter +1;
-                fprintf('One image processed in %d seconds',toc(process_tic));
-           end
            if train_images_counter >= max_img_per_class
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 %%%%%%%%%%%%%%%%%%%%%%% TO ADD CASE OF OLD CLASS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -315,15 +328,15 @@ while ~strcmp(state,'quit')
          case{'test'}
            %% ------------------------------------------- DETECT ----------------------------------------------------
            disp('Waiting image from port...');
-               % get the yarp image from port
-           yarpImage   = portImage.read(true);  
-           % Gathering mat image and gpuarray
+           
+           yarpImage   = portImage.read(true);                       % get the yarp image from port
            TEST = reshape(tool.getRawImg(yarpImage), [h w pixSize]); % need to reshape the matrix from 1D to h w pixelSize       
            im=uint8(zeros(h, w, pixSize));                           % create an empty image with the correct dimentions
            im(:,:,1)= cast(TEST(:,:,1),'uint8');                     % copy the image to the previoulsy create matrix
            im(:,:,2)= cast(TEST(:,:,2),'uint8');
            im(:,:,3)= cast(TEST(:,:,3),'uint8');         
-%            im_gpu = gpuArray(im);
+           % im_gpu = gpuArray(im);
+           
            % Performing detection
            if ~isempty(region_classifier)
                prediction_tic = tic;
@@ -498,18 +511,17 @@ function aboxes = boxes_filter(aboxes, per_nms_topN, nms_overlap_thres, after_nm
     end
 end
 
-function forwardAnnotations(yarp_img, box, new_label, imgPort, portAnnOut) % TO-CHECK----------------------------
+function forwardAnnotations(yarp_img, box, new_label, imgPort, portAnnOut)
     b = portAnnOut.prepare();
     b.clear();
     
     det_list = b.addList();
-    % Add bounding box coordinates, score and string label of detected the object
     det_list.addString('Train');
     det_list.addDouble(box(1));       % x_min
     det_list.addDouble(box(2));       % y_min
     det_list.addDouble(box(3));       % x_max
     det_list.addDouble(box(4));       % y_max
-    det_list.addString(new_label);               % string label
+    det_list.addString(new_label);    % string label
         
     stamp = yarp.Stamp();
     imgPort.setEnvelope(stamp); 
