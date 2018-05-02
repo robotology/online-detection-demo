@@ -609,7 +609,7 @@ public:
                 yInfo() << "MOMENTS" << mc[x].x << hand.x << abs(hand.x-mc[x].x);
                 yInfo() << "AREA" << contourArea(cnt[x]) ;
 
-                if ( abs(hand.x-mc[x].x) < 50 && contourArea(cnt[x]) > 500 && contourArea(cnt[x]) < 6000)
+                if ( abs(hand.x-mc[x].x) < 30 && contourArea(cnt[x]) > 300 && contourArea(cnt[x]) < 6000)
                 {
                     chosenValue = x;
                     yDebug() << "******************" << chosenValue; 
