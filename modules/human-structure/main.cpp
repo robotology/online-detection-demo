@@ -55,6 +55,7 @@ class Processing : public yarp::os::BufferedPort<yarp::os::Bottle>
     bool    camera_configured;
     double  fov_h;
     double  fov_v;
+    bool isHand;
 
     cv::Mat depth_cv;
 
@@ -94,6 +95,7 @@ public:
         yarp::os::Network::connect("/depthCamera/depthImage:o", depthImageInPort.getName().c_str(), "fast_tcp+recv.portmonitor+type.dll+file.depthimage");
 
         camera_configured=false;
+        isHand = false;
 
         return true;
     }
@@ -310,6 +312,7 @@ public:
         //need this increment as case might be that skeleton does not
         //satisfy conditions to fill in bottle
         int increment = 0;
+        isHand = false;
 
         for (size_t i = 0; i < skeletonSize; i++)
         {
@@ -537,36 +540,6 @@ public:
                 }
             }
         }
-
-        if (elements.size()>0)
-        {
-            for (int i=0; i<elements.size(); i++)
-                yInfo() << "Testing elements " << i << elements[i].first << elements[i].second;
-
-            std::sort(elements.begin(), elements.end());
-
-            for (int i=0; i<elements.size(); i++)
-                yInfo() << "Sorted elements " << i << elements[i].first << elements[i].second;
-
-            if ( shapes.size() > 0)
-            {
-                yarp::os::Bottle &blobs  = blobPort.prepare();
-                blobs.clear();
-
-                yInfo() << "**************** SIZE" << elements.size() << shapes.size() ;
-                for (int i=0; i<shapes.size(); i++)
-                {
-                    yInfo() << "**************** " << shapes[elements[i].second].toString();
-                    yarp::os::Bottle &tmp = blobs.addList();
-                    tmp.addInt(shapes[elements[i].second].get(0).asInt());
-                    tmp.addInt(shapes[elements[i].second].get(1).asInt());
-                    tmp.addInt(shapes[elements[i].second].get(2).asInt());
-                    tmp.addInt(shapes[elements[i].second].get(3).asInt());
-                }
-
-                targetPort.write();
-            }
-        }
         
        
         
@@ -659,15 +632,69 @@ public:
                 boundRect[chosenValue] = boundingRect( cv::Mat(contours_poly[chosenValue]) );
 
                 cv::rectangle(out_cv, boundRect[chosenValue].tl(), boundRect[chosenValue].br(), cv::Scalar( 224, 224, 224), 2, 8);
-                //yarp::os::Bottle &t=outTargets.addList();
-                //t.addDouble(boundRect[chosenValue].tl().x);
-                //t.addDouble(boundRect[chosenValue].tl().y);
-                //t.addDouble(boundRect[chosenValue].br().x);
-                //t.addDouble(boundRect[chosenValue].br().y);
+                yarp::os::Bottle tmp;
+                
+                yDebug() << "will clear vector of size " << shapes.size() ;
+                shapes.clear();
+                yDebug() << "vector is now cleared, size" << shapes.size();
+
+                tmp.addInt(boundRect[chosenValue].tl().x);
+                tmp.addInt(boundRect[chosenValue].tl().y);
+                tmp.addInt(boundRect[chosenValue].br().x);
+                tmp.addInt(boundRect[chosenValue].br().y);
+                
+                shapes.push_back(tmp);
+                isHand = true;            }
+        }       
+
+        if (elements.size()>0)
+        {
+            for (int i=0; i<elements.size(); i++)
+                yInfo() << "Testing elements " << i << elements[i].first << elements[i].second;
+
+            std::sort(elements.begin(), elements.end());
+
+            for (int i=0; i<elements.size(); i++)
+                yInfo() << "Sorted elements " << i << elements[i].first << elements[i].second;
+
+            yInfo() << "SHAPE SIZE IS " << shapes.size();
+
+            if ( shapes.size() > 0)
+            {
+                yarp::os::Bottle &blobs  = blobPort.prepare();  
+                blobs.clear();
+
+                yarp::os::Bottle &mainList = blobs.addList();
+
+                if (isHand)
+                   mainList.addString("hand");
+                else
+                   mainList.addString("face"); 
+
+                yInfo() << "**************** SIZE" << elements.size() << shapes.size() ;
+                for (int i=0; i<shapes.size(); i++)
+                {
+                    yarp::os::Bottle &tmp = mainList.addList();
+                    if (isHand)
+                    {
+                        tmp.addInt(shapes[i].get(0).asInt());
+                        tmp.addInt(shapes[i].get(1).asInt());
+                        tmp.addInt(shapes[i].get(2).asInt());
+                        tmp.addInt(shapes[i].get(3).asInt());
+                    }
+                    else
+                    {
+                        yInfo() << "**************** " << shapes[elements[i].second].toString();
+                        tmp.addInt(shapes[elements[i].second].get(0).asInt());
+                        tmp.addInt(shapes[elements[i].second].get(1).asInt());
+                        tmp.addInt(shapes[elements[i].second].get(2).asInt());
+                        tmp.addInt(shapes[elements[i].second].get(3).asInt());
+                    }
+                }
+
+                targetPort.write();
             }
-            
-            
-        }        
+        } 
         
         imageOutPort.write();
         blobPort.write();
