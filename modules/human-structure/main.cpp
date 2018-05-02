@@ -88,7 +88,7 @@ public:
 
         yarp::os::Network::connect("/yarpOpenPose/target:o", BufferedPort<yarp::os::Bottle >::getName().c_str());
         yarp::os::Network::connect("/yarpOpenPose/propag:o", imageInPort.getName().c_str());
-        yarp::os::Network::connect(imageOutPort.getName().c_str(), "/human");
+        yarp::os::Network::connect(imageOutPort.getName().c_str(), "/viewer/structure");
         yarp::os::Network::connect(camPort.getName().c_str(), "/depthCamera/rpc:i");
         yarp::os::Network::connect("/depthCamera/depthImage:o", depthPort.getName().c_str());
         yarp::os::Network::connect("/depthCamera/depthImage:o", depthImageInPort.getName().c_str(), "fast_tcp+recv.portmonitor+type.dll+file.depthimage");
@@ -401,7 +401,7 @@ public:
 
                     if (leftWrist2D[i].x > 0 && leftWrist2D[i].y > 0)
                     {
-                        //circle(out_cv, cv::Point(leftWrist2D[i].x, leftWrist2D[i].y), 7, colourHands, -1, 8);
+                        circle(out_cv, cv::Point(leftWrist2D[i].x, leftWrist2D[i].y), 3, cv::Scalar(255, 255, 0), -1, 8, 0);
 
                         if (getPoint3D(leftWrist2D[i].x, leftWrist2D[i].y, pLeft)) 
                         {
@@ -431,7 +431,7 @@ public:
 
                     if (rightWrist2D[i].x > 0 && rightWrist2D[i].y > 0)
                     {
-                        //circle(out_cv, cv::Point(rightWrist2D[i].x, rightWrist2D[i].y), 7, colourHands, -1, 8);
+                        circle(out_cv, cv::Point(rightWrist2D[i].x, rightWrist2D[i].y), 3, cv::Scalar(255, 255, 0), -1, 8, 0);
                         if (getPoint3D(rightWrist2D[i].x, rightWrist2D[i].y, pRight))  
                         {
                             point3D.x = pRight[0];
@@ -583,7 +583,7 @@ public:
                 yDebug() << "3D LEFT HAND *************************************" << leftWrist3D[i].x << leftWrist3D[i].y << leftWrist3D[i].z ;
                 yDebug() << "3D RIGHT HAND ************************************" << rightWrist3D[i].x << rightWrist3D[i].y << rightWrist3D[i].z ;
 
-                if (neck3D[i].z > 0 && leftWrist3D[i].z >0 && fabs(neck3D[i].z - leftWrist3D[i].z) > 0.3)
+                if (neck3D[i].z > 0 && leftWrist3D[i].z >0 && fabs(neck3D[i].z - leftWrist3D[i].z) > 0.2)
                 {
                     yError() << "SHOULD LOOK AT LEFT HAND AS" << fabs(neck3D[i].z - leftWrist3D[i].z); 
                     hand.x = leftWrist2D[i].x;
@@ -592,7 +592,7 @@ public:
                     elbow.y = leftElbow2D[i].y;
                 } 
 
-                if (neck3D[i].z > 0 && rightWrist3D[i].z >0 && fabs(neck3D[i].z - rightWrist3D[i].z) > 0.3)
+                if (neck3D[i].z > 0 && rightWrist3D[i].z >0 && fabs(neck3D[i].z - rightWrist3D[i].z) > 0.2)
                 {
                     yError() << "SHOULD LOOK AT RIGHT HAND AS" << fabs(neck3D[i].z - rightWrist3D[i].z); 
                     hand.x = rightWrist2D[i].x;
@@ -627,16 +627,20 @@ public:
             std::vector<cv::Moments> mu(cnt.size() );
             std::vector<cv::Point2f> mc( cnt.size() );
 
+            yInfo() << "contour size" <<  cnt.size();
             for (int x = 0; x < cnt.size(); x++)
             {
                 mu[x] = moments( cnt[x], false );
                 mc[x] = cv::Point2f( mu[x].m10/mu[x].m00 , mu[x].m01/mu[x].m00 );
                 
-                yError() << "MOMENTS" << mc[x].x << elbow.x << abs(elbow.x-mc[x].x);
-                yError() << "AREA" << contourArea(cnt[x]) ;
+                yInfo() << "MOMENTS" << mc[x].x << hand.x << abs(hand.x-mc[x].x);
+                yInfo() << "AREA" << contourArea(cnt[x]) ;
 
-                if ( abs(elbow.x-mc[x].x) < 50 && contourArea(cnt[x]) > 1000 && contourArea(cnt[x]) < 6000)
+                if ( abs(hand.x-mc[x].x) < 50 && contourArea(cnt[x]) > 500 && contourArea(cnt[x]) < 6000)
+                {
                     chosenValue = x;
+                    yDebug() << "******************" << chosenValue; 
+                }
 
             }      
 
@@ -649,7 +653,7 @@ public:
                 double opacity = 0.4;
                 cv::addWeighted(overlayFrame, opacity, out_cv, 1 - opacity, 0, out_cv);
 
-                //circle(out_cv, mc[chosenValue], 3, cv::Scalar(0, 255, 0), -1, 8, 0);
+                circle(out_cv, mc[chosenValue], 3, cv::Scalar(0, 255, 0), -1, 8, 0);
                 //cv::drawContours( out_cv, cnt, chosenValue, cvScalar(160, 160, 160), CV_FILLED, 8, hrch, 0, cv::Point() );
                 approxPolyDP( cv::Mat(cnt[chosenValue]), contours_poly[chosenValue], 3, true );
                 boundRect[chosenValue] = boundingRect( cv::Mat(contours_poly[chosenValue]) );
