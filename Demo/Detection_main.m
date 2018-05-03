@@ -38,7 +38,7 @@ state = 'init';
 
 while ~strcmp(state,'quit')
     disp('asking for command');
-    cmd_bottle = yarp.Bottle();% REQUIRED?------------------------------------------------------------------
+    cmd_bottle = yarp.Bottle();
     cmd_bottle = portCmd.read(false);
     
     %% Switching state according to command read from port
@@ -103,28 +103,41 @@ while ~strcmp(state,'quit')
                y_bbox_regressor           = [];               
                
            case{'test'}
-               disp('switching to state test...');
+               disp('switching to state Test...');
                state = 'test';
                cnn_model.opts.after_nms_topN = after_nms_topN_test;
                
-           case{'forget'} %TO-TEST-------------------------------------------------------------------------------
+           case{'forget'}
                if ~isempty(dataset.classes)
                    % Find class to remove
                    remove_label = cmd_bottle.get(1).asString().toCharArray';
-                   idx_to_remove = find(strcmp(dataset.classes,remove_label));
-                   if idx_to_remove > 0
-                       disp('switching to state Forget...');
+                   if strcmp(remove_label, 'all')
+                       disp('Switching to state Forget...');
                        state = 'forget';
-                       % Remove class from dataset
-                       dataset.bbox_regressor(idx_to_remove) = [];
-                       dataset.reg_classifier(idx_to_remove) = [];
-                       dataset.classes(idx_to_remove)        = [];
+                       
+                       disp('Forgetting all classes...');
+                       dataset.bbox_regressor = cell(0);
+                       dataset.reg_classifier = cell(0);
+                       dataset.classes        = cell(0);
+
+                       disp('Done.')
                    else
-                       disp('Could not find class to forget. Going back to Test state...');
-                       state = 'test';
+                       % Selecting and removing requested class
+                       idx_to_remove = find(strcmp(dataset.classes,remove_label));
+                       if idx_to_remove > 0
+                           disp('Switching to state Forget...');
+                           state = 'forget';
+                           
+                           dataset.bbox_regressor(idx_to_remove) = [];
+                           dataset.reg_classifier(idx_to_remove) = [];
+                           dataset.classes(idx_to_remove)        = [];
+                       else
+                           disp('Could not find class to forget. Going back to Test state...');
+                           state = 'test';
+                       end
                    end
                else
-                   disp('Dataset is empty. Could not forget requested label.');
+                   disp('Dataset is empty. Could not forget requested class.');
                end
                
            case{'load'}
@@ -136,9 +149,7 @@ while ~strcmp(state,'quit')
                    disp('Loading old model not implemented.')
                    disp('Switching to state Test...');
                    state = 'test';
-               end
-               
-               
+               end           
                
            case{'save'}
                if strcmp(cmd_bottle.get(1).asString().toCharArray', 'dataset')
@@ -180,9 +191,7 @@ while ~strcmp(state,'quit')
            
        case{'init'}
            %% -----------------------------------------INITIALIZATION ------------------------------------------------
-           disp('----------------------INITIALIZATION----------------------');
-           % Set the number of negative regions per image to pick
-            
+            disp('----------------------INITIALIZATION----------------------');            
             disp('Creating empty dataset and model...')
             dataset = struct;
             dataset.bbox_regressor = cell(0);
@@ -208,6 +217,7 @@ while ~strcmp(state,'quit')
            yarpImage   = portImage.read(true);  
            
            if (annotations_bottle.size() ~= 0 && sum(size(yarpImage)) ~= 0)
+                 fprintf('Processing image: %d/%d', train_images_counter, max_img_per_class);
 %                annotations = annotations_bottle.pop();
 %                if (annotations.asList().get(0).isString() && strcmp(annotations.asList().get(0).asString(), 'hand'))
                                 
@@ -265,10 +275,10 @@ while ~strcmp(state,'quit')
 
                     % Extract features from regions 
                     feature_tic = tic;
-                    % Select regions to extract features from
+                    % -- Select regions to extract features from
                     regions_for_features           = cat(1, cur_bbox_pos, curr_cls_neg); % cur_bbox_pos contains gt_box too so no need to repeat it  
 
-                    % Network forward
+                    % -- Network forward
                     features                       = cnn_features_demo(cnn_model.proposal_detection_model.conf_detection, im, regions_for_features(:, 1:4), ...
                                                                cnn_model.fast_rcnn_net, [], 'fc7'); 
                     fprintf('--Feature extraction required %f seconds\n', toc(feature_tic));
@@ -314,13 +324,13 @@ while ~strcmp(state,'quit')
                 actual_train_tic = tic;
                 %Train region classifier
                 region_classifier = Train_region_classifier(dataset.reg_classifier, cls_opts);
-
                 % Train Bounding box regressors
                 bbox_regressor    = Train_bbox_regressor(dataset.bbox_regressor);
                 fprintf('Train region classifier and bbox regressor required %f seconds\n', toc(actual_train_tic));
                 fprintf('Train process required %f seconds\n', toc(train_tic));
                 
-                disp('Train done.\n Restoring Test state...')
+                disp('Train done.');
+                disp('Restoring Test state...');
                 state = 'test';
                 cnn_model.opts.after_nms_topN          = after_nms_topN_test;
            end
@@ -396,11 +406,11 @@ while ~strcmp(state,'quit')
            cnn_model.opts.after_nms_topN          = after_nms_topN_test;
            
         case{'save_dataset'}
-           %% ------------------------------------------- SAVE DATASET----------------------------------------------------
+           %% ------------------------------------------- SAVE DATASET-----------------------------------------------------
            disp('----------------------SAVE_DATASET----------------------');
            disp('Saving dataset...');
            if exist([current_path '/Demo/Datasets/' save_dataset_name], 'file')
-               disp('dataset file already exists, adding a _new flag to the specified name...');
+               disp('dataset file already exists, adding a new_ flag to the specified name...');
                save_dataset_name = [ 'new_' save_dataset_name];
            end
            save([current_path '/Demo/Datasets/' save_dataset_name], 'dataset');
@@ -411,7 +421,7 @@ while ~strcmp(state,'quit')
            cnn_model.opts.after_nms_topN          = after_nms_topN_test;
            
         case{'save_model'}
-           %% ------------------------------------------- SAVE MODEL----------------------------------------------------
+           %% --------------------------------------------- SAVE MODEL------------------------------------------------------
            disp('----------------------SAVE_MODEL----------------------');
            disp('Saving model...');
            if exist([current_path '/Demo/Models/' save_model_name], 'file')
@@ -429,7 +439,7 @@ while ~strcmp(state,'quit')
            cnn_model.opts.after_nms_topN          = after_nms_topN_test;
            
         otherwise
-          fprintf('State unknown\n'); 
+           fprintf('State unknown\n'); 
    end     
 end
 
