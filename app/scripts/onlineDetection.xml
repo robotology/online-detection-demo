@@ -1,0 +1,92 @@
+<application>
+<name>Online Detection</name>
+
+    <module>
+        <name>yarpdev</name>
+        <parameters>--context AssistiveRehab --from realsense2.ini</parameters>
+        <node>icub22</node>
+    </module>
+
+    <module>
+        <name>yarpOpenPose</name>
+        <node>icub-cuda</node>
+    </module>
+
+    <module>
+        <name>human-structure</name>
+        <node>icub21</node>
+    </module>
+
+    <module>
+        <name>dispBlobber</name>
+        <parameters>--imW 320 --imH 240 --bufferSize 1 --minBlobSize 300 --backgroundThresh 100 --imageThreshRatioLow 100 --imageThreshRatioHigh 100</parameters>
+        <node>icub22</node>
+    </module>
+
+    <module>
+        <name>yarpview</name>
+        <parameters>--name /viewer/crop --x 10 --y 10 --p 50 --compact</parameters>
+        <node>icub22</node>
+    </module>
+
+    <module>
+        <name>yarpview</name>
+        <parameters>--name /viewer/depth --x 10 --y 10 --p 50 --compact</parameters>
+        <node>icub22</node>
+    </module>
+
+    <module>
+        <name>yarpview</name>
+        <parameters>--name /viewer/skeleton --x 380 --y 10 --p 50 --compact</parameters>
+        <node>icub22</node>
+    </module>
+
+    <module>
+        <name>yarpview</name>
+        <parameters>--name /viewer/structure --x 700 --y 10 --p 50 --compact</parameters>
+        <node>icub22</node>
+    </module>
+
+    <connection>
+        <from>/depthCamera/rgbImage:o</from>
+        <to>/yarpOpenPose/image:i</to>
+        <protocol>fast_tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/yarpOpenPose/target:o</from>
+        <to>/human-structure/skeleton:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/yarpOpenPose/propag:o</from>
+        <to>/human-structure/image:i</to>
+        <protocol>fast_tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/depthCamera/depthImage:o</from>
+        <to>/dispBlobber/img:i</to>
+        <protocol>fast_tcp+recv.portmonitor+type.dll+file.depthimage</protocol>
+    </connection>
+
+    <connection>
+        <from>/dispBlobber/opt:o</from>
+        <to>/viewer/crop</to>
+        <protocol>fast_tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/depthCamera/depthImage:o</from>
+        <to>/viewer/depth</to>
+        <protocol>fast_tcp+recv.portmonitor+type.dll+file.depthimage</protocol>
+    </connection>
+
+    <connection>
+        <from>/yarpOpenPose/image:o</from>
+        <to>/viewer/skeleton</to>
+        <protocol>fast_tcp</protocol>
+    </connection>
+
+</application>
