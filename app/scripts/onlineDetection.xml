@@ -57,6 +57,19 @@
         <parameters>--cameras::context cameraCalibration --cameras::file cerEyes_320x240.ini --joints-limits::pitch "(-40.0 40.0)" --joints-limits::yaw "(-40.0 40.0)"</parameters>
         <node>r1-base</node>
     </module>
+    
+    <module>
+        <name>onTheFlyRec_gaze.lua</name>
+        <parameters>--w 320 --h 240</parameters>
+        <deployer>lua</deployer>
+        <node>r1-console-linux</node>
+        <dependencies>
+            <port timeout="10">/cer_gaze-controller/state:o</port>
+            <port timeout="10">/cer_gaze-controller/target:i</port>
+            <port timeout="10">/cer_gaze-controller/rpc</port>
+        </dependencies>
+    </module>
+
 
      <module>
         <name>detection_image.lua</name>
