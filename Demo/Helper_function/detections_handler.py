@@ -1,4 +1,10 @@
 #!/usr/bin/env python
+
+# --------------------------------------------------------
+# Online-Object-Detection Demo
+# Author: Elisa Maiettini
+# --------------------------------------------------------
+
 """
 Demo script showing detections in sample images.
 
@@ -97,7 +103,7 @@ class DetectionsHandler (yarp.RFModule):
 			    text = '{:s} {:.3f}'.format(cls, score)
 			    self._set_label(im, text, font, color, bbox)
 
-                elif dets.get(0).isString() and dets.get(0).asString() == 'Train':
+                elif dets.get(0).isString() and dets.get(0).asString() == 'train':
 	           for i in range(0,all_dets.size()):
 			ann = all_dets.get(i).asList()
 			bbox = [ann.get(1).asDouble(), ann.get(2).asDouble(), ann.get(3).asDouble(), ann.get(4).asDouble()]  # bbox format: [tl_x, tl_y, br_x, br_y]

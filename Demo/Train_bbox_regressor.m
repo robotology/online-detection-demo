@@ -1,59 +1,52 @@
-function [ bbox_reg ] = Train_bbox_regressor( dataset, varargin )
+function [ bbox_reg ] = Train_bbox_regressor(bbox_reg, dataset, cls_ids, varargin)
 %TRAIN_BBOX_REGRESSOR Summary of this function goes here
 %   Detailed explanation goes here
 
 ip = inputParser;
 
-% ip.addParamValue('min_overlap', 0.6,   @isscalar);
-% ip.addParamValue('layer',       5,     @isscalar);
 ip.addParamValue('lambda',      1000,  @isscalar);
 ip.addParamValue('robust',      0,     @isscalar);
-% ip.addParamValue('binarize',    false, @islogical);
 
 ip.parse(varargin{:});
 opts = ip.Results;
 
     num_classes = length(dataset);
-    models = cell(num_classes, 1);
-method = 'ridge_reg_chol';
+%     models = cell(num_classes, 1);
+    method = 'ridge_reg_chol';
     tic
     for i = 1:num_classes
-%       fprintf('Training regressors for class %s (%d/%d)\n', imdb.classes{i}, i, num_clss);
-%       I = find(O > opts.min_overlap & C == i);
-      Xi = dataset{i}.pos_bbox_regressor.feat ; 
-%       if opts.binarize
-%         Xi = single(Xi > 0);
-%       end
-      Yi = dataset{i}.y_bbox_regressor; 
-    %   Oi = O(I); 
-    %   Ci = C(I);
+      if ~isempty(find(cls_ids==i))
+          Xi = dataset{i}.pos_bbox_regressor.feat ; 
 
-      % add bias feature
-      Xi = cat(2, Xi, ones(size(Xi,1), 1, class(Xi)));
+          Yi = dataset{i}.y_bbox_regressor; 
 
-      % Center and decorrelate targets
-      mu = mean(Yi);
-      Yi = bsxfun(@minus, Yi, mu);
-      S = Yi'*Yi / size(Yi,1);
-      [V, D] = eig(S);
-      D = diag(D);
-      T = V*diag(1./sqrt(D+0.001))*V';
-      T_inv = V*diag(sqrt(D+0.001))*V';
-      Yi = Yi * T;
+          % add bias feature
+          Xi = cat(2, Xi, ones(size(Xi,1), 1, class(Xi)));
 
-      models{i}.mu = mu;
-      models{i}.T = T;
-      models{i}.T_inv = T_inv;
+          % Center and decorrelate targets
+          mu = mean(Yi);
+          Yi = bsxfun(@minus, Yi, mu);
+          S = Yi'*Yi / size(Yi,1);
+          [V, D] = eig(S);
+          D = diag(D);
+          T = V*diag(1./sqrt(D+0.001))*V';
+          T_inv = V*diag(sqrt(D+0.001))*V';
+          Yi = Yi * T;
 
-      models{i}.Beta = [ ...
-        solve_robust(Xi, Yi(:,1), opts.lambda, method, opts.robust) ...
-        solve_robust(Xi, Yi(:,2), opts.lambda, method, opts.robust) ...
-        solve_robust(Xi, Yi(:,3), opts.lambda, method, opts.robust) ...
-        solve_robust(Xi, Yi(:,4), opts.lambda, method, opts.robust)];
+          bbox_reg.models{i}.mu = mu;
+          bbox_reg.models{i}.T = T;
+          bbox_reg.models{i}.T_inv = T_inv;
+
+          bbox_reg.models{i}.Beta = [ ...
+            solve_robust(Xi, Yi(:,1), opts.lambda, method, opts.robust) ...
+            solve_robust(Xi, Yi(:,2), opts.lambda, method, opts.robust) ...
+            solve_robust(Xi, Yi(:,3), opts.lambda, method, opts.robust) ...
+            solve_robust(Xi, Yi(:,4), opts.lambda, method, opts.robust)];
+      end
     end
-    fprintf('time required for training 7 regressors: %f seconds\n',toc);
+    fprintf('time required for training regressors: %f seconds\n',toc);
 
-    bbox_reg.models = models;
+%     bbox_reg.models = models;
     bbox_reg.training_opts = opts;
 
 end

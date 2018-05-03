@@ -4,8 +4,8 @@ addpath(genpath('../FALKON_paper'));
 
 %% PATHS
 disp('Configuring required paths...');
-current_path    = pwd;
-cnn_model_path          = [current_path '/output_iCWT_TASK1_10objs_40k20k_newBatchSize/faster_rcnn_final']; %-------------------------------------------
+current_path            = pwd;
+cnn_model_path          = [current_path '/output_iCWT_features_20objs/faster_rcnn_final/faster_rcnn_ICUB_ZF']; %-------------------------------------------
 feature_statistics_path = [current_path '/Demo/Conf/statistics_T1features_forT2.mat' ]; % We need to calculate again feature statistics
 
 
@@ -22,7 +22,7 @@ disp('Configuring RPN params...');
 cnn_model.opts.per_nms_topN            = 6000;
 cnn_model.opts.nms_overlap_thres       = 0.7;
 after_nms_topN_train                   = 900; %---------------------------------------------------------------------------------------------------------------
-after_nms_topN_test                    = 100; %---------------------------------------------------------------------------------------------------------------
+after_nms_topN_test                    = 200; %---------------------------------------------------------------------------------------------------------------
 cnn_model.opts.use_gpu                 = true;
 cnn_model.opts.test_scales             = 600;
 
@@ -38,7 +38,7 @@ clear ld;
 fprintf('Classifier options setting...\n');
 cls_opts = struct;
 cls_opts.cls_mod = 'FALKON';
-max_img_for_new_class                  = 175; %---------------------------------------------------------------------------------------------------------------
+max_img_for_new_class                  = 200; %---------------------------------------------------------------------------------------------------------------
 max_img_for_old_class                  = max_img_for_new_class/2; 
 
 negatives_selection.policy             = 'bootStrap';
@@ -49,7 +49,7 @@ negatives_selection.evict_easy_thresh  = -0.6;
 negatives_selection.select_hard_thresh = -0.5;
 cls_opts.negatives_selection           = negatives_selection;
 
-detect_thresh                          = 0.5; %---------------------------------------------------------------------------------------------------------------
+detect_thresh                          = 0.45; %---------------------------------------------------------------------------------------------------------------
 
 %FALKON options -----------------------------------------------------------------------------------------------------------
 train_classifier_options               = struct;

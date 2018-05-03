@@ -4,6 +4,7 @@
 yarp.matlab.LoadYarp
 
 import yarp.BufferedPortImageRgb
+import yarp.RpcServer
 import yarp.BufferedPortBottle
 import yarp.Port
 import yarp.Bottle
@@ -13,7 +14,7 @@ import yarp.Image
 import yarp.PixelRgb
 
 %Ports definition
-portCmd        = yarp.BufferedPortBottle;        % Port for reading commands
+portCmd        = yarp.BufferedPortBottle;                 % Port for reading commands
 portImage      = yarp.BufferedPortImageRgb;      % Buffered Port for reading image
 portAnnotation = yarp.BufferedPortBottle;        % Port for receiving annotations
 portDets       = yarp.BufferedPortBottle;        % Port for sending detections
@@ -54,3 +55,4 @@ pixSize=3;
 tool=yarp.matlab.YarpImageHelper(h, w);
 
 disp('yarp initialization done.');
+
