@@ -59,7 +59,8 @@ end
 objects = {"sprayer", "mug", "flower", "sodabottle", "book", "soapdispenser", "ringbinder"}
 
 -- defining speech grammar in order to expand the speech recognition
-grammar = "Return to home position | Look around | Look at the #Object | Where is the #Object | See you soon | What is close to the #Object"
+grammar = "Return to home position | Look around | Look at the #Object | Where is the #Object | See you soon | What is close to the #Object | Train #Object | Forget #Object"
+
 
 function SM_RGM_Expand(port, vocab, word)
     local wb = yarp.Bottle()

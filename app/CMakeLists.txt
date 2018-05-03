@@ -7,9 +7,9 @@ set(PROJECTNAME detection-lua)
 
 file(GLOB scripts ${CMAKE_CURRENT_SOURCE_DIR}/scripts/*.xml)
 
-set(lua_bin       ${CMAKE_CURRENT_SOURCE_DIR}/../../app/detection_demo.lua
-                  ${CMAKE_CURRENT_SOURCE_DIR}/../../app/detection_image.lua
-                  ${CMAKE_CURRENT_SOURCE_DIR}/../../app/detection_speech_helper.lua)
+set(lua_bin       ${CMAKE_CURRENT_SOURCE_DIR}/lua/detection_demo.lua
+                  ${CMAKE_CURRENT_SOURCE_DIR}/lua/detection_image.lua
+                  ${CMAKE_CURRENT_SOURCE_DIR}/lua/detection_speech_helper.lua)
 
 find_package(YARP REQUIRED)
 find_package(ICUB REQUIRED)
@@ -29,8 +29,8 @@ yarp_install(FILES ${scripts} DESTINATION ${ICUBCONTRIB_APPLICATIONS_INSTALL_DIR
 
 message(STATUS "NEED TO FIX THIS")
 
-#add_custom_target(copy_lua_in_build ALL)
-#add_custom_command(TARGET copy_lua_in_build POST_BUILD
-#                   COMMAND ${CMAKE_COMMAND} -E copy ${lua_bin} ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}
-#               COMMENT "Copying ${lua_bin} to ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/")
-#install(PROGRAMS ${lua_bin} DESTINATION bin)
+add_custom_target(copy_lua_in_build ALL)
+add_custom_command(TARGET copy_lua_in_build POST_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy ${lua_bin} ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}
+               COMMENT "Copying ${lua_bin} to ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/")
+install(PROGRAMS ${lua_bin} DESTINATION bin)

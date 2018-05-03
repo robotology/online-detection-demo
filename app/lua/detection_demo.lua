@@ -68,6 +68,7 @@ port_detection = yarp.BufferedPortBottle()
 port_gaze_rpc = yarp.RpcClient()
 port_ispeak = yarp.BufferedPortBottle()
 port_draw_image = yarp.BufferedPortBottle()
+port_cmd_detection = yarp.BufferedPortBottle()
 
 
 if whichRobot == "icub" then
@@ -80,14 +81,14 @@ else
     port_gaze_rx = yarp.BufferedPortProperty()
 end
 
-port_cmd:open("/detection/cmd:i")
-port_detection:open("/detection/targets:i")
-port_gaze_tx:open("/detection/gaze/tx")
-port_gaze_rpc:open("/detection/gaze/rpc")
-port_gaze_rx:open("/detection/gaze/rx")
-port_ispeak:open("/detection/ispeak:o")
-port_draw_image:open("/detection/draw:o")
-
+port_cmd:open("/manager/cmd:i")
+port_detection:open("/manager/targets:i")
+port_gaze_tx:open("/manager/gaze/tx")
+port_gaze_rpc:open("/manager/gaze/rpc")
+port_gaze_rx:open("/manager/gaze/rx")
+port_ispeak:open("/manager/ispeak:o")
+port_draw_image:open("/manager/draw:o")
+port_cmd_detection:open("/manager/detection/cmd:o")
 
 if whichRobot == "icub" then
     port_sfm_rpc:open("/detection/sfm/rpc")
@@ -506,6 +507,27 @@ function getObjectsAround(det)
     return objectList
 end
 
+---------------------------------------------------------------------------------------------------------------
+
+function sendTrain(objName)
+    local cmd = port_cmd_detection:prepare()
+    cmd:clear()
+    cmd:addString("train")
+    cmd:addString(objName)
+    
+    port_cmd_detection:write()
+end
+
+---------------------------------------------------------------------------------------------------------------
+
+function sendForget(objName)
+    local cmd = port_cmd_detection:prepare()
+    cmd:clear()
+    cmd:addString("forget")
+    cmd:addString(objName)
+    port_cmd_detection:write()
+end
+
 --might not be useful anymore. Fixed a recent bug on the gaze controller
 if whichRobot == "icub" then
     bind_roll()
@@ -560,14 +582,33 @@ while state ~= "quit" and not interrupting do
 
         if cmd_rx == "look-around" or cmd_rx == "look" or
             cmd_rx == "home" or cmd_rx == "quit" or 
-             cmd_rx == "closest-to" or cmd_rx == "where-is" then
+             cmd_rx == "closest-to" or cmd_rx == "where-is" or
+              cmd_rx == "train" or cmd_rx == "forget" then
 
             clearDraw()
             multipleDraw:clear()
             multipleName:clear()
             state = cmd_rx
 
-            if state == "look" then
+            if state == "train" then
+                local object = cmd:get(1):asString()
+                sendTrain(object)
+                speak(port_ispeak, "Let me have a look at the " .. object) 
+
+            elseif state == "forget" then
+                local object = cmd:get(5):asString()
+                if  object == "objects" then
+                    print ("forgetting all objects")
+                    object="all"
+                    speak(port_ispeak, "Ok, will all objects")
+                else
+                    print ("forgetting single object", object)
+                    speak(port_ispeak, "Ok, forget the " .. object)
+                end
+                sendForget(obj)
+                 
+
+            elseif state == "look" then
                 clearDraw()
                 object = cmd:get(1):asString()
                 object = object:lower()
@@ -877,6 +918,7 @@ port_ispeak:close()
 port_are_rpc:close()
 port_sfm_rpc:close()
 port_ispeak:close()
+port_cmd_detection:close()
 clearDraw()
 port_draw_image:close()
 
