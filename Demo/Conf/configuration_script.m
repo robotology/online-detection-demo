@@ -11,7 +11,7 @@ feature_statistics_path = [current_path '/Demo/Conf/statistics_T1features_forT2.
 
 %% FILES
 default_dataset_name      = 'def_dataset.mat'; %---------------------------------------------------------------------------------------------------------------
-default_model_name        = 'def_model.mat'; %---------------------------------------------------------------------------------------------------------------
+default_model_name        = 'def_model.mat';   %---------------------------------------------------------------------------------------------------------------
 
 %% CAFFE
 cnn_model.opts.caffe_version           = 'caffe_faster_rcnn';
@@ -22,7 +22,7 @@ disp('Configuring RPN params...');
 cnn_model.opts.per_nms_topN            = 6000;
 cnn_model.opts.nms_overlap_thres       = 0.7;
 after_nms_topN_train                   = 900; %---------------------------------------------------------------------------------------------------------------
-after_nms_topN_test                    = 300; %---------------------------------------------------------------------------------------------------------------
+after_nms_topN_test                    = 100; %---------------------------------------------------------------------------------------------------------------
 cnn_model.opts.use_gpu                 = true;
 cnn_model.opts.test_scales             = 600;
 
@@ -38,7 +38,8 @@ clear ld;
 fprintf('Classifier options setting...\n');
 cls_opts = struct;
 cls_opts.cls_mod = 'FALKON';
-max_img_per_class                      = 700; %---------------------------------------------------------------------------------------------------------------
+max_img_for_new_class                  = 175; %---------------------------------------------------------------------------------------------------------------
+max_img_for_old_class                  = max_img_for_new_class/2; 
 
 negatives_selection.policy             = 'bootStrap';
 negatives_selection.batch_size         = 1500; %---------------------------------------------------------------------------------------------------------------
@@ -55,7 +56,7 @@ train_classifier_options               = struct;
 train_classifier_options.memToUse      = 10;          % GB of memory to use (using "[]" will allow the machine to use all the free memory)
 train_classifier_options.useGPU        = 1;           % flag for using or not the GPU
 train_classifier_options.T             = 150;
-train_classifier_options.M             = 250;
+train_classifier_options.M             = 1200;
 train_classifier_options.lambda        = 0.001;
 train_classifier_options.sigma         = 10;
 train_classifier_options.kernel        = gaussianKernel(train_classifier_options.sigma); 

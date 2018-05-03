@@ -12,7 +12,7 @@ $RECYCLE.BIN/
 models/
 data/
 datasets/
-external/caffe/matlab
+external/caffe
 external/
 output/
 cachedir/
@@ -23,6 +23,7 @@ cache_classifiers/
 output_*/
 bin/
 bbox_reg/
+Demo/Datasets
 *.caffemodel
 *.mat
 
