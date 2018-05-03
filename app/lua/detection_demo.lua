@@ -96,9 +96,10 @@ if whichRobot == "icub" then
 end
 
 ret = true
-ret = ret and yarp.NetworkBase_connect("/pyfaster:detout", port_detection:getName(), "fast_tcp" )
+ret = ret and yarp.NetworkBase_connect("/detection/dets:o", port_detection:getName(), "fast_tcp" )
 ret = ret and yarp.NetworkBase_connect(port_ispeak:getName(), "/iSpeak")
 ret = ret and yarp.NetworkBase_connect(port_draw_image:getName(), "/detection-image/cmd:i")
+ret = ret and yarp.NetworkBase_connect(port_cmd_detection:getName(), "/detection/command:i")
 
 if whichRobot == "icub" then
     print ("Going through ICUB's connection")
@@ -109,9 +110,9 @@ if whichRobot == "icub" then
     ret = ret and yarp.NetworkBase_connect(port_are_rpc:getName(),"/actionsRenderingEngine/cmd:io")
 else
     print ("Going through R1's connection")
-    ret = ret and yarp.NetworkBase_connect(port_gaze_tx:getName(), "/cer_gaze-controller/target:i")
-    ret = ret and yarp.NetworkBase_connect(port_gaze_rpc:getName(), "/cer_gaze-controller/rpc")
-    ret = ret and yarp.NetworkBase_connect("/cer_gaze-controller/state:o", port_gaze_rx:getName() )
+    --ret = ret and yarp.NetworkBase_connect(port_gaze_tx:getName(), "/cer_gaze-controller/target:i")
+    --ret = ret and yarp.NetworkBase_connect(port_gaze_rpc:getName(), "/cer_gaze-controller/rpc")
+    --ret = ret and yarp.NetworkBase_connect("/cer_gaze-controller/state:o", port_gaze_rx:getName() )
 end
 
 if ret == false then
@@ -525,6 +526,7 @@ function sendForget(objName)
     cmd:clear()
     cmd:addString("forget")
     cmd:addString(objName)
+    print ("COMMAND", cmd:toString() )
     port_cmd_detection:write()
 end
 
@@ -591,21 +593,21 @@ while state ~= "quit" and not interrupting do
             state = cmd_rx
 
             if state == "train" then
-                local object = cmd:get(1):asString()
+                object = cmd:get(1):asString()
                 sendTrain(object)
                 speak(port_ispeak, "Let me have a look at the " .. object) 
 
             elseif state == "forget" then
-                local object = cmd:get(5):asString()
+                local object = cmd:get(1):asString()
                 if  object == "objects" then
                     print ("forgetting all objects")
                     object="all"
-                    speak(port_ispeak, "Ok, will all objects")
+                    speak(port_ispeak, "Ok, will forget all objects")
                 else
                     print ("forgetting single object", object)
                     speak(port_ispeak, "Ok, forget the " .. object)
                 end
-                sendForget(obj)
+                sendForget(object)
                  
 
             elseif state == "look" then
@@ -762,7 +764,23 @@ while state ~= "quit" and not interrupting do
 
     end
 
-    if state == "home" then
+    if state == "train" then
+        local det = port_detection:read(true)
+    
+        if det:get(0):asList():size() > 0 then
+            print("detection ", det:toString())
+            if det:get(0):asList():get(0):asString() == "train" then
+                print("FOUND  TRAINING ")        
+            else
+                state = "home"
+                local tosay = "Excellent, now I know the " .. object 
+                speak(port_ispeak, tosay)
+            end
+        end
+        
+    elseif state == "forget" then
+        yarp.Time_delay(0.1)
+    elseif state == "home" then
         yarp.Time_delay(0.1)
 
     elseif state == "look" then
