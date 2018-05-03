@@ -241,5 +241,23 @@
         <to>/detHandler/detections:i</to>
         <protocol>tcp</protocol>
     </connection>
+    
+    <connection>
+        <from>/onTheFlyRec/gaze/tx</from>
+        <to>/cer_gaze-controller/target:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/onTheFlyRec/gaze/rpc</from>
+        <to>/cer_gaze-controller/rpc</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/cer_gaze-controller/state:o</from>
+        <to>/onTheFlyRec/gaze/rx</to>
+        <protocol>udp</protocol>
+    </connection>
 
 </application>

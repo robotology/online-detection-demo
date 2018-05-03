@@ -69,6 +69,7 @@ port_gaze_rpc = yarp.RpcClient()
 port_ispeak = yarp.BufferedPortBottle()
 port_draw_image = yarp.BufferedPortBottle()
 port_cmd_detection = yarp.BufferedPortBottle()
+port_cmd_gaze = yarp.BufferedPortBottle()
 
 
 if whichRobot == "icub" then
@@ -89,6 +90,7 @@ port_gaze_rx:open("/manager/gaze/rx")
 port_ispeak:open("/manager/ispeak:o")
 port_draw_image:open("/manager/draw:o")
 port_cmd_detection:open("/manager/detection/cmd:o")
+port_cmd_gaze:open("/manager/gaze/cmd:o")
 
 if whichRobot == "icub" then
     port_sfm_rpc:open("/detection/sfm/rpc")
@@ -97,9 +99,10 @@ end
 
 ret = true
 ret = ret and yarp.NetworkBase_connect("/detection/dets:o", port_detection:getName(), "fast_tcp" )
-ret = ret and yarp.NetworkBase_connect(port_ispeak:getName(), "/iSpeak")
+--ret = ret and yarp.NetworkBase_connect(port_ispeak:getName(), "/iSpeak")
 ret = ret and yarp.NetworkBase_connect(port_draw_image:getName(), "/detection-image/cmd:i")
 ret = ret and yarp.NetworkBase_connect(port_cmd_detection:getName(), "/detection/command:i")
+ret = ret and yarp.NetworkBase_connect("/dispBlobber/roi/left:o", "/onTheFlyRec/gaze/blob" )
 
 if whichRobot == "icub" then
     print ("Going through ICUB's connection")
@@ -113,6 +116,7 @@ else
     ret = ret and yarp.NetworkBase_connect(port_gaze_tx:getName(), "/cer_gaze-controller/target:i")
     ret = ret and yarp.NetworkBase_connect(port_gaze_rpc:getName(), "/cer_gaze-controller/rpc")
     ret = ret and yarp.NetworkBase_connect("/cer_gaze-controller/state:o", port_gaze_rx:getName() )
+    ret = ret and yarp.NetworkBase_connect(port_cmd_gaze:getName(), "/onTheFlyRec/gaze" )
 end
 
 if ret == false then
@@ -127,7 +131,7 @@ ver = 5.0
 if whichRobot == "icub" then
     ele = -36.0
 else
-    ele = -50.0
+    ele = -32.0
 end
 
 index = -1
@@ -227,6 +231,26 @@ end
 ---------------------------------------
 -- functions Gaze Control            --
 ---------------------------------------
+
+function startGaze(port)
+   local wb = port_cmd_gaze:prepare()
+    wb:clear()
+    wb:addString("track-blob")
+    port_cmd_gaze:write()
+   yarp.Time_delay(1.0)
+end
+
+---------------------------------------------------------------------------------------------------------------
+function stopGaze()
+   local wb = port_cmd_gaze:prepare()
+    wb:clear()
+    wb:addString("stop")
+    port_cmd_gaze:write()
+   yarp.Time_delay(1.0)
+end
+
+---------------------------------------------------------------------------------------------------------------
+
 
 function bind_roll()
     local cmd = yarp.Bottle()
@@ -593,6 +617,9 @@ while state ~= "quit" and not interrupting do
             state = cmd_rx
 
             if state == "train" then
+                look_at_angle(0, 0, 0)
+                yarp.Time_delay(2.0)
+                startGaze()
                 object = cmd:get(1):asString()
                 sendTrain(object)
                 speak(port_ispeak, "Let me have a look at the " .. object) 
@@ -775,6 +802,10 @@ while state ~= "quit" and not interrupting do
                 state = "home"
                 local tosay = "Excellent, now I know the " .. object 
                 speak(port_ispeak, tosay)
+                stopGaze()   
+                yarp.Time_delay(0.5)             
+                look_at_angle(azi, ele, ver)
+                
             end
         end
         
@@ -921,7 +952,7 @@ clearDraw()
 if whichRobot == "icub" then
     look_at_angle(0, -36, 5)
 else
-    look_at_angle(0, -50, 5)
+    look_at_angle(0, -32, 5)
 end
 
 
@@ -939,5 +970,6 @@ port_ispeak:close()
 port_cmd_detection:close()
 clearDraw()
 port_draw_image:close()
+port_cmd_gaze:close()
 
 yarp.Network_fini()
