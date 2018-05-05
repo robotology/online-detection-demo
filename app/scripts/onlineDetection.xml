@@ -100,6 +100,12 @@
             <port timeout="10">/speechRecognizer/rpc</port>
         </dependencies>
     </module>
+    
+    <module>
+        <name>detections_handler.py</name>
+        <deployer>python</deployer>
+        <node>r1-console-cuda</node>
+    </module>
 
     <module>
         <name>yarpview</name>
