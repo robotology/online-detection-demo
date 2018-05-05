@@ -49,6 +49,7 @@ class Processing : public yarp::os::BufferedPort<yarp::os::Bottle>
     yarp::os::BufferedPort<yarp::os::Bottle >    blobPort;
     yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelFloat>>   depthPort;
     yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelMono> >   depthImageInPort;
+	yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelMono> >   depthImageOutPort;
     yarp::os::RpcClient camPort;
 
     yarp::sig::ImageOf<yarp::sig::PixelFloat> depth;
@@ -86,13 +87,15 @@ public:
         camPort.open("/" + moduleName + "/cam:rpc");
         depthPort.open("/" + moduleName + "/depth:i");
         depthImageInPort.open("/" + moduleName + "/depthImage:i");
+		depthImageOutPort.open("/" + moduleName + "/depthImage:o");
 
-        yarp::os::Network::connect("/yarpOpenPose/target:o", BufferedPort<yarp::os::Bottle >::getName().c_str());
-        yarp::os::Network::connect("/yarpOpenPose/propag:o", imageInPort.getName().c_str());
-        yarp::os::Network::connect(imageOutPort.getName().c_str(), "/viewer/structure");
-        yarp::os::Network::connect(camPort.getName().c_str(), "/depthCamera/rpc:i");
-        yarp::os::Network::connect("/depthCamera/depthImage:o", depthPort.getName().c_str());
+        yarp::os::Network::connect("/yarpOpenPose/target:o", BufferedPort<yarp::os::Bottle >::getName().c_str(), "fast_tcp");
+        yarp::os::Network::connect("/yarpOpenPose/propag:o", imageInPort.getName().c_str(), "fast_tcp");
+        yarp::os::Network::connect(imageOutPort.getName().c_str(), "/viewer/structure", "fast_tcp");
+        yarp::os::Network::connect(camPort.getName().c_str(), "/depthCamera/rpc:i", "fast_tcp");
+        yarp::os::Network::connect("/depthCamera/depthImage:o", depthPort.getName().c_str(), "fast_tcp");
         yarp::os::Network::connect("/depthCamera/depthImage:o", depthImageInPort.getName().c_str(), "fast_tcp+recv.portmonitor+type.dll+file.depthimage");
+		yarp::os::Network::connect(depthImageOutPort.getName().c_str(), "/depth", "fast_tcp");
 
         camera_configured=false;
         isHand = false;
@@ -111,6 +114,7 @@ public:
         camPort.close();
         depthPort.close();
         depthImageInPort.close();
+		depthImageOutPort.close();
     }
 
     /********************************************************/
@@ -124,6 +128,7 @@ public:
         camPort.interrupt();
         depthPort.interrupt();
         depthImageInPort.interrupt();
+		depthImageOutPort.interrupt();
     }
 
     /****************************************************************/
@@ -192,14 +197,15 @@ public:
         }
 
         yarp::sig::ImageOf<yarp::sig::PixelRgb> &outImage  = imageOutPort.prepare();
-        yarp::sig::ImageOf<yarp::sig::PixelMono> imageDepth;
+        yarp::sig::ImageOf<yarp::sig::PixelMono> &outDepthImage  = depthImageOutPort.prepare();
+        //yarp::sig::ImageOf<yarp::sig::PixelMono> imageDepth;
 
         yarp::sig::ImageOf<yarp::sig::PixelRgb> *inImage = imageInPort.read();
 
         yarp::os::Bottle &target  = targetPort.prepare();
 
         if (yarp::sig::ImageOf<yarp::sig::PixelMono> *depth=depthImageInPort.read())
-            imageDepth = *depth;
+            outDepthImage = *depth;
 
         int skeletonSize = data.get(0).asList()->size();
         int internalElements = 0;
@@ -307,7 +313,7 @@ public:
         }
 
         cv::Mat out_cv = cv::cvarrToMat((IplImage *)outImage.getIplImage());
-        cv::Mat out_depth_cv = cv::cvarrToMat((IplImage *)imageDepth.getIplImage());
+        cv::Mat out_depth_cv = cv::cvarrToMat((IplImage *)outDepthImage.getIplImage());
 
         //need this increment as case might be that skeleton does not
         //satisfy conditions to fill in bottle
@@ -695,7 +701,7 @@ public:
                 targetPort.write();
             }
         } 
-        
+        depthImageOutPort.write();
         imageOutPort.write();
         blobPort.write();
         
