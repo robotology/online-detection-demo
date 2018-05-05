@@ -3,4 +3,4 @@
 # Authors: Vadim Tikhanoff <vadim.tikhanoff@iit.it>
 
 add_subdirectory(human-structure)
-
+add_subdirectory(test-dispBlobber)
