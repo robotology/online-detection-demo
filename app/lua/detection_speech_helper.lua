@@ -56,7 +56,7 @@ end
 -- functions Speech Recognition      --
 ---------------------------------------
 
-objects = {"sprayer", "mug", "flower", "sodabottle", "book", "soapdispenser", "ringbinder"}
+objects = {"sprayer", "mug", "flower", "sodabottle", "book", "soapdispenser", "wallet", "toy", "badge"}
 
 -- defining speech grammar in order to expand the speech recognition
 grammar = "Return to home position | Look around | Look at the #Object | Where is the #Object | See you soon | What is close to the #Object | Train #Object | Forget #Object"

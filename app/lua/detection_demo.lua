@@ -251,7 +251,6 @@ end
 
 ---------------------------------------------------------------------------------------------------------------
 
-
 function bind_roll()
     local cmd = yarp.Bottle()
     local reply = yarp.Bottle()
@@ -771,7 +770,6 @@ while state ~= "quit" and not interrupting do
                                 end
                                 tosay = tosay .. list:get(i):asString()
                                 --multipleName:addString(list:get(i):asString())
-                               
                             end
                             print(tosay)
                             speak(port_ispeak, tosay)
@@ -805,7 +803,6 @@ while state ~= "quit" and not interrupting do
                 stopGaze()   
                 yarp.Time_delay(0.5)             
                 look_at_angle(azi, ele, ver)
-                
             end
         end
         
