@@ -5,9 +5,10 @@ addpath(genpath('../FALKON_paper'));
 %% PATHS
 disp('Configuring required paths...');
 current_path            = pwd;
+% cnn_model_path          = [current_path '/output_voc2007/faster_rcnn_VOC2007_ZF']; %-------------------------------------------
 cnn_model_path          = [current_path '/output_iCWT_features_20objs/faster_rcnn_final/faster_rcnn_ICUB_ZF']; %-------------------------------------------
 feature_statistics_path = [current_path '/Demo/Conf/statistics_T1features_forT2.mat' ]; %-------------------------------------------
-
+% feature_statistics_path = [current_path '/Demo/Conf/feature_statistics_voc_2007_train__layer_7.mat' ];
 %% FILES
 default_dataset_name      = 'def_dataset.mat'; %---------------------------------------------------------------------------------------------------------------
 default_model_name        = 'def_model.mat';   %---------------------------------------------------------------------------------------------------------------
@@ -21,7 +22,7 @@ disp('Configuring RPN params...');
 cnn_model.opts.per_nms_topN            = 6000;
 cnn_model.opts.nms_overlap_thres       = 0.7;
 after_nms_topN_train                   = 900; %---------------------------------------------------------------------------------------------------------------
-after_nms_topN_test                    = 200; %---------------------------------------------------------------------------------------------------------------
+after_nms_topN_test                    = 300; %---------------------------------------------------------------------------------------------------------------
 cnn_model.opts.use_gpu                 = true;
 cnn_model.opts.test_scales             = 600;
 
