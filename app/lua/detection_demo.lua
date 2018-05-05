@@ -974,8 +974,10 @@ port_gaze_tx:close()
 port_gaze_rx:close()
 port_gaze_rpc:close()
 port_ispeak:close()
---port_are_rpc:close()
---port_sfm_rpc:close()
+if whichRobot == "icub" then
+    port_are_rpc:close()
+    port_sfm_rpc:close()
+end
 port_ispeak:close()
 port_cmd_detection:close()
 clearDraw()
