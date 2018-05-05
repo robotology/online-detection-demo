@@ -2,6 +2,7 @@
 %  Online-Object-Detection Demo
 %  Author: Elisa Maiettini
 %  --------------------------------------------------------
+
 function [  ] = Detection_main(  )
 
 yarp_initialization;
@@ -41,12 +42,11 @@ end
 state = 'init';
 
 while ~strcmp(state,'quit')
+    
     disp('asking for command');
     cmd_bottle = yarp.Bottle();
-%     reply_bottle = yarp.Bottle();
     cmd_bottle = portCmd.read(false);
-%     portCmd.read(cmd_bottle, true);
-%     fprintf('bottle size:%d\n',cmd_bottle.size());
+    
     %% Switching state according to command read from port
     if ~isempty(cmd_bottle)
        command = cmd_bottle.get(0).asString().toCharArray';
@@ -65,23 +65,23 @@ while ~strcmp(state,'quit')
                new_label = cmd_bottle.get(1).asString().toCharArray';
                new_to_add = isempty(find(strcmp(dataset.classes,new_label)));
                if new_to_add
-                   new_cls_idx = length(dataset.bbox_regressor) + 1;
+                   new_cls_idx                                = length(dataset.bbox_regressor) + 1;
                    dataset.classes{length(dataset.classes)+1} = new_label;
                    max_img_per_class                          = max_img_for_new_class;
                    
                    total_negatives = negatives_selection.batch_size*negatives_selection.iterations;
                   
                else
-                   new_cls_idx = find(strcmp(dataset.classes,new_label));
-                   max_img_per_class                          = max_img_for_new_class;
-                   
+                   new_cls_idx                                               = find(strcmp(dataset.classes,new_label));
+                   max_img_per_class                                         = max_img_for_new_class;
+                   total_negatives                                           = negatives_selection.batch_size*negatives_selection.iterations;
+
                    dataset.bbox_regressor{new_cls_idx}.pos_bbox_regressor    = [];
                    dataset.bbox_regressor{new_cls_idx}.y_bbox_regressor      = []; 
 
                    dataset.reg_classifier{new_cls_idx}.pos_region_classifier = [];
                    dataset.reg_classifier{new_cls_idx}.neg_region_classifier = [];
                    
-                   total_negatives = negatives_selection.batch_size*negatives_selection.iterations;
                end
                
                if total_negatives > max_img_per_class
@@ -90,26 +90,26 @@ while ~strcmp(state,'quit')
                    negatives_selection.neg_per_image = 1;
                end
                
-               cnn_model.opts.after_nms_topN          = after_nms_topN_train;
+               cnn_model.opts.after_nms_topN = after_nms_topN_train;
                           
                % Region classifier variables
-               curr_negative_number = 0;
-               train_images_counter = 0;
+               curr_negative_number          = 0;
+               train_images_counter          = 0;
 
-               pos_region_classifier      = struct;
-               pos_region_classifier.box  = [];
-               pos_region_classifier.feat = [];
+               pos_region_classifier         = struct;
+               pos_region_classifier.box     = [];
+               pos_region_classifier.feat    = [];
 
-               neg_region_classifier      = struct;
-               neg_region_classifier.box  = [];
-               neg_region_classifier.feat = [];
+               neg_region_classifier         = struct;
+               neg_region_classifier.box     = [];
+               neg_region_classifier.feat    = [];
 
                % Bbox refinement variables
-               pos_bbox_regressor         = struct;
-               pos_bbox_regressor.box     = [];
-               pos_bbox_regressor.feat    = [];
+               pos_bbox_regressor            = struct;
+               pos_bbox_regressor.box        = [];
+               pos_bbox_regressor.feat       = [];
 
-               y_bbox_regressor           = [];               
+               y_bbox_regressor              = [];               
                
            case{'test'}
                disp('switching to state Test...');
@@ -143,6 +143,7 @@ while ~strcmp(state,'quit')
                        else
                            disp('Could not find class to forget. Going back to Test state...');
                            state = 'test';
+                           cnn_model.opts.after_nms_topN = after_nms_topN_test;
                        end
                    end
                else
@@ -158,6 +159,7 @@ while ~strcmp(state,'quit')
                    disp('Loading old model not implemented.')
                    disp('Switching to state Test...');
                    state = 'test';
+                   cnn_model.opts.after_nms_topN = after_nms_topN_test;
                end           
                
            case{'save'}
@@ -172,6 +174,7 @@ while ~strcmp(state,'quit')
                else
                    disp('Unrecognized save command. Switching to state Test...');
                    state = 'test';
+                   cnn_model.opts.after_nms_topN = after_nms_topN_test;
                end
            case{'list'}
                if strcmp(cmd_bottle.get(1).asString().toCharArray', 'classes')
@@ -180,6 +183,7 @@ while ~strcmp(state,'quit')
                else
                    disp('Unrecognized list command. Switching to state Test...');
                    state = 'test';
+                   cnn_model.opts.after_nms_topN = after_nms_topN_test;
                end
              
            otherwise
@@ -203,8 +207,7 @@ while ~strcmp(state,'quit')
                model.bbox_regressor = bbox_regressor;
                save([current_path '/Demo/Models/' default_model_name], 'model');
            end
-%            reply_bottle.addString('Bye bye!');  
-%            portCmd.reply(reply_bottle);
+
            disp('Shutting down...');
            
        case{'init'}
@@ -223,14 +226,14 @@ while ~strcmp(state,'quit')
         
             disp('Switching to state Test...');
             state = 'test';
-            cnn_model.opts.after_nms_topN          = after_nms_topN_test;
+            cnn_model.opts.after_nms_topN = after_nms_topN_test;
             
        case{'train'} 
            %% -------------------------------------------- TRAIN -------------------------------------------------------
            disp('----------------------TRAIN----------------------');
            disp('Waiting image and annotations from ports...');
            
-           fetch_tic = tic;           
+%            fetch_tic = tic;           
            annotations_bottle = portAnnotation.read(true);
            yarpImage   = portImage.read(true);  
            
@@ -247,29 +250,25 @@ while ~strcmp(state,'quit')
                    im(:,:,3)= cast(TEST(:,:,3),'uint8');         
                    % im_gpu = gpuArray(im);
 
-                   process_tic = tic;
-                   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                   %%%%%%%%%%%%%%%%%%%%%%% NEED FOR A TSTAMP CHECK %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                    process_tic = tic;
 
                    % Gathering GT box and label 
                    for j = 1:length(annotations_bottle)
-%                        ann = annotations.asList().get(1);
                        ann = annotations_bottle.pop();
                        gt_boxes = [ann.asList().get(0).asDouble(), ann.asList().get(1).asDouble(), ...
                                    ann.asList().get(2).asDouble(), ann.asList().get(3).asDouble()];  % bbox format: [tl_x, tl_y, br_x, br_y]
                    end
                    forwardAnnotations(yarpImage, gt_boxes, new_label, portImg, portDets);
-                   fprintf('Fetching image and annotation required %f seconds\n', toc(fetch_tic));
+%                    fprintf('Fetching image and annotation required %f seconds\n', toc(fetch_tic));
                     % Extract regions from image and filtering
-                    regions_tic = tic;
+%                     regions_tic = tic;
                     [boxes, scores]                 = proposal_im_detect(cnn_model.proposal_detection_model.conf_proposal, cnn_model.rpn_net, im);
                     aboxes                          = boxes_filter([boxes, scores], cnn_model.opts.per_nms_topN, cnn_model.opts.nms_overlap_thres, ...
                                                                     cnn_model.opts.after_nms_topN, cnn_model.opts.use_gpu);
-                    fprintf('--Region proposal prediction required %f seconds\n', toc(regions_tic));
+%                     fprintf('--Region proposal prediction required %f seconds\n', toc(regions_tic));
 
                     % Select positive regions
-                    selection_tic = tic;
+%                     selection_tic = tic;
                     overlaps = boxoverlap(aboxes, gt_boxes); 
 
                     % Positive regions for bounding box regressor
@@ -289,17 +288,22 @@ while ~strcmp(state,'quit')
                         curr_cls_neg = [];
                         neg_region_classifier.box = [];
                     end
-                    fprintf('--Positives and negatives selection required %f seconds\n', toc(selection_tic));
+%                     fprintf('--Positives and negatives selection required %f seconds\n', toc(selection_tic));
 
                     % Extract features from regions 
-                    feature_tic = tic;
+%                     feature_tic = tic;
                     % -- Select regions to extract features from
                     regions_for_features           = cat(1, cur_bbox_pos, curr_cls_neg); % cur_bbox_pos contains gt_box too so no need to repeat it  
 
                     % -- Network forward
-                    features                       = cnn_features_demo(cnn_model.proposal_detection_model.conf_detection, im, regions_for_features(:, 1:4), ...
-                                                               cnn_model.fast_rcnn_net, [], 'fc7'); 
-                    fprintf('--Feature extraction required %f seconds\n', toc(feature_tic));
+                    
+                %         features             = cnn_features_shared_conv(cnn_model.proposal_detection_model.conf_detection, im_gpu, aboxes(:, 1:4), cnn_model.fast_rcnn_net, [], 'fc7', ...
+                %                                                     cnn_model.rpn_net.blobs(cnn_model.proposal_detection_model.last_shared_output_blob_name),  cnn_model.opts.after_nms_topN);
+                    features             = cnn_features_demo(cnn_model.proposal_detection_model.conf_detection, im, regions_for_features(:, 1:4), ...
+                                                                   cnn_model.fast_rcnn_net, [], 'fc7');         
+%                     features                       = cnn_features_demo(cnn_model.proposal_detection_model.conf_detection, im, regions_for_features(:, 1:4), ...
+%                                                                cnn_model.fast_rcnn_net, [], 'fc7'); 
+%                     fprintf('--Feature extraction required %f seconds\n', toc(feature_tic));
 
                     % Update total features datasets
                     pos_bbox_regressor.feat        = cat(1, pos_bbox_regressor.feat, features(1:size(cur_bbox_pos,1),:));
@@ -307,19 +311,16 @@ while ~strcmp(state,'quit')
                     neg_region_classifier.feat     = cat(1, neg_region_classifier.feat, features(size(cur_bbox_pos,1)+1:(size(cur_bbox_pos,1)+size(curr_cls_neg,1)),:));
 
                     train_images_counter = train_images_counter +1;
-                    fprintf('One image processed in %d seconds\n',toc(process_tic));
+%                     fprintf('One image processed in %d seconds\n',toc(process_tic));
 %                end
            end         
            
                
 
            if train_images_counter >= max_img_per_class
-                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                %%%%%%%%%%%%%%%%%%%%%%% TO ADD CASE OF OLD CLASS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
                 fprintf('Sufficient dataset acquired in %d seconds.\nTraining...\n',toc(acquisition_tic));
                 % Update dataset with data from new class
-%                 if new_to_add
                 dataset.bbox_regressor{new_cls_idx}                       = struct;
                 dataset.bbox_regressor{new_cls_idx}.pos_bbox_regressor    = pos_bbox_regressor;
                 dataset.bbox_regressor{new_cls_idx}.y_bbox_regressor      = y_bbox_regressor; 
@@ -327,24 +328,12 @@ while ~strcmp(state,'quit')
                 dataset.reg_classifier{new_cls_idx}                       = struct;
                 dataset.reg_classifier{new_cls_idx}.pos_region_classifier = pos_region_classifier;
                 dataset.reg_classifier{new_cls_idx}.neg_region_classifier = neg_region_classifier;
-%                 else
-%                     dataset.bbox_regressor{new_cls_idx}.pos_bbox_regressor.box    = cat(1, pos_bbox_regressor.box;
-%                     dataset.bbox_regressor{new_cls_idx}.pos_bbox_regressor.feat   = pos_bbox_regressor.feat;
-%                     dataset.bbox_regressor{new_cls_idx}.y_bbox_regressor
-%                     
-%                     dataset.reg_classifier{new_cls_idx}.pos_region_classifier.box
-%                     dataset.reg_classifier{new_cls_idx}.pos_region_classifier.feat
-%                     dataset.reg_classifier{new_cls_idx}.neg_region_classifier.box
-%                     dataset.reg_classifier{new_cls_idx}.neg_region_classifier.feat
-%                       disp('unimplemented function');
-%                 end
 
                 actual_train_tic = tic;
-                %Train region classifier
-                region_classifier = Train_region_classifier(region_classifier, dataset.reg_classifier, cls_opts, new_cls_idx);
-                region_classifier.classes{new_cls_idx}=new_label;
-                % Train Bounding box regressors
-                bbox_regressor    = Train_bbox_regressor(bbox_regressor, dataset.bbox_regressor, new_cls_idx);
+                region_classifier                      = Train_region_classifier(region_classifier, dataset.reg_classifier, cls_opts, new_cls_idx);
+                region_classifier.classes{new_cls_idx} = new_label;
+                bbox_regressor                         = Train_bbox_regressor(bbox_regressor, dataset.bbox_regressor, new_cls_idx);
+                
                 fprintf('Train region classifier and bbox regressor required %f seconds\n', toc(actual_train_tic));
                 fprintf('Train process required %f seconds\n', toc(train_tic));
                 
@@ -352,15 +341,13 @@ while ~strcmp(state,'quit')
                 disp('Restoring Test state...');
                 state = 'test';
                 cnn_model.opts.after_nms_topN          = after_nms_topN_test;
-%                 s='Traindone';
-%                 reply_bottle.addString(s);  
-%                 portCmd.reply(reply_bottle);
            end
 
          case{'test'}
            %% ------------------------------------------- DETECT ----------------------------------------------------
            disp('Waiting image from port...');
-           
+           detection_tic = tic;
+
            yarpImage   = portImage.read(true);                       % get the yarp image from port
            TEST = reshape(tool.getRawImg(yarpImage), [h w pixSize]); % need to reshape the matrix from 1D to h w pixelSize       
            im=uint8(zeros(h, w, pixSize));                           % create an empty image with the correct dimentions
@@ -371,33 +358,29 @@ while ~strcmp(state,'quit')
            
            % Performing detection
            if ~isempty(region_classifier)
-               prediction_tic = tic;
                region_classifier.training_opts = cls_opts;
                [cls_scores boxes] = Detect(im, dataset.classes, cnn_model, region_classifier, bbox_regressor, detect_thresh);
-               fprintf('Prediction required %f seconds\n', toc(prediction_tic));
            else
                boxes      = [];
                cls_scores = [];
            end
            % Sending detections        
-           send_tic = tic;
+%            send_tic = tic;
            boxes_cell = cell(length(dataset.classes), 1);
            for i = 1:length(boxes_cell)
              boxes_cell{i} = [boxes{i}, cls_scores{i}];
            end           
            sendDetections(boxes_cell, portDets, portImg, im, dataset.classes, tool, [h,w,pixSize]);
-           fprintf('Sending image and detections required %f seconds\n', toc(send_tic));
+%            fprintf('Sending image and detections required %f seconds\n', toc(send_tic));
+           fprintf('Detection required %f seconds\n', toc(detection_tic));   
            
         case{'forget'}
            %% ------------------------------------------- FORGET ----------------------------------------------------
            disp('----------------------FORGET----------------------');
            disp('Training new model without forgotten class...');
            if ~isempty(dataset.reg_classifier)
-%                cls_to_train = 1:length(dataset.reg_classifier);
-%                region_classifier = Train_region_classifier(region_classifier, dataset.reg_classifier, cls_opts,cls_to_train);
                region_classifier.detectors.models(idx_to_remove) = [];
                region_classifier.classes(idx_to_remove)          = [];
-%                bbox_regressor    = Train_bbox_regressor(dataset.bbox_regressor); 
                bbox_regressor.models(idx_to_remove)              = [];
            else
                region_classifier = [];
@@ -406,7 +389,7 @@ while ~strcmp(state,'quit')
            
            disp('Switching to state Test...');
            state = 'test';
-           cnn_model.opts.after_nms_topN          = after_nms_topN_test;
+           cnn_model.opts.after_nms_topN = after_nms_topN_test;
            
         case{'list_classes'}
            %% ------------------------------------------- LIST CLASSES ----------------------------------------------------
@@ -420,14 +403,15 @@ while ~strcmp(state,'quit')
            if exist([current_path '/Demo/Datasets/' load_dataset_name], 'file')
                disp('Loading dataset...');
                load([current_path '/Demo/Datasets/' load_dataset_name]);
+               
                disp('Loaded dataset for classes:');
                disp(dataset.classes);
                
                disp('Training new models with the loaded dataset...');
-               cls_to_train = 1:length(dataset.reg_classifier);
-               region_classifier = Train_region_classifier(region_classifier,dataset.reg_classifier, cls_opts,cls_to_train);
+               cls_to_train              = 1:length(dataset.reg_classifier);
+               region_classifier         = Train_region_classifier(region_classifier,dataset.reg_classifier, cls_opts,cls_to_train);
                region_classifier.classes = dataset.classes;
-               bbox_regressor    = Train_bbox_regressor(bbox_regressor, dataset.bbox_regressor, cls_to_train); 
+               bbox_regressor            = Train_bbox_regressor(bbox_regressor, dataset.bbox_regressor, cls_to_train); 
               
                disp('Done.');
            else
@@ -436,7 +420,7 @@ while ~strcmp(state,'quit')
            
            disp('Switching to state Test...');
            state = 'test';
-           cnn_model.opts.after_nms_topN          = after_nms_topN_test;         
+           cnn_model.opts.after_nms_topN = after_nms_topN_test;         
            
         case{'save_dataset'}
            %% ------------------------------------------- SAVE DATASET-----------------------------------------------------
@@ -451,10 +435,8 @@ while ~strcmp(state,'quit')
            
            disp('Switching to state Test...');
            state = 'test';
-           cnn_model.opts.after_nms_topN          = after_nms_topN_test;
-           
-%            reply_bottle.addString('Saved dataset!');  
-%            portCmd.reply(reply_bottle);
+           cnn_model.opts.after_nms_topN = after_nms_topN_test;
+
            
         case{'save_model'}
            %% --------------------------------------------- SAVE MODEL------------------------------------------------------
@@ -466,16 +448,13 @@ while ~strcmp(state,'quit')
            end
            model = struct;
            model.region_classifier = region_classifier;
-           model.bbox_regressor = bbox_regressor;
+           model.bbox_regressor    = bbox_regressor;
            save([current_path '/Demo/Models/' save_model_name], 'model');
            disp('Done.');
            
            disp('Switching to state Test...');
            state = 'test';
-           cnn_model.opts.after_nms_topN          = after_nms_topN_test;
-           
-%            reply_bottle.addString('Saved model!');  
-%            portCmd.reply(reply_bottle);
+           cnn_model.opts.after_nms_topN = after_nms_topN_test;
            
         otherwise
            fprintf('State unknown\n'); 

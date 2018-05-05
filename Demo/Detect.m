@@ -3,16 +3,16 @@ function [cls_scores  pred_boxes] = Detect(im, classes, cnn_model, cls_model, bb
 %   Detailed explanation goes here
 
     %% Region proposals
-    regions_tic = tic;
+%     regions_tic = tic;
     
     % test proposal
     [boxes, scores]             = proposal_im_detect(cnn_model.proposal_detection_model.conf_proposal, cnn_model.rpn_net, im);
     aboxes                      = boxes_filter([boxes, scores], cnn_model.opts.per_nms_topN, cnn_model.opts.nms_overlap_thres, ...
                                                 cnn_model.opts.after_nms_topN, cnn_model.opts.use_gpu);
-    fprintf('--Region proposal prediction required %f seconds\n', toc(regions_tic));
+%     fprintf('--Region proposal prediction required %f seconds\n', toc(regions_tic));
 
     %feature extraction from regions    
-    feature_tic = tic;
+%     feature_tic = tic;
     if cnn_model.proposal_detection_model.is_share_feature
 %         features             = cnn_features_shared_conv(cnn_model.proposal_detection_model.conf_detection, im_gpu, aboxes(:, 1:4), cnn_model.fast_rcnn_net, [], 'fc7', ...
 %                                                     cnn_model.rpn_net.blobs(cnn_model.proposal_detection_model.last_shared_output_blob_name),  cnn_model.opts.after_nms_topN);
@@ -21,17 +21,17 @@ function [cls_scores  pred_boxes] = Detect(im, classes, cnn_model, cls_model, bb
     else
         fprintf('Wrong!');
     end
-    fprintf('--Feature extraction required %f seconds\n', toc(feature_tic));
+%     fprintf('--Feature extraction required %f seconds\n', toc(feature_tic));
     
     %% Regions classification and scores thresholding
-    cls_tic = tic;
+%     cls_tic = tic;
     [cls_boxes, cls_scores, inds] = predict_FALKON(features, cls_model, 0.5, aboxes(:, 1:4));
-    fprintf('--Region classification required %f seconds\n', toc(cls_tic));
+%     fprintf('--Region classification required %f seconds\n', toc(cls_tic));
 
     %% Bounding boxes refinement
-    bbox_tic = tic;
+%     bbox_tic = tic;
     pred_boxes = predict_bbox_refinement( bbox_model, features, cls_boxes, length(classes), inds );
-    fprintf('--Bounding box refinement required %f seconds\n', toc(bbox_tic));
+%     fprintf('--Bounding box refinement required %f seconds\n', toc(bbox_tic));
     
 end
 
