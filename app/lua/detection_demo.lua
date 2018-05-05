@@ -50,12 +50,12 @@ print ("using:", whichRobot)
 interrupting = false
 signal.signal(signal.SIGINT, function(signum)
     interrupting = true
-    look_at_angle(0,-50,5)
+    look_at_angle(0,-35,5)
 end)
 
 signal.signal(signal.SIGTERM, function(signum)
     interrupting = true
-    look_at_angle(0,-50,5)
+    look_at_angle(0,-35,5)
 end)
 
 ---------------------------------------
@@ -98,11 +98,11 @@ if whichRobot == "icub" then
 end
 
 ret = true
-ret = ret and yarp.NetworkBase_connect("/detection/dets:o", port_detection:getName(), "fast_tcp" )
+--ret = ret and yarp.NetworkBase_connect("/detection/dets:o", port_detection:getName(), "fast_tcp" )
 --ret = ret and yarp.NetworkBase_connect(port_ispeak:getName(), "/iSpeak")
-ret = ret and yarp.NetworkBase_connect(port_draw_image:getName(), "/detection-image/cmd:i")
-ret = ret and yarp.NetworkBase_connect(port_cmd_detection:getName(), "/detection/command:i")
-ret = ret and yarp.NetworkBase_connect("/dispBlobber/roi/left:o", "/onTheFlyRec/gaze/blob" )
+--ret = ret and yarp.NetworkBase_connect(port_draw_image:getName(), "/detection-image/cmd:i")
+--ret = ret and yarp.NetworkBase_connect(port_cmd_detection:getName(), "/detection/command:i")
+--ret = ret and yarp.NetworkBase_connect("/dispBlobber/roi/left:o", "/onTheFlyRec/gaze/blob" )
 
 if whichRobot == "icub" then
     print ("Going through ICUB's connection")
@@ -625,7 +625,7 @@ while state ~= "quit" and not interrupting do
 
             elseif state == "forget" then
                 local object = cmd:get(1):asString()
-                if  object == "objects" then
+                if  object == "all" then
                     print ("forgetting all objects")
                     object="all"
                     speak(port_ispeak, "Ok, will forget all objects")
@@ -732,15 +732,14 @@ while state ~= "quit" and not interrupting do
 
                         print( "tx is", tx )
                         print( "ty is", ty )
-                        
-                        local point3D = get_3D_point(tx, ty)
+                        if whichRobot == "icub" then
+                            local point3D = get_3D_point(tx, ty)
+                            local cartx = point3D:get(0):asDouble()
+                            local carty = point3D:get(1):asDouble()
+                            local cartz = point3D:get(2):asDouble()
 
-                        local cartx = point3D:get(0):asDouble()
-                        local carty = point3D:get(1):asDouble()
-                        local cartz = point3D:get(2):asDouble()
-
-                        print("the 3D point is ", cartx, carty, cartz )
-
+                            print("the 3D point is ", cartx, carty, cartz )
+                        end
                         look_at_pixel("left",tx,ty)
 
                         --delay one second to let the head move ok...
@@ -760,7 +759,9 @@ while state ~= "quit" and not interrupting do
                         elseif list:size() < 1 and list:get(0):asString() ~= "none" then
                             local tosay = "Here is the  " .. object
                             speak(port_ispeak, tosay)
-                            point_3D_point(cartx, carty, cartz) 
+                            if whichRobot == "icub" then                            
+                                point_3D_point(cartx, carty, cartz)
+                            end 
                             state = "look"
                         else
                             local tosay = "The " .. object .. " is next to the "
@@ -773,7 +774,9 @@ while state ~= "quit" and not interrupting do
                             end
                             print(tosay)
                             speak(port_ispeak, tosay)
-                            point_3D_point(cartx, carty, cartz) 
+                            if whichRobot == "icub" then
+                                point_3D_point(cartx, carty, cartz)
+                            end 
                             state = "look"
                         end
                         
@@ -809,7 +812,7 @@ while state ~= "quit" and not interrupting do
     elseif state == "forget" then
         yarp.Time_delay(0.1)
     elseif state == "home" then
-        yarp.Time_delay(0.1)
+            yarp.Time_delay(0.1)
 
     elseif state == "look" then
 
@@ -874,69 +877,79 @@ while state ~= "quit" and not interrupting do
         local det = port_detection:read(false)
 
         if det ~= nil then
+
+            --print( "dets", det:toString())
+            --print("dets size", det:size())
+            --print( "size elements dets", det:get(0):asList():size())
+
             math.randomseed( os.time() )
             math.random(); math.random(); math.random()
-            local num = 0
 
-            if det:size() > 0 then
-                num = math.random(0, det:size()-1)
-            else
-                num = 0
-            end
+            if det:get(0):asList():size() ~= 0 then
+               local num = 0
 
-            while det:get(num):asList():get(5):asString() == lookedObject do
-                num = math.random(0, det:size()-1)
-            end            
 
-            local det_list = det:get(num):asList()
-
-            if not shouldDraw then
-                object = det:get(num):asList():get(5):asString()
-                lookedObject = object
-            end 
-
-            local tx = (det:get(num):asList():get(0):asInt() + det:get(num):asList():get(2):asInt()) / 2
-            local ty = (det:get(num):asList():get(1):asInt() + det:get(num):asList():get(3):asInt()) / 2
-
-            t2 = os.difftime(os.time(), t1)
-
-            if t2 > 4 then
-                shouldLook = true
-                object = det:get(num):asList():get(5):asString()
-                lookedObject = object
-            end
-
-            if shouldLook then
-                print( "the size is", det:size() )
-                print( "the chosen one is", num )
-                print( "the string is", object )
-                print( "tx is", tx )
-                print( "ty is", ty )
-                print("should now move the head...")
-                look_at_pixel("left",tx,ty)
-                t1 = os.time()
-                drawString = object
-                shouldLook = false
-                shouldDraw = true
-            end
-
-            if shouldDraw then
-
-                local indexes = getObjectIndex(det)
-                index = indexes[0]
-
-                if index ~=nil and index >= 0 then
-                    local bot = yarp.Bottle()
-                    local val = bot:addList()
-                    val:addInt(det:get(index):asList():get(0):asInt())
-                    val:addInt(det:get(index):asList():get(1):asInt())
-                    val:addInt(det:get(index):asList():get(2):asInt())
-                    val:addInt(det:get(index):asList():get(3):asInt())
-    
-                    sendDraw(bot)
+                if det:size() > 0 then
+                    num = math.random(0, det:size()-1)
+                else
+                    num = 0
                 end
+
+
+                if det:size() > 1 then
+                    while det:get(num):asList():get(5):asString() == lookedObject do
+                        num = math.random(0, det:size()-1)
+                    end  
+                end          
+                local det_list = det:get(num):asList()
+
+                if not shouldDraw then
+                    object = det:get(num):asList():get(5):asString()
+                    lookedObject = object
+                end 
+                local tx = (det:get(num):asList():get(0):asInt() + det:get(num):asList():get(2):asInt()) / 2
+                local ty = (det:get(num):asList():get(1):asInt() + det:get(num):asList():get(3):asInt()) / 2
+
+                t2 = os.difftime(os.time(), t1)
+
+                if t2 > 4 then
+                    shouldLook = true
+                    object = det:get(num):asList():get(5):asString()
+                    lookedObject = object
+                end
+
+                if shouldLook then
+                    print( "the size is", det:size() )
+                    print( "the chosen one is", num )
+                    print( "the string is", object )
+                    print( "tx is", tx )
+                    print( "ty is", ty )
+                    print("should now move the head...")
+                    look_at_pixel("left",tx,ty)
+                    t1 = os.time()
+                    drawString = object
+                    shouldLook = false
+                    shouldDraw = true
+                end
+
+                if shouldDraw then
+
+                    local indexes = getObjectIndex(det)
+                    index = indexes[0]
+
+                    if index ~=nil and index >= 0 then
+                        local bot = yarp.Bottle()
+                        local val = bot:addList()
+                        val:addInt(det:get(index):asList():get(0):asInt())
+                        val:addInt(det:get(index):asList():get(1):asInt())
+                        val:addInt(det:get(index):asList():get(2):asInt())
+                        val:addInt(det:get(index):asList():get(3):asInt())
+        
+                        sendDraw(bot)
+                    end
+                end
+                yarp.Time_delay(0.1)
             end
-            yarp.Time_delay(0.1)
         end
 
     elseif state == "look" then
@@ -949,7 +962,7 @@ clearDraw()
 if whichRobot == "icub" then
     look_at_angle(0, -36, 5)
 else
-    look_at_angle(0, -32, 5)
+    look_at_angle(0, -35, 5)
 end
 
 
@@ -961,8 +974,8 @@ port_gaze_tx:close()
 port_gaze_rx:close()
 port_gaze_rpc:close()
 port_ispeak:close()
-port_are_rpc:close()
-port_sfm_rpc:close()
+--port_are_rpc:close()
+--port_sfm_rpc:close()
 port_ispeak:close()
 port_cmd_detection:close()
 clearDraw()

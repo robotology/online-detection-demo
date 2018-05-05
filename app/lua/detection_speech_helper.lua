@@ -59,8 +59,7 @@ end
 objects = {"sprayer", "mug", "flower", "sodabottle", "book", "soapdispenser", "wallet", "toy", "badge"}
 
 -- defining speech grammar in order to expand the speech recognition
-grammar = "Return to home position | Look around | Look at the #Object | Where is the #Object | See you soon | What is close to the #Object | Train #Object | Forget #Object"
-
+grammar="Return to home position | Look around | Look at the #Object | Where is the #Object | See you soon | What is close to the #Object | Here is the #Object | Forget the #Object | Forget all objects"
 
 function SM_RGM_Expand(port, vocab, word)
     local wb = yarp.Bottle()
@@ -110,7 +109,7 @@ print ("ready to receive command ")
 ---------------------------------------
 
 while state ~= "quit" and not interrupting do
-
+print("SEDERE") 
     local result = SM_Reco_Grammar(port_speech_recog, grammar)
     print("received REPLY: ", result:toString() )
     local speechcmd =  result:get(1):asString()
@@ -135,7 +134,20 @@ while state ~= "quit" and not interrupting do
         instruction:addString("where-is")
         local object = result:get(7):asString()
         instruction:addString(object)
-    else
+    elseif speechcmd == "Here" then
+        instruction:addString("train")
+        local object = result:get(7):asString()
+        instruction:addString(object) 
+    elseif speechcmd == "Forget" then
+        instruction:addString("forget")
+        local object = ""
+        if result:get(3):asString() == "all" then
+            object = "all"
+        else
+            object = result:get(5):asString()
+        end
+        instruction:addString(object)
+    else    
         print ("cannot recognize the command")
     end
 

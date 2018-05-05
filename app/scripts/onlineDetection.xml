@@ -54,7 +54,7 @@
 
     <module>
         <name>cer_gaze-controller</name>
-        <parameters>--cameras::context cameraCalibration --cameras::file cerEyes_320x240.ini --joints-limits::pitch "(-40.0 40.0)" --joints-limits::yaw "(-40.0 40.0)"</parameters>
+        <parameters>--cameras::context cameraCalibration --cameras::file cerEyes_320x240.ini --joints-limits::pitch "(-10.0 35.0)" --joints-limits::yaw "(-40.0 40.0)"</parameters>
         <node>r1-base</node>
     </module>
     
@@ -288,6 +288,30 @@
     <connection>
         <from>/iSpeak/r1:rpc</from>
         <to>/faceExpressionImage/rpc</to>
+        <protocol>tcp</protocol>
+    </connection>
+    
+	<connection>
+        <from>/detection/dets:o</from>
+        <to>/manager/targets:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+    
+	<connection>
+        <from>/manager/ispeak:o</from>
+        <to>/iSpeak</to>
+        <protocol>tcp</protocol>
+    </connection>
+    
+    <connection>
+        <from>/manager/draw:o</from>
+        <to>/detection-image/cmd:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+    
+    <connection>
+        <from>/manager/detection/cmd:o</from>
+        <to>/detection/command:i</to>
         <protocol>tcp</protocol>
     </connection>
 
