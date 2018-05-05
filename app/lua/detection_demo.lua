@@ -98,7 +98,7 @@ if whichRobot == "icub" then
 end
 
 ret = true
---ret = ret and yarp.NetworkBase_connect("/detection/dets:o", port_detection:getName(), "fast_tcp" )
+--ret = ret and yarp.NetworkBase_connect("/detection/detrs:o", port_detection:getName(), "fast_tcp" )
 ret = ret and yarp.NetworkBase_connect(port_ispeak:getName(), "/iSpeak")
 --ret = ret and yarp.NetworkBase_connect(port_draw_image:getName(), "/detection-image/cmd:i")
 --ret = ret and yarp.NetworkBase_connect(port_cmd_detection:getName(), "/detection/command:i")
@@ -628,13 +628,12 @@ while state ~= "quit" and not interrupting do
                 if  object == "all" then
                     print ("forgetting all objects")
                     object="all"
-                    speak(port_ispeak, "Ok, will forget all objects")
+                    speak(port_ispeak, "Ok, I forgot all the objects")
                 else
                     print ("forgetting single object", object)
-                    speak(port_ispeak, "Ok, forget the " .. object)
+                    speak(port_ispeak, "Ok, I forgot the " .. object)
                 end
                 sendForget(object)
-                 
 
             elseif state == "look" then
                 clearDraw()
