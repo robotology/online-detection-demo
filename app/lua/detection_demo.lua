@@ -99,7 +99,7 @@ end
 
 ret = true
 --ret = ret and yarp.NetworkBase_connect("/detection/dets:o", port_detection:getName(), "fast_tcp" )
---ret = ret and yarp.NetworkBase_connect(port_ispeak:getName(), "/iSpeak")
+ret = ret and yarp.NetworkBase_connect(port_ispeak:getName(), "/iSpeak")
 --ret = ret and yarp.NetworkBase_connect(port_draw_image:getName(), "/detection-image/cmd:i")
 --ret = ret and yarp.NetworkBase_connect(port_cmd_detection:getName(), "/detection/command:i")
 --ret = ret and yarp.NetworkBase_connect("/dispBlobber/roi/left:o", "/onTheFlyRec/gaze/blob" )

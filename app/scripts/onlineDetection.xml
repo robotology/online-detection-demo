@@ -179,13 +179,13 @@
 
     <connection>
         <from> /detection/dets:o </from>
-        <to>/detection/targets:i</to>
+        <to>/manager/targets:i</to>
         <protocol> tcp </protocol>
     </connection>
 
     <connection>
         <from>/detection/speech:o</from>
-        <to>/detection/cmd:i</to>
+        <to>/manager/cmd:i</to>
         <protocol> tcp </protocol>
     </connection>
 
