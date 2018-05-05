@@ -305,6 +305,8 @@ while ~strcmp(state,'quit')
            if train_images_counter >= max_img_per_class
 
                 fprintf('Sufficient dataset acquired in %d seconds.\nTraining...\n',toc(acquisition_tic));
+                sendTrainDone(portDets);
+                
                 % Update dataset with data from new class
                 dataset.bbox_regressor{new_cls_idx}                       = struct;
                 dataset.bbox_regressor{new_cls_idx}.pos_bbox_regressor    = pos_bbox_regressor;
@@ -538,6 +540,20 @@ function forwardAnnotations(yarp_img, box, new_label, imgPort, portAnnOut)
     portAnnOut.setEnvelope(stamp);
     
     imgPort.write(yarp_img);   
+    portAnnOut.write();
+end
+
+
+function sendTrainDone(portAnnOut)
+    b = portAnnOut.prepare();
+    b.clear();
+    
+    det_list = b.addList();
+    det_list.addString('done.');
+        
+    stamp = yarp.Stamp();
+    portAnnOut.setEnvelope(stamp);
+ 
     portAnnOut.write();
 end
 
