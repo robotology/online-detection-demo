@@ -6,8 +6,7 @@ addpath(genpath('../FALKON_paper'));
 disp('Configuring required paths...');
 current_path            = pwd;
 cnn_model_path          = [current_path '/output_iCWT_features_20objs/faster_rcnn_final/faster_rcnn_ICUB_ZF']; %-------------------------------------------
-feature_statistics_path = [current_path '/Demo/Conf/statistics_T1features_forT2.mat' ]; % We need to calculate again feature statistics
-
+feature_statistics_path = [current_path '/Demo/Conf/statistics_T1features_forT2.mat' ]; %-------------------------------------------
 
 %% FILES
 default_dataset_name      = 'def_dataset.mat'; %---------------------------------------------------------------------------------------------------------------

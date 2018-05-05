@@ -16,10 +16,6 @@ disp('Loading cnn model paths...');
 cnn_model.proposal_detection_model                            = load_proposal_detection_model(cnn_model_path);
 cnn_model.proposal_detection_model.conf_proposal.test_scales  = cnn_model.opts.test_scales;
 cnn_model.proposal_detection_model.conf_detection.test_scales = cnn_model.opts.test_scales;
-% if cnn_model.opts.use_gpu
-%    cnn_model.proposal_detection_model.conf_proposal.image_means = gpuArray(cnn_model.proposal_detection_model.conf_proposal.image_means);
-%    cnn_model.proposal_detection_model.conf_detection.image_means = gpuArray(cnn_model.proposal_detection_model.conf_detection.image_means);
-% end
 
 % proposal net
 disp('Setting RPN...');
@@ -38,7 +34,6 @@ else
 end   
 
 %% -------------------- START DETECTION MODULE--------------------
-
 state = 'init';
 
 while ~strcmp(state,'quit')
@@ -192,7 +187,6 @@ while ~strcmp(state,'quit')
     end
 
     %% State machine
-
     switch state
        case{'quit'}
            if ~exist([current_path '/Demo/Datasets/' default_dataset_name] , 'file')
@@ -233,7 +227,6 @@ while ~strcmp(state,'quit')
            disp('----------------------TRAIN----------------------');
            disp('Waiting image and annotations from ports...');
            
-%            fetch_tic = tic;           
            annotations_bottle = portAnnotation.read(true);
            yarpImage   = portImage.read(true);  
            
@@ -250,8 +243,6 @@ while ~strcmp(state,'quit')
                    im(:,:,3)= cast(TEST(:,:,3),'uint8');         
                    % im_gpu = gpuArray(im);
 
-%                    process_tic = tic;
-
                    % Gathering GT box and label 
                    for j = 1:length(annotations_bottle)
                        ann = annotations_bottle.pop();
@@ -259,13 +250,10 @@ while ~strcmp(state,'quit')
                                    ann.asList().get(2).asDouble(), ann.asList().get(3).asDouble()];  % bbox format: [tl_x, tl_y, br_x, br_y]
                    end
                    forwardAnnotations(yarpImage, gt_boxes, new_label, portImg, portDets);
-%                    fprintf('Fetching image and annotation required %f seconds\n', toc(fetch_tic));
                     % Extract regions from image and filtering
-%                     regions_tic = tic;
                     [boxes, scores]                 = proposal_im_detect(cnn_model.proposal_detection_model.conf_proposal, cnn_model.rpn_net, im);
                     aboxes                          = boxes_filter([boxes, scores], cnn_model.opts.per_nms_topN, cnn_model.opts.nms_overlap_thres, ...
                                                                     cnn_model.opts.after_nms_topN, cnn_model.opts.use_gpu);
-%                     fprintf('--Region proposal prediction required %f seconds\n', toc(regions_tic));
 
                     % Select positive regions
 %                     selection_tic = tic;
@@ -297,8 +285,8 @@ while ~strcmp(state,'quit')
 
                     % -- Network forward
                     
-                %         features             = cnn_features_shared_conv(cnn_model.proposal_detection_model.conf_detection, im_gpu, aboxes(:, 1:4), cnn_model.fast_rcnn_net, [], 'fc7', ...
-                %                                                     cnn_model.rpn_net.blobs(cnn_model.proposal_detection_model.last_shared_output_blob_name),  cnn_model.opts.after_nms_topN);
+%                   features             = cnn_features_shared_conv(cnn_model.proposal_detection_model.conf_detection, im_gpu, aboxes(:, 1:4), cnn_model.fast_rcnn_net, [], 'fc7', ...
+%                                                               cnn_model.rpn_net.blobs(cnn_model.proposal_detection_model.last_shared_output_blob_name),  cnn_model.opts.after_nms_topN);
                     features             = cnn_features_demo(cnn_model.proposal_detection_model.conf_detection, im, regions_for_features(:, 1:4), ...
                                                                    cnn_model.fast_rcnn_net, [], 'fc7');         
 %                     features                       = cnn_features_demo(cnn_model.proposal_detection_model.conf_detection, im, regions_for_features(:, 1:4), ...
@@ -311,11 +299,8 @@ while ~strcmp(state,'quit')
                     neg_region_classifier.feat     = cat(1, neg_region_classifier.feat, features(size(cur_bbox_pos,1)+1:(size(cur_bbox_pos,1)+size(curr_cls_neg,1)),:));
 
                     train_images_counter = train_images_counter +1;
-%                     fprintf('One image processed in %d seconds\n',toc(process_tic));
 %                end
            end         
-           
-               
 
            if train_images_counter >= max_img_per_class
 
@@ -365,13 +350,11 @@ while ~strcmp(state,'quit')
                cls_scores = [];
            end
            % Sending detections        
-%            send_tic = tic;
            boxes_cell = cell(length(dataset.classes), 1);
            for i = 1:length(boxes_cell)
              boxes_cell{i} = [boxes{i}, cls_scores{i}];
            end           
            sendDetections(boxes_cell, portDets, portImg, im, dataset.classes, tool, [h,w,pixSize]);
-%            fprintf('Sending image and detections required %f seconds\n', toc(send_tic));
            fprintf('Detection required %f seconds\n', toc(detection_tic));   
            
         case{'forget'}
@@ -436,7 +419,6 @@ while ~strcmp(state,'quit')
            disp('Switching to state Test...');
            state = 'test';
            cnn_model.opts.after_nms_topN = after_nms_topN_test;
-
            
         case{'save_model'}
            %% --------------------------------------------- SAVE MODEL------------------------------------------------------
