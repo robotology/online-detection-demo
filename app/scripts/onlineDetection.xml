@@ -103,6 +103,7 @@
     
     <module>
         <name>detections_handler.py</name>
+        <parameters>--image_w 320 --image_h 240</parameters>
         <deployer>python</deployer>
         <node>r1-console-cuda</node>
     </module>
