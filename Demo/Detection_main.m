@@ -245,9 +245,11 @@ while ~strcmp(state,'quit')
 
                    % Gathering GT box and label 
                    for j = 1:length(annotations_bottle)
-                       ann = annotations_bottle.pop();
-                       gt_boxes = [ann.asList().get(0).asDouble(), ann.asList().get(1).asDouble(), ...
-                                   ann.asList().get(2).asDouble(), ann.asList().get(3).asDouble()];  % bbox format: [tl_x, tl_y, br_x, br_y]
+                       ann         = annotations_bottle.pop();
+                       gt_boxes    = [ann.asList().get(0).asDouble(), ann.asList().get(1).asDouble(), ...
+                                      ann.asList().get(2).asDouble(), ann.asList().get(3).asDouble()];  % bbox format: [tl_x, tl_y, br_x, br_y]
+                       gt_boxes(1) = round(gt_boxes(1)*(320/424));
+                       gt_boxes(3) = round(gt_boxes(3)*(320/424));
                    end
                    forwardAnnotations(yarpImage, gt_boxes, new_label, portImg, portDets);
                     % Extract regions from image and filtering
