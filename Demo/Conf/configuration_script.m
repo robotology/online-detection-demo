@@ -22,7 +22,7 @@ disp('Configuring RPN params...');
 cnn_model.opts.per_nms_topN            = 6000;
 cnn_model.opts.nms_overlap_thres       = 0.7;
 after_nms_topN_train                   = 900; %---------------------------------------------------------------------------------------------------------------
-after_nms_topN_test                    = 300; %---------------------------------------------------------------------------------------------------------------
+after_nms_topN_test                    = 250; %---------------------------------------------------------------------------------------------------------------
 cnn_model.opts.use_gpu                 = true;
 cnn_model.opts.test_scales             = 600;
 
@@ -38,7 +38,7 @@ clear ld;
 fprintf('Classifier options setting...\n');
 cls_opts = struct;
 cls_opts.cls_mod = 'FALKON';
-max_img_for_new_class                  = 200; %---------------------------------------------------------------------------------------------------------------
+max_img_for_new_class                  = 250; %---------------------------------------------------------------------------------------------------------------
 max_img_for_old_class                  = max_img_for_new_class/2; 
 
 negatives_selection.policy             = 'bootStrap';

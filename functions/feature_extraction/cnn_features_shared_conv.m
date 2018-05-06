@@ -1,10 +1,10 @@
-function feat = cnn_features_shared_conv(conf, im, boxes, caffe_net, cnn_model, layer, conv_feat_blob, batch_size)
+function feat = cnn_features_shared_conv(conf, im, boxes, caffe_net, layer, conv_feat_blob)
 
 [rois_blob, ~] = get_blobs(conf, im, boxes);
     
 % Here, we identify duplicate feature ROIs, so we only compute features
 % on the unique subset.
-% [~, index, inv_index] = unique(rois_blob, 'rows');
+[~, index, inv_index] = unique(rois_blob, 'rows');
 % rois_blob = rois_blob(index, :);
 % boxes = boxes(index, :);
 
@@ -26,7 +26,7 @@ total_rois = size(rois_blob, 4);
 feat_dim = -1;
 feat = [];
 curr = 1;
-% batch_size = 256;
+batch_size = 256;
 
 batch_padding = calculate_batch_padding(total_rois, batch_size);
 
@@ -77,15 +77,21 @@ end
 feat = feat(inv_index, :);
 end
 
-function [data_blob, rois_blob, im_scale_factors] = get_blobs(conf, im, rois)
-    [data_blob, im_scale_factors] = get_image_blob(conf, im);
+function [batch_padding] = calculate_batch_padding(num_boxes,  batch_size)
+    batch_padding = batch_size - mod(num_boxes, batch_size);
+    if batch_padding == batch_size
+      batch_padding = 0;
+    end
+end
+
+function [rois_blob, im_scale_factors] = get_blobs(conf, im, rois)
+    im_scale_factors = get_image_blob_scales(conf, im);
     rois_blob = get_rois_blob(conf, rois, im_scale_factors);
 end
 
-function [blob, im_scales] = get_image_blob(conf, im)
-    [ims, im_scales] = arrayfun(@(x) prep_im_for_blob(im, conf.image_means, x, conf.test_max_size), conf.test_scales, 'UniformOutput', false);
-    im_scales = cell2mat(im_scales);
-    blob = im_list_to_blob(ims);    
+function im_scales = get_image_blob_scales(conf, im)
+    im_scales = arrayfun(@(x) prep_im_for_blob_size(size(im), x, conf.test_max_size), conf.test_scales, 'UniformOutput', false);
+    im_scales = cell2mat(im_scales); 
 end
 
 function [rois_blob] = get_rois_blob(conf, im_rois, im_scale_factors)
@@ -102,7 +108,7 @@ function [feat_rois, levels] = map_im_rois_to_feat_rois(conf, im_rois, scales)
         
         areas = widths .* heights;
         scaled_areas = bsxfun(@times, areas(:), scales(:)'.^2);
-        [~, levels] = min(abs(scaled_areas - 224.^2), [], 2); 
+        levels = max(abs(scaled_areas - 224.^2), 2); 
     else
         levels = ones(size(im_rois, 1), 1);
     end
@@ -110,39 +116,17 @@ function [feat_rois, levels] = map_im_rois_to_feat_rois(conf, im_rois, scales)
     feat_rois = round(bsxfun(@times, im_rois-1, scales(levels))) + 1;
 end
 
-function [batch_padding] = calculate_batch_padding(num_boxes,  batch_size)
-    batch_padding = batch_size - mod(num_boxes, batch_size);
-    if batch_padding == batch_size
-      batch_padding = 0;
-    end
+function boxes = clip_boxes(boxes, im_width, im_height)
+    % x1 >= 1 & <= im_width
+    boxes(:, 1:4:end) = max(min(boxes(:, 1:4:end), im_width), 1);
+    % y1 >= 1 & <= im_height
+    boxes(:, 2:4:end) = max(min(boxes(:, 2:4:end), im_height), 1);
+    % x2 >= 1 & <= im_width
+    boxes(:, 3:4:end) = max(min(boxes(:, 3:4:end), im_width), 1);
+    % y2 >= 1 & <= im_height
+    boxes(:, 4:4:end) = max(min(boxes(:, 4:4:end), im_height), 1);
 end
-
-% function max_rois_num = check_gpu_memory(conf, caffe_net)
-% %%  try to determine the maximum number of rois
-% 
-%     max_rois_num = 0;
-%     for rois_num = 500:500:5000
-%         % generate pseudo testing data with max size
-%         im_blob = single(zeros(conf.max_size, conf.max_size, 3, 1));
-%         rois_blob = single(repmat([0; 0; 0; conf.max_size-1; conf.max_size-1], 1, rois_num));
-%         rois_blob = permute(rois_blob, [3, 4, 1, 2]);
-% 
-%         net_inputs = {im_blob, rois_blob};
-% 
-%         % Reshape net's input blobs
-%         caffe_net.reshape_as_input(net_inputs);
-% 
-%         caffe_net.forward(net_inputs);
-%         gpuInfo = gpuDevice();
-% 
-%         max_rois_num = rois_num;
-%             
-%         if gpuInfo.FreeMemory < 2 * 10^9  % 2GB for safety
-%             break;
-%         end
-%     end
-% 
-% end
+  
 
 % %% RCNN
 % % make sure that caffe has been initialized for this model

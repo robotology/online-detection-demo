@@ -38,7 +38,7 @@ state = 'init';
 
 while ~strcmp(state,'quit')
     
-    disp('asking for command');
+%     disp('asking for command');
     cmd_bottle = yarp.Bottle();
     cmd_bottle = portCmd.read(false);
     
@@ -225,7 +225,7 @@ while ~strcmp(state,'quit')
        case{'train'} 
            %% -------------------------------------------- TRAIN -------------------------------------------------------
            disp('----------------------TRAIN----------------------');
-           disp('Waiting image and annotations from ports...');
+%            disp('Waiting image and annotations from ports...');
            
            annotations_bottle = portAnnotation.read(true);
            yarpImage   = portImage.read(true);  
@@ -334,7 +334,7 @@ while ~strcmp(state,'quit')
 
          case{'test'}
            %% ------------------------------------------- DETECT ----------------------------------------------------
-           disp('Waiting image from port...');
+%            disp('Waiting image from port...');
            detection_tic = tic;
 
            yarpImage   = portImage.read(true);                       % get the yarp image from port
