@@ -1,4 +1,4 @@
-#!/usr/bin/lua
+#!/usr/local/bin/lua
 
 -- Copyright: (C) 2017 iCub Facility - Istituto Italiano di Tecnologia (IIT)
 
@@ -183,10 +183,10 @@ function point_3D_point(x,y,z)
 
 
     if x < -0.60 then
-        x = -0.60          
-    end 
-    if x > -0.30 then 
-        x = -0.30 
+        x = -0.60
+    end
+    if x > -0.30 then
+        x = -0.30
     end
 
     if y < -0.30 then
@@ -201,25 +201,25 @@ function point_3D_point(x,y,z)
     end
     if z > 0.0 then
         z = 0.0
-    end            
+    end
 
     local val = cmd:addList()
     val:addDouble(x+ 0.05)
 
-    if y < 0.0 then    
-        val:addDouble(y + 0.02) 
+    if y < 0.0 then
+        val:addDouble(y + 0.02)
     else
         val:addDouble(y - 0.02)
     end
 
     val:addDouble(z)
-    
+
     if y < 0.0 then
         cmd:addString("left")
     else
         cmd:addString("right")
     end
-    
+
     print("command is ",cmd:toString())
 
     if whichRobot == "icub" then
@@ -231,6 +231,15 @@ end
 ---------------------------------------
 -- functions Gaze Control            --
 ---------------------------------------
+function startFace(port)
+   local wb = port_cmd_gaze:prepare()
+    wb:clear()
+    wb:addString("track-face")
+    port_cmd_gaze:write()
+   yarp.Time_delay(1.0)
+end
+
+---------------------------------------------------------------------------------------------------------------
 
 function startGaze(port)
    local wb = port_cmd_gaze:prepare()
@@ -357,8 +366,8 @@ function sendDraw(bot)
         val:addInt(bot:get(i):asList():get(1):asInt())
         val:addInt(bot:get(i):asList():get(2):asInt())
         val:addInt(bot:get(i):asList():get(3):asInt())
-    end   
-    
+    end
+
     port_draw_image:write()
 end
 
@@ -374,20 +383,20 @@ end
 ---------------------------------------------------------------------------------------------------------------
 
 function getObjectBB(det, objName)
-    
+
     local objectList = yarp.Bottle()
 
     for i=0,det:size()-1,1 do
         str = det:get(i):asList():get(5):asString()
 
         if str == objName then
-            
+
             objectList:addInt(det:get(i):asList():get(0):asInt())
             objectList:addInt(det:get(i):asList():get(1):asInt())
             objectList:addInt(det:get(i):asList():get(2):asInt())
             objectList:addInt(det:get(i):asList():get(3):asInt())
         end
-        
+
     end
     return objectList
 end
@@ -412,7 +421,7 @@ function getObjectIndex(det)
             indexes[count] = i
             count = count + 1
         end
-        
+
     end
     return indexes
 end
@@ -420,7 +429,7 @@ end
 ---------------------------------------------------------------------------------------------------------------
 
 function getClosestObject(det)
-    
+
     selectObject(det)
 
     print("getClosestObject for index is ", index, object)
@@ -430,26 +439,26 @@ function getClosestObject(det)
         objtx = (det:get(index):asList():get(0):asInt() + det:get(index):asList():get(2):asInt()) / 2
         objty = (det:get(index):asList():get(1):asInt() + det:get(index):asList():get(3):asInt()) / 2
     end
-    
+
     local mindist = 10000000
     local minindex =-1
     if index >= 0 then
         for i=0,det:size()-1,1 do
             if i ~= index then
                 local thistx = (det:get(i):asList():get(0):asInt() + det:get(i):asList():get(2):asInt()) / 2
-                local thisty = (det:get(i):asList():get(1):asInt() + det:get(i):asList():get(3):asInt()) / 2      
-                
+                local thisty = (det:get(i):asList():get(1):asInt() + det:get(i):asList():get(3):asInt()) / 2
+
                 local distancex = math.abs(objtx-thistx)
                 local distancey = math.abs(objty-thisty)
-                
-                local distance = (distancex*distancex) + (distancey*distancey) 
-                
+
+                local distance = (distancex*distancex) + (distancey*distancey)
+
                 print ("got as distance ", distance, det:get(i):asList():get(5):asString())
-                
+
                 if distance < mindist then
                     mindist = distance
                     minindex = i
-                end                         
+                end
             end
         end
     end
@@ -460,7 +469,7 @@ function getClosestObject(det)
         returnStr = det:get(minindex):asList():get(5):asString()
     end
     if index < 0 then
-        returnStr = "notFound"  
+        returnStr = "notFound"
     end
     return returnStr
 end
@@ -469,13 +478,13 @@ end
 
 function selectObject(det)
     local indexes
-                    
+
     indexes = getObjectIndex(det)
 
     print("size of indexes ", table.getn(indexes))
 
     if indexes[0] ~= nil and table.getn(indexes) >= 0 then
-        
+
         if table.getn(indexes) > 0 then
             speak(port_ispeak, "I have found " .. table.getn(indexes)+1 .. object .. "s" )
             index = indexes[ math.random(0, table.getn(indexes))]
@@ -506,7 +515,7 @@ function getObjectsAround(det)
     end
     local objtx = 0
     local objty = 0
-    
+
     if index >= 0 then
         objtx = (det:get(index):asList():get(0):asInt() + det:get(index):asList():get(2):asInt()) / 2
         objty = (det:get(index):asList():get(1):asInt() + det:get(index):asList():get(3):asInt()) / 2
@@ -514,18 +523,18 @@ function getObjectsAround(det)
     for i=0,det:size()-1,1 do
         if i ~= index then
             local thistx = (det:get(i):asList():get(0):asInt() + det:get(i):asList():get(2):asInt()) / 2
-            local thisty = (det:get(i):asList():get(1):asInt() + det:get(i):asList():get(3):asInt()) / 2      
-            
+            local thisty = (det:get(i):asList():get(1):asInt() + det:get(i):asList():get(3):asInt()) / 2
+
             local distancex = math.abs(objtx-thistx)
             local distancey = math.abs(objty-thisty)
-            
-            local distance = (distancex*distancex) + (distancey*distancey) 
-            
+
+            local distance = (distancex*distancex) + (distancey*distancey)
+
             print ("got as distance ", distance, det:get(i):asList():get(5):asString())
-            
+
             if distance < 5500 then
                 objectList:addString(det:get(i):asList():get(5):asString())
-            end                         
+            end
         end
     end
     return objectList
@@ -538,7 +547,7 @@ function sendTrain(objName)
     cmd:clear()
     cmd:addString("train")
     cmd:addString(objName)
-    
+
     port_cmd_detection:write()
 end
 
@@ -573,6 +582,8 @@ drawCloseObj = false
 drawString = "robot"
 isSpeech = false
 
+isInteracting = false
+
 lookedObject = ""
 
 multipleName = yarp.Bottle()
@@ -591,12 +602,12 @@ while state ~= "quit" and not interrupting do
         local cmd_rx = cmd:get(0):asString()
 
         local size = cmd:size();
-        print (" ")        
+        print (" ")
         print ("***********************command is *********************** ", cmd_rx)
         print ("size is ", size)
 
         local interaction = cmd:get(size-1):asString()
-        
+
         if interaction == "speech" then
             isSpeech = true
             print("using interaction speech")
@@ -606,22 +617,31 @@ while state ~= "quit" and not interrupting do
         end
 
         if cmd_rx == "look-around" or cmd_rx == "look" or
-            cmd_rx == "home" or cmd_rx == "quit" or 
+            cmd_rx == "home" or cmd_rx == "quit" or
              cmd_rx == "closest-to" or cmd_rx == "where-is" or
-              cmd_rx == "train" or cmd_rx == "forget" then
+              cmd_rx == "train" or cmd_rx == "forget" or
+               cmd_rx == "hello" then
 
             clearDraw()
             multipleDraw:clear()
             multipleName:clear()
             state = cmd_rx
 
-            if state == "train" then
+            if state == "hello" then
+                look_at_angle(0, 0, 0)
+                yarp.Time_delay(2.0)
+                startFace()
+                speak(port_ispeak, "hello")
+                isInteracting = true
+
+            elseif state == "train" then
+                --if isInteracting~=
                 look_at_angle(0, 0, 0)
                 yarp.Time_delay(2.0)
                 startGaze()
                 object = cmd:get(1):asString()
                 sendTrain(object)
-                speak(port_ispeak, "Let me have a look at the " .. object) 
+                speak(port_ispeak, "Let me have a look at the " .. object)
 
             elseif state == "forget" then
                 local object = cmd:get(1):asString()
@@ -644,20 +664,20 @@ while state ~= "quit" and not interrupting do
                 drawCloseObj = false
 
                 local det = port_detection:read(false)
-                    
+
                 if det ~= nil then
                     print("looping det ", det:size())
                     print("det not nil")
 
                     selectObject(det)
-                
+
                     if index >= 0 then
- 
+
                         local tx = (det:get(index):asList():get(0):asInt() + det:get(index):asList():get(2):asInt()) / 2
                         local ty = (det:get(index):asList():get(1):asInt() + det:get(index):asList():get(3):asInt()) / 2
 
                         local listNames = ""
-                            
+
                         for i=0,det:size()-1,1 do
                             listNames = listNames .. " " .. det:get(i):asList():get(5):asString()
                         end
@@ -671,16 +691,18 @@ while state ~= "quit" and not interrupting do
                         look_at_pixel("left",tx,ty)
 
                         speak(port_ispeak, "looking at the " .. object)
-                     end      
+                     end
                 else
                     print("det nil")
-                    speak(port_ispeak, "I do not see any objects") 
+                    speak(port_ispeak, "I do not see any objects")
                 end
 
             elseif state == "home" then
                 clearDraw()
+                stopGaze()
+                yarp.Time_delay(0.5)
                 look_at_angle(azi, ele, ver)
-                speak(port_ispeak, "OK, I will go home")
+                speak(port_ispeak, "OK")
 
             elseif state == "look-around" then
                 speak(port_ispeak, "OK, I will now look around")
@@ -692,13 +714,13 @@ while state ~= "quit" and not interrupting do
 
                 if det ~= nil then
                     local name = getClosestObject(det)
-                    local tosay                    
+                    local tosay
                     if name == "none" then
                         tosay = "There is nothing close to the " .. object
                     elseif name == "notFound" then
-                        tosay = "I can't seem to find the " .. object 
+                        tosay = "I can't seem to find the " .. object
                     else
-                        tosay = "The closest object is the " .. name 
+                        tosay = "The closest object is the " .. name
                     end
                     --multipleName:clear()
                     --multipleName:addString(name)
@@ -709,7 +731,7 @@ while state ~= "quit" and not interrupting do
                     speak(port_ispeak, tosay)
                 else
                     print("det nil")
-                    speak(port_ispeak, "I do not see any objects") 
+                    speak(port_ispeak, "I do not see any objects")
                 end
             elseif state == "where-is" then
                 yarp.Time_delay(1.0)
@@ -725,7 +747,7 @@ while state ~= "quit" and not interrupting do
                     local tx
                     local ty
                     if index >= 0 then
- 
+
                         tx = (det:get(index):asList():get(0):asInt() + det:get(index):asList():get(2):asInt()) / 2
                         ty = (det:get(index):asList():get(1):asInt() + det:get(index):asList():get(3):asInt()) / 2
 
@@ -750,17 +772,17 @@ while state ~= "quit" and not interrupting do
                         drawNearObjs = true
                         drawCloseObj = false
                         print("size of near objects is ", list:size() )
-                        
-                        if list:get(0):asString() == "none" then 
+
+                        if list:get(0):asString() == "none" then
                             local tosay = "I cannot see the " .. object
                             speak(port_ispeak, tosay)
                             state = "look"
                         elseif list:size() < 1 and list:get(0):asString() ~= "none" then
                             local tosay = "Here is the  " .. object
                             speak(port_ispeak, tosay)
-                            if whichRobot == "icub" then                            
+                            if whichRobot == "icub" then
                                 point_3D_point(cartx, carty, cartz)
-                            end 
+                            end
                             state = "look"
                         else
                             local tosay = "The " .. object .. " is next to the "
@@ -775,14 +797,14 @@ while state ~= "quit" and not interrupting do
                             speak(port_ispeak, tosay)
                             if whichRobot == "icub" then
                                 point_3D_point(cartx, carty, cartz)
-                            end 
+                            end
                             state = "look"
                         end
-                        
+
                     end
                 else
                     print("det nil")
-                    speak(port_ispeak, "I do not see any objects") 
+                    speak(port_ispeak, "I do not see any objects")
                 end
             end
         else
@@ -793,21 +815,21 @@ while state ~= "quit" and not interrupting do
 
     if state == "train" then
         local det = port_detection:read(true)
-    
+
         if det:get(0):asList():size() > 0 then
             print("detection ", det:toString())
             if det:get(0):asList():get(0):asString() == "train" then
-                print("FOUND  TRAINING ")        
+                print("FOUND  TRAINING ")
             else
                 state = "home"
-                local tosay = "Excellent, now I know the " .. object 
+                local tosay = "Excellent, now I know the " .. object
                 speak(port_ispeak, tosay)
-                stopGaze()   
-                yarp.Time_delay(0.5)             
+                stopGaze()
+                yarp.Time_delay(0.5)
                 look_at_angle(azi, ele, ver)
             end
         end
-        
+
     elseif state == "forget" then
         yarp.Time_delay(0.1)
     elseif state == "home" then
@@ -819,7 +841,7 @@ while state ~= "quit" and not interrupting do
         if det ~= nil then
             local indexes = getObjectIndex(det)
 
-            index = indexes[0]         
+            index = indexes[0]
             multipleDraw:clear()
 
             if drawCloseObj then
@@ -827,8 +849,8 @@ while state ~= "quit" and not interrupting do
                 multipleName:clear()
                 multipleName:addString(name)
             end
-            
-            if drawNearObjs then 
+
+            if drawNearObjs then
 
                 local list = getObjectsAround(det)
                 multipleName:clear()
@@ -842,11 +864,11 @@ while state ~= "quit" and not interrupting do
                 local elements = multipleDraw:addList()
                 local bbs = getObjectBB(det, multipleName:get(i):asString())
                 for i=0,bbs:size()-1,1 do
-                    elements:addInt(bbs:get(i):asInt()) 
+                    elements:addInt(bbs:get(i):asInt())
                 end
             end
-            
-                
+
+
             if index ~=nil and index >= 0 then
                 local bot = yarp.Bottle()
                 local val = bot:addList()
@@ -867,7 +889,7 @@ while state ~= "quit" and not interrupting do
 
                 sendDraw(bot)
             end
-            
+
             clearDraw()
         end
         yarp.Time_delay(0.1)
@@ -898,14 +920,14 @@ while state ~= "quit" and not interrupting do
                 if det:size() > 1 then
                     while det:get(num):asList():get(5):asString() == lookedObject do
                         num = math.random(0, det:size()-1)
-                    end  
-                end          
+                    end
+                end
                 local det_list = det:get(num):asList()
 
                 if not shouldDraw then
                     object = det:get(num):asList():get(5):asString()
                     lookedObject = object
-                end 
+                end
                 local tx = (det:get(num):asList():get(0):asInt() + det:get(num):asList():get(2):asInt()) / 2
                 local ty = (det:get(num):asList():get(1):asInt() + det:get(num):asList():get(3):asInt()) / 2
 
@@ -943,7 +965,7 @@ while state ~= "quit" and not interrupting do
                         val:addInt(det:get(index):asList():get(1):asInt())
                         val:addInt(det:get(index):asList():get(2):asInt())
                         val:addInt(det:get(index):asList():get(3):asInt())
-        
+
                         sendDraw(bot)
                     end
                 end
@@ -964,7 +986,7 @@ else
     look_at_angle(0, -35, 5)
 end
 
-
+stopGaze()
 speak(port_ispeak, "Bye bye")
 
 port_cmd:close()

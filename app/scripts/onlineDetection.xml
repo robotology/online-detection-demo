@@ -19,7 +19,7 @@
         <node>r1-face</node>
     </module>
 
-     <module>
+    <module>
         <name>faceExpressionImage</name>
         <node>r1-console-cuda</node>
     </module>
@@ -53,11 +53,16 @@
     </module>
 
     <module>
+       <name>faceLandmarks</name>
+       <node>r1-base</node>
+   </module>
+
+    <module>
         <name>cer_gaze-controller</name>
         <parameters>--cameras::context cameraCalibration --cameras::file cerEyes_320x240.ini --joints-limits::pitch "(-10.0 35.0)" --joints-limits::yaw "(-40.0 40.0)"</parameters>
         <node>r1-base</node>
     </module>
-    
+
     <module>
         <name>onTheFlyRec_gaze.lua</name>
         <parameters> --w 320 --h 240</parameters>
@@ -100,7 +105,7 @@
             <port timeout="10">/speechRecognizer/rpc</port>
         </dependencies>
     </module>
-    
+
     <module>
         <name>detections_handler.py</name>
         <parameters>--image_w 320 --image_h 240</parameters>
@@ -144,10 +149,16 @@
         <node>r1-console-cuda</node>
     </module>
 
+    <module>
+        <name>yarpview</name>
+        <parameters>--name /viewer/faces --x 1400 --y 550 --p 50 --compact</parameters>
+        <node>r1-console-cuda</node>
+    </module>
+
     <!--connections for face display -->
 
     <connection>
-        <from>/faceExpressionImage/image:o</from> 
+        <from>/faceExpressionImage/image:o</from>
         <to>/robot/faceDisplay/image:i</to>
         <protocol>tcp</protocol>
     </connection>
@@ -260,7 +271,7 @@
         <to>/detHandler/detections:i</to>
         <protocol>tcp</protocol>
     </connection>
-    
+
     <connection>
         <from>/onTheFlyRec/gaze/tx</from>
         <to>/cer_gaze-controller/target:i</to>
@@ -284,36 +295,46 @@
         <to>/onTheFlyRec/gaze/blob</to>
         <protocol>udp</protocol>
     </connection>
-    
+
     <connection>
         <from>/iSpeak/r1:rpc</from>
         <to>/faceExpressionImage/rpc</to>
         <protocol>tcp</protocol>
     </connection>
-    
+
 	<connection>
         <from>/detection/dets:o</from>
         <to>/manager/targets:i</to>
         <protocol>tcp</protocol>
     </connection>
-    
+
 	<connection>
         <from>/manager/ispeak:o</from>
         <to>/iSpeak</to>
         <protocol>tcp</protocol>
     </connection>
-    
+
     <connection>
         <from>/manager/draw:o</from>
         <to>/detection-image/cmd:i</to>
         <protocol>tcp</protocol>
     </connection>
-    
+
     <connection>
         <from>/manager/detection/cmd:o</from>
         <to>/detection/command:i</to>
         <protocol>tcp</protocol>
     </connection>
 
-</application>
+    <connection>
+        <from>/depthCamera/rgbImage:o</from>
+        <to>/faceLandmarks/image:i</to>
+        <protocol>fast_tcp</protocol>
+    </connection>
+    <connection>
+        <from>/faceLandmarks/image:o</from>
+        <to>/viewer/faces</to>
+        <protocol>fast_tcp</protocol>
+    </connection>
 
+</application>
