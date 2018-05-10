@@ -56,7 +56,7 @@ end
 -- functions Speech Recognition      --
 ---------------------------------------
 
-objects = {"sprayer", "mug", "flower", "sodabottle", "book", "soapdispenser", "wallet", "toy", "badge"}
+objects = {"table", "sprayer", "mug", "flower", "sodabottle", "book", "soapdispenser", "wallet", "toy", "badge"}
 
 -- defining speech grammar in order to expand the speech recognition
 grammar="Return to home position | Look around | Look at the #Object | Where is the #Object | See you soon | What is close to the #Object | Have a look at this #Object | Forget the #Object | Forget all objects | Hey R1"
@@ -123,9 +123,13 @@ print("SEDERE")
     elseif speechcmd == "Look" and result:get(3):asString() == "around" then
         instruction:addString("look-around")
     elseif speechcmd == "Look" and result:get(3):asString() == "at" then
-        instruction:addString("look")
         local object = result:get(7):asString()
-        instruction:addString(object)
+        if object == "table" then
+            instruction:addString("home")
+        else
+            instruction:addString("look")
+            instruction:addString(object)
+        end
     elseif speechcmd == "What" then
         instruction:addString("closest-to")
         local object = result:get(11):asString()

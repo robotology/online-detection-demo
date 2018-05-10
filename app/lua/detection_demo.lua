@@ -635,9 +635,10 @@ while state ~= "quit" and not interrupting do
                 isInteracting = true
 
             elseif state == "train" then
-                --if isInteracting~=
-                look_at_angle(0, 0, 0)
-                yarp.Time_delay(2.0)
+                if isInteracting == false then
+                    look_at_angle(0, 0, 0)
+                    yarp.Time_delay(2.0)
+                end
                 startGaze()
                 object = cmd:get(1):asString()
                 sendTrain(object)
@@ -705,7 +706,7 @@ while state ~= "quit" and not interrupting do
                 speak(port_ispeak, "OK")
 
             elseif state == "look-around" then
-                speak(port_ispeak, "OK, I will now look around")
+                speak(port_ispeak, "OK, I will look around")
                 shouldLook = true
             elseif state == "closest-to" then
                 object = cmd:get(1):asString()
