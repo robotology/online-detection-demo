@@ -5,8 +5,8 @@ function feat = cnn_features_shared_conv(conf, im, boxes, caffe_net, layer, conv
 % Here, we identify duplicate feature ROIs, so we only compute features
 % on the unique subset.
 [~, index, inv_index] = unique(rois_blob, 'rows');
-% rois_blob = rois_blob(index, :);
-% boxes = boxes(index, :);
+rois_blob = rois_blob(index, :);
+boxes = boxes(index, :);
 
 % permute data into caffe c++ memory, thus [num, channels, height, width]
 % im_blob = im_blob(:, :, [3, 2, 1], :); % from rgb to brg

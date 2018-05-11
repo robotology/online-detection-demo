@@ -14,13 +14,10 @@ function [cls_scores  pred_boxes] = Detect(im, classes, cnn_model, cls_model, bb
     %feature extraction from regions    
 %     feature_tic = tic;
     if cnn_model.proposal_detection_model.is_share_feature
-%         features             = cnn_features_shared_conv(cnn_model.proposal_detection_model.conf_detection, im_gpu, aboxes(:, 1:4), cnn_model.fast_rcnn_net, [], 'fc7', ...
-%                                                     cnn_model.rpn_net.blobs(cnn_model.proposal_detection_model.last_shared_output_blob_name),  cnn_model.opts.after_nms_topN);
-          features             = cnn_features_demo(cnn_model.proposal_detection_model.conf_detection, im, aboxes(:, 1:4), ...
-                                                   cnn_model.fast_rcnn_net, [], 'fc7');  
-%                                                
-%            features             = cnn_features_shared_conv(cnn_model.proposal_detection_model.conf_detection, im, aboxes(:, 1:4), cnn_model.fast_rcnn_net, 'fc7', ...
-%                           cnn_model.rpn_net.blobs(cnn_model.proposal_detection_model.last_shared_output_blob_name));
+%           features             = cnn_features_demo(cnn_model.proposal_detection_model.conf_detection, im, aboxes(:, 1:4), ...
+%                                                    cnn_model.fast_rcnn_net, [], 'fc7');                                                
+           features             = cnn_features_shared_conv(cnn_model.proposal_detection_model.conf_detection, im, aboxes(:, 1:4), cnn_model.fast_rcnn_net, 'fc7', ...
+                          cnn_model.rpn_net.blobs(cnn_model.proposal_detection_model.last_shared_output_blob_name));
     else
         fprintf('Wrong!');
     end

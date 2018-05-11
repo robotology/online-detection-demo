@@ -2,7 +2,6 @@
 %  Online-Object-Detection Demo
 %  Author: Elisa Maiettini
 %  --------------------------------------------------------
-
 function [  ] = Detection_main(  )
 
 yarp_initialization;
@@ -248,8 +247,6 @@ while ~strcmp(state,'quit')
                        ann         = annotations_bottle.pop();
                        gt_boxes    = [ann.asList().get(0).asDouble(), ann.asList().get(1).asDouble(), ...
                                       ann.asList().get(2).asDouble(), ann.asList().get(3).asDouble()];  % bbox format: [tl_x, tl_y, br_x, br_y]
-%                        gt_boxes(1) = round(gt_boxes(1)*(320/424));
-%                        gt_boxes(3) = round(gt_boxes(3)*(320/424));
                    end
                    forwardAnnotations(yarpImage, gt_boxes, new_label, portImg, portDets);
                     % Extract regions from image and filtering
@@ -287,12 +284,10 @@ while ~strcmp(state,'quit')
 
                     % -- Network forward
                     
-%                   features             = cnn_features_shared_conv(cnn_model.proposal_detection_model.conf_detection, im, regions_for_features(:, 1:4), cnn_model.fast_rcnn_net, 'fc7', ...
-%                                                               cnn_model.rpn_net.blobs(cnn_model.proposal_detection_model.last_shared_output_blob_name));
-                    features             = cnn_features_demo(cnn_model.proposal_detection_model.conf_detection, im, regions_for_features(:, 1:4), ...
-                                                                   cnn_model.fast_rcnn_net, [], 'fc7');         
-%                     features                       = cnn_features_demo(cnn_model.proposal_detection_model.conf_detection, im, regions_for_features(:, 1:4), ...
-%                                                                cnn_model.fast_rcnn_net, [], 'fc7'); 
+                    features             = cnn_features_shared_conv(cnn_model.proposal_detection_model.conf_detection, im, regions_for_features(:, 1:4), cnn_model.fast_rcnn_net, 'fc7', ...
+                                                              cnn_model.rpn_net.blobs(cnn_model.proposal_detection_model.last_shared_output_blob_name));
+%                     features             = cnn_features_demo(cnn_model.proposal_detection_model.conf_detection, im, regions_for_features(:, 1:4), ...
+%                                                                    cnn_model.fast_rcnn_net, [], 'fc7');         
 %                     fprintf('--Feature extraction required %f seconds\n', toc(feature_tic));
 
                     % Update total features datasets
@@ -371,7 +366,7 @@ while ~strcmp(state,'quit')
                bbox_regressor.models(idx_to_remove)              = [];
            else
                region_classifier = [];
-               bbox_regressor = [];
+               bbox_regressor    = [];
            end
            
            disp('Switching to state Test...');
@@ -560,11 +555,13 @@ function sendTrainDone(portAnnOut)
 end
 
 function sendDetections(detections, detPort, imgPort, image, classes, tool, img_dims)
+
     b = detPort.prepare();
     b.clear();
-
+    
     is_dets_per_class = cell2mat(cellfun(@(x) ~isempty(x), detections, 'UniformOutput', false));
     if sum(is_dets_per_class)
+
         % Prepare bottle b with detections and labels
         for i = 1:length(detections)
             for j = 1:size(detections{i},1)
@@ -581,15 +578,10 @@ function sendDetections(detections, detPort, imgPort, image, classes, tool, img_
         end
     else
         det_list = b.addList();
+       disp('no detection found')
     end
     
-    % Prepare image to send
-    yarp_img = yarp.ImageRgb();                                                 % create a new yarp image to send results to ports
-    yarp_img.resize(img_dims(2),img_dims(1));                                   % resize it to the desired size
-    yarp_img.zero();                                                            % set all pixels to black
-    image = reshape(image, [img_dims(1)*img_dims(2)*img_dims(3) 1]);            % reshape the matlab image to 1D
-    tempImg = cast(image ,'int16');                                             % cast it to int16
-    yarp_img = tool.setRawImg(tempImg, img_dims(1), img_dims(2), img_dims(3));  % pass it to the setRawImg function (returns the full image)
+
     
     % Set timestamp for the two ports
     stamp = yarp.Stamp();
@@ -597,6 +589,18 @@ function sendDetections(detections, detPort, imgPort, image, classes, tool, img_
     detPort.setEnvelope(stamp);
     
     %Send image and list of detections
-    imgPort.write(yarp_img);   
     detPort.write();
+%     else
+% %         det_list = b.addList();
+%        disp('no detection found')
+%     end
+        % Prepare image to send
+    yarp_img = yarp.ImageRgb();                                                 % create a new yarp image to send results to ports
+    yarp_img.resize(img_dims(2),img_dims(1));                                   % resize it to the desired size
+    yarp_img.zero();                                                            % set all pixels to black
+    image = reshape(image, [img_dims(1)*img_dims(2)*img_dims(3) 1]);            % reshape the matlab image to 1D
+    tempImg = cast(image ,'int16');                                             % cast it to int16
+    yarp_img = tool.setRawImg(tempImg, img_dims(1), img_dims(2), img_dims(3));  % pass it to the setRawImg function (returns the full image)
+    imgPort.write(yarp_img);   
+
 end
