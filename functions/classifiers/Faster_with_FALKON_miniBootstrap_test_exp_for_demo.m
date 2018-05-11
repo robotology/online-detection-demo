@@ -1,4 +1,4 @@
-function [ res ] = Faster_with_FALKON_test_try_try( rcnn_model, config, imdb, suffix, fid )
+function [ res ] = Faster_with_FALKON_miniBootstrap_test_exp_for_demo( rcnn_model, config, imdb, suffix, fid,  num_of_reg)
 %FASTER_WITH_RLS_TEST Summary of this function goes here
 %   Detailed explanation goes here
 tosave = true;
@@ -57,6 +57,12 @@ end
       end
 %       d.feat = rcnn_scale_features_try_try(d.feat, feat_opts.mean_norm, feat_opts.train_classifier_options.target_norm);
       d.feat = zscores_standardization(d.feat, feat_opts.standard_deviation, feat_opts.mean_feat, feat_opts.mean_norm);
+      %%%%                                         %%%%
+      %%%% select num_of_reg regions from features %%%%
+      %%%%                                         %%%%
+      d.feat = d.feat(1:min(length(d.feat), num_of_reg),:); % Definetly TO-CHECK
+      d.boxes = d.boxes(1:min(length(d.boxes), num_of_reg),:);
+      d.gt = d.gt(1:min(length(d.gt), num_of_reg),:);
       X_test = gpuArray(d.feat);
       for j = 1:num_classes        
         boxes = d.boxes;

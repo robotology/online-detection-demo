@@ -73,7 +73,7 @@ for i = 1:num_clss
 end
 fprintf('Doing normalization...\n');
 % X = rcnn_scale_features(X, opts.feat_norm_mean);
-X = zscores_standardization(X, opts.standard_deviation,opts.mean_feat);
+X = zscores_standardization(X, opts.standard_deviation,opts.mean_feat, opts.mean_norm);
 % X = rcnn_pool5_to_fcX(X, opts.layer, cnn_model);
 % X = GURLS_subtract_mean_features(X, opts.mean_feat);
 % ------------------------------------------------------------------------

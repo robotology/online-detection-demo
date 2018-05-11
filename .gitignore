@@ -9,6 +9,7 @@ Desktop.ini
 $RECYCLE.BIN/
 
 # User Ingore
+faster_rcnn_final/faster_rcnn_ICUB_ZF/model.mat
 models/
 data/
 datasets/

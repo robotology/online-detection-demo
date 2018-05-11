@@ -48,7 +48,7 @@ catch
   imdb.extension = 'jpg';
   imdb.flip = flip;
   if flip
-      image_at = @(i) sprintf('%s/%s.%s', imdb.image_dir, imdb.image_ids{i}, imdb.extension); %ELISA changed
+      image_at = @(i) sprintf('%s/%s.%s', imdb.image_dir, imdb.image_ids{i}, imdb.extension);           %ELISA changed
       flip_image_at = @(i) sprintf('%s/%s_flip.%s', imdb.image_dir, imdb.image_ids{i}, imdb.extension); %ELISA changed
       for i = 1:length(imdb.image_ids)
           if ~exist(flip_image_at(i), 'file')
@@ -73,7 +73,7 @@ catch
   imdb.details.ICUBopts = ICUBopts;
 
   % ICUB specific functions for evaluation and region of interest DB
-  imdb.eval_func = @imdb_eval_icub; %ELISA changed
+  imdb.eval_func = @imdb_eval_icub;   %ELISA changed
   imdb.roidb_func = @roidb_from_icub; %ELISA changed
   imdb.image_at = @(i)sprintf('%s/%s.%s', imdb.image_dir, imdb.image_ids{i}, imdb.extension);
 

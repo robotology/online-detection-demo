@@ -1,9 +1,10 @@
-function [ rcnn_model ] = Faster_with_FALKON_train_randBKG_miniBootstrap(train_options, config, cnn_model, imdb, negatives_selection, rebalancing, fid, varargin )
+function [ rcnn_model ] = Faster_with_FALKON_demo_experiments_train(train_options, config, cnn_model, imdb, negatives_selection, rebalancing, fid, varargin )
 
 %% Parse inputs
 ip = inputParser;
 ip.addRequired('imdb',                                               @isstruct);
 ip.addRequired('negatives_selection',                                @isstruct);
+
 ip.addParamValue('layer',               7,                           @isscalar);
 ip.addParamValue('checkpoint',          0,                           @isscalar);
 ip.addParamValue('cache_name',          'feature_extraction_cache',  @isstr);
@@ -12,12 +13,11 @@ ip.addParamValue('rebal_alpha',         0.5,                         @isscalar);
 ip.parse(imdb, negatives_selection, varargin{:});
 opts = ip.Results;
 
-opts.negatives_selection = negatives_selection;
-opts.train_classifier_options = train_options;
+opts.negatives_selection             = negatives_selection;
+opts.train_classifier_options        = train_options;
 opts.train_classifier_options.kernel = gaussianKernel(opts.train_classifier_options.sigma); 
-
-opts.net_file = cnn_model.binary_file;
-opts.net_def_file = cnn_model.net_def_file;
+opts.net_file                        = cnn_model.binary_file;
+opts.net_def_file                    = cnn_model.net_def_file;
 
 %% Negative selection options
  if strcmp(opts.negatives_selection.policy, 'all_from_M')
@@ -51,9 +51,9 @@ else
 end
 
 %% Configure options
-conf = rcnn_config('sub_dir', imdb.name);
+conf           = rcnn_config('sub_dir', imdb.name);
 conf.cache_dir = train_options.cache_dir;
-conf.use_gpu =   config.use_gpu;
+conf.use_gpu   = config.use_gpu;
 
 fprintf('\n\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n');
 fprintf('Training options:\n');
@@ -61,7 +61,7 @@ disp(opts);
 fprintf('~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n');
 
 %% Create a new rcnn model
-rcnn_model = gurls_create_model(opts.net_def_file, opts.net_file, opts.cache_name);
+rcnn_model         = gurls_create_model(opts.net_def_file, opts.net_file, opts.cache_name);
 rcnn_model.classes = imdb.classes;
 
 [opts.mean_norm, opts.standard_deviation, opts.mean_feat] = extract_feature_statistics(imdb, opts.layer, rcnn_model);
@@ -69,7 +69,7 @@ rcnn_model.classes = imdb.classes;
 rcnn_model.training_opts = opts;
 
 %% Get all positive examples
-save_file = sprintf('./feat_cache/%s/%s/gt_pos_layer_5_cache.mat', rcnn_model.cache_name, imdb.name);
+save_file = sprintf('./feat_cache/%s/%s/gt_positives.mat', rcnn_model.cache_name, imdb.name);
 
 try
   load(save_file);
@@ -78,20 +78,21 @@ catch
   [X_pos, keys_pos] = get_positive_features(imdb, opts);
   save(save_file, 'X_pos', 'keys_pos', '-v7.3');
 end
+
 % Init training caches with positive samples
 caches = {};
 for i = imdb.class_ids
   fprintf('%14s has %6d positive instances\n', imdb.classes{i}, size(X_pos{i},1));
   fprintf(fid, '%14s has %6d positive instances\n', imdb.classes{i}, size(X_pos{i},1));
-  X_pos{i} = zscores_standardization(X_pos{i}, opts.standard_deviation, opts.mean_feat, opts.mean_norm);
-%   X_pos{i}=rcnn_scale_features_try_try(X_pos{i},opts.mean_norm, opts.train_classifier_options.target_norm);
+
+  X_pos{i}  = zscores_standardization(X_pos{i}, opts.standard_deviation, opts.mean_feat, opts.mean_norm);
   caches{i} = init_cache(X_pos{i}, keys_pos{i});
 end
 
 %% Get negative examples
-save_file_negative = sprintf('./feat_cache/%s/%s/gt_neg_cache_bootStrap_size%d_iters%d.mat', ...
+save_file_negative = sprintf('./feat_cache/%s/%s/gt_negatives_bootStrap_size%d_iters%d.mat', ...
                               rcnn_model.cache_name, imdb.name, negatives_selection.btstr_size ,negatives_selection.iterations);
-evict_easy_thresh = -0.6;
+evict_easy_thresh  = -0.6;
 select_hard_thresh = -0.5;
 
 try
@@ -101,14 +102,12 @@ catch
   [X_neg, keys_neg] = get_negatives_features(imdb, opts);
   save(save_file_negative, 'X_neg', 'keys_neg', '-v7.3');
 end
+
 % Update training caches with negative samples
 for i = imdb.class_ids
   for j = 1:opts.negatives_selection.iterations
       fprintf('%14s has %6d negative instances for the %dth batch\n', imdb.classes{i}, size(X_neg{i}{j},1), j);
       fprintf(fid, '%14s has %6d negative instances for the %dth batch\n', imdb.classes{i}, size(X_neg{i}{j},1), j);
-%       idx = [1:2:5000];
-%       X_neg{i}{j} = X_neg{i}{j}(idx,:);
-%       keys_neg{i}{j} = keys_neg{i}{j}(idx,:);
       X_neg{i}{j} = zscores_standardization(X_neg{i}{j}, opts.standard_deviation, opts.mean_feat,  opts.mean_norm);
   end
 end
@@ -119,23 +118,24 @@ for j = imdb.class_ids
     first_time = true;
     for b = 1:opts.negatives_selection.iterations
         if first_time           
-            caches{j}.X_neg =  X_neg{j}{b};
+            caches{j}.X_neg    =  X_neg{j}{b};
             caches{j}.keys_neg = keys_neg{j}{b};
+            first_time         = false;
             fprintf('  Cache holds %d pos examples %d neg examples\n', ...
                     size(caches{j}.X_pos,1), size(caches{j}.X_neg,1));
-            first_time = false;
         else
             X_neg_GPU = gpuArray(X_neg{j}{b});
-            z_neg = KtsProd_onGPU(X_neg_GPU,  rcnn_model.detectors.models{j}.opts.C, ...
+            z_neg     = KtsProd_onGPU(X_neg_GPU,  rcnn_model.detectors.models{j}.opts.C, ...
                             rcnn_model.detectors.models{j}.alpha, 1, rcnn_model.detectors.models{j}.opts.kernel);
                         
             z_neg = z_neg(:,2);
-            hard = find(z_neg > select_hard_thresh);
+            hard  = find(z_neg > select_hard_thresh);
                        
-            caches{j}.X_neg = cat(1, caches{j}.X_neg, X_neg{j}{b}(hard,:));
+            caches{j}.X_neg    = cat(1, caches{j}.X_neg, X_neg{j}{b}(hard,:));
             caches{j}.keys_neg =  cat(1, caches{j}.keys_neg, keys_neg{j}{b}(hard,:));
+
             fprintf('  After selecting hard, Cache holds %d pos examples %d neg examples\n', ...
-                    size(caches{j}.X_pos,1), size(caches{j}.X_neg,1));
+                       size(caches{j}.X_pos,1), size(caches{j}.X_neg,1));
             fprintf('  Selected hard negatives\n');
             
            
@@ -145,17 +145,18 @@ for j = imdb.class_ids
         rcnn_model.detectors.models{j} = model;
         fprintf('  Pruning easy negatives\n');           
         new_X_neg_GPU = gpuArray(caches{j}.X_neg);
-        new_z_neg = KtsProd_onGPU(new_X_neg_GPU,  rcnn_model.detectors.models{j}.opts.C, ...
+        new_z_neg     = KtsProd_onGPU(new_X_neg_GPU,  rcnn_model.detectors.models{j}.opts.C, ...
                         rcnn_model.detectors.models{j}.alpha, 1, rcnn_model.detectors.models{j}.opts.kernel);
 
         new_z_neg = new_z_neg(:,2);
         easy = find(new_z_neg < evict_easy_thresh);
-        caches{j}.X_neg(easy,:) = [];
+        caches{j}.X_neg(easy,:)    = [];
         caches{j}.keys_neg(easy,:) = [];
         fprintf('  Cache holds %d pos examples %d neg examples\n', ...
                 size(caches{j}.X_pos,1), size(caches{j}.X_neg,1));
     end
 end
+
 fprintf('time required for training %d models: %f seconds\n',length(imdb.class_ids), toc(train_time));
 fprintf(fid, 'time required for training %d models: %f seconds\n',length(imdb.class_ids), toc(train_time));
 
@@ -257,7 +258,6 @@ end
 end
 
 function [X_neg, keys] = get_negatives_features(imdb, opts)
-   
     
     %Select negatives using policy
     switch opts.negatives_selection.policy
@@ -407,8 +407,8 @@ cache.keys_pos = keys_pos;
 cache.num_added = 0;
 cache.retrain_limit = 2000;
 %CHANGED THRESHOLD
-cache.evict_thresh = -1;
-cache.hard_thresh = -0.7;
+%cache.evict_thresh = -1;
+%cache.hard_thresh = -0.7;
 % cache.evict_thresh = -1.2;
 % cache.hard_thresh = -1.0001;
 cache.pos_loss = [];

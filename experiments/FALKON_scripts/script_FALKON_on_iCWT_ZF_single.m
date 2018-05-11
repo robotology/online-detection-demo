@@ -10,7 +10,7 @@ dataset.TASK2.roidb_train  = cellfun(@(x, y) Faster_RCNN_Train.do_proposal_test(
 % features extraction
 cellfun(@(x, y) Incremental_Faster_RCNN_Train.do_extract_features(conf_fast_rcnn, model.feature_extraction, feature_layer, x, y), ...
                                                                           dataset.TASK2.imdb_train, dataset.TASK2.roidb_train); 
-
+% model.stage2_rpn.nms                  = 300;
 % region proposals generation
 dataset.TASK2.roidb_test = cellfun(@(x, y) Faster_RCNN_Train.do_proposal_test(conf_proposal, model.stage2_rpn , output_dir, x, y), ...
                                                                           dataset.TASK2.imdb_test, dataset.TASK2.roidb_test, 'UniformOutput', false);
@@ -44,6 +44,10 @@ addpath('./datasets/VOCdevkit2007/VOCdevkit/VOCcode_incremental');
 
 % load([pwd  '/Demo/Models/cls_model.mat']);
 % load([pwd  '/Demo/Models/bbox_model.mat']);
+model_cls = model.classifiers.falkon;
+save('classifier.mat', 'model_cls');
+model_bbox=model.bbox_regressors;
+save('bbox_model.mat', 'model_bbox');
 
 % TEST
 rmdir(boxes_dir,'s');
@@ -54,7 +58,7 @@ res_cls = cellfun(@(x) Incremental_Faster_RCNN_Train.do_classifiers_test(train_c
                                                                   model.classifiers.falkon{1}, x, fid), dataset.TASK2.imdb_test, 'UniformOutput', false);
 
 % test regressors
-res_reg = cellfun(@(x) Incremental_Faster_RCNN_Train.do_regressor_test(conf_fast_rcnn,bbox_model, model.feature_extraction, x, fid), ...
+res_reg = cellfun(@(x) Incremental_Faster_RCNN_Train.do_regressor_test(conf_fast_rcnn,model_bbox, model.feature_extraction, x, fid), ...
                                                                   dataset.TASK2.imdb_test, 'UniformOutput', false);
 
 end

@@ -22,7 +22,7 @@ imageSender.close();
 annotationSender.close();
 
 % open the ports 
-imageSender.open('/DataSender:imagess:o');
+imageSender.open('/icub/camcalib/left/out');
 disp('opened port /images:o');
 pause(0.5);
 
@@ -33,15 +33,15 @@ pause(0.5);
 load('/home/IIT.LOCAL/emaiettini/workspace/Repos/Incremental_Faster_RCNN/Demo/Helper_function/annotations_train_TASK2_10objs.mat')
 
 %% -------------------- DATASET --------------------
-current_path = pwd;
-dataset_path = [current_path '/datasets/iCubWorld-Transformations/'];
-image_set = 'train_TASK2_10objs';
+% current_path = pwd;
+dataset_path = '/home/IIT.LOCAL/emaiettini/workspace/Datasets/Demo_data/';
+image_set = 'train_for_exp_demo_5objs';
 
 image_ids = importdata([dataset_path, 'ImageSets/', image_set, '.txt']);
 
 %% -------------------- START PREDICTION --------------------
-h=480;
-w=640;
+h=240;
+w=320;
 pixSize = 3;
 tool=yarp.matlab.YarpImageHelper(h, w);
 for j = 1:length(image_ids)

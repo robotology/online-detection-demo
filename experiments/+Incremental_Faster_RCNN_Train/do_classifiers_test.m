@@ -1,4 +1,10 @@
-function [ mAP ] = do_classifiers_test(cache_dir, conf, suffix, cls_mod , model, imdb, fid)
+function [ mAP ] = do_classifiers_test(cache_dir, conf, suffix, cls_mod , model, imdb, fid, varargin)
+%% Parse inputs
+ip = inputParser;
+ip.addParamValue('num_of_reg',    300, @isscalar);
+
+ip.parse(varargin{:});
+opts = ip.Results;
 
 switch cls_mod
   case 'SVMs'
@@ -19,6 +25,8 @@ switch cls_mod
     mAP = Faster_with_FALKON_test_fullBootstrap(model, conf, imdb, suffix, fid);
   case {'rls_falkon_miniBootstrap'}
     mAP = Faster_with_FALKON_test_try_try(model, conf, imdb, suffix, fid);
+  case {'rls_falkon_miniBootstrap_demo'}
+    mAP = Faster_with_FALKON_miniBootstrap_test_exp_for_demo( model, conf, imdb, suffix, fid,  opts.num_of_reg);
   case {'rls_falkon_no_norm'}
     mAP = Faster_with_FALKON_test_no_norm(model, conf, imdb, suffix, fid);  
   case 'incremental'

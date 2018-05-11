@@ -65,6 +65,13 @@ switch cls_mod
         
         model_classifier = Faster_with_FALKON_train_randBKG_miniBootstrap(options, conf, cnn_model, imdb_train, negatives_selection,...
                                                          rebalancing, fpid,'rebal_alpha', rebal_alpha, 'cache_name', cnn_model.cache_name);
+    case {'rls_falkon_miniBootstrap_demo'}
+        fprintf('rls classifier with FALKON for demo implementation chosen \n')
+        
+        rebalancing = false;
+        
+        model_classifier = Faster_with_FALKON_train_randBKG_miniBootstrap(options, conf, cnn_model, imdb_train, negatives_selection,...
+                                                         rebalancing, fpid,'rebal_alpha', rebal_alpha, 'cache_name', cnn_model.cache_name);
     case {'rls_falkon_fullBootstrap'}
         fprintf('rls classifier with FALKON implementation chosen \n')
         

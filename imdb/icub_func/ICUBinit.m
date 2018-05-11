@@ -28,7 +28,7 @@ ICUBopts.testset='val'; % use validation data for development test set
 
 ICUBopts.annopath=[ICUBopts.datadir '/Annotations/%s.xml'];
 ICUBopts.imgpath=[ICUBopts.datadir 'Images/%s.jpg'];
-ICUBopts.imgsetpath=[ICUBopts.datadir '/ImageSets/%s.txt'];
+ICUBopts.imgsetpath=[ICUBopts.datadir 'ImageSets/%s.txt'];
 ICUBopts.clsimgsetpath=[ICUBopts.datadir '/ImageSets/%s_%s.txt'];
 ICUBopts.clsrespath=[ICUBopts.resdir 'Main/%s_cls_' ICUBopts.testset '_%s.txt'];
 ICUBopts.detrespath=[ICUBopts.resdir 'Main/%s_det_' ICUBopts.testset '_%s.txt'];
