@@ -74,8 +74,8 @@ train_classifier_options.cross_validation = struct;
 train_classifier_options.cross_validation.required = true;
 
 negatives_selection.policy = 'bootStrap';
-negatives_selection.btstr_size = 2500;
-negatives_selection.iterations = 4;
+negatives_selection.btstr_size = 1500;
+negatives_selection.iterations = 10;
 rebalancing = 'inv_freq';
 
 %FALKON options -----------------------------------------------------------------------------------------------------------
@@ -83,4 +83,4 @@ train_classifier_options.cache_dir = '';
 train_classifier_options.memToUse = 10;          % GB of memory to use (using "[]" will allow the machine to use all the free memory)
 train_classifier_options.useGPU = 1;             % flag for using or not the GPU
 train_classifier_options.T= 150;
-train_classifier_options.M=4000;
+train_classifier_options.M=250;

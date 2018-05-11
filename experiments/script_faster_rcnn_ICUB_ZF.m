@@ -1,4 +1,4 @@
-function script_faster_rcnn_ICUB_ZF(gpu_id)
+function script_faster_rcnn_ICUB_ZF()
 
 clc;
 clear mex;
@@ -6,35 +6,35 @@ clear is_valid_handle; % to clear init_key
 run(fullfile(fileparts(fileparts(mfilename('fullpath'))), 'startup'));
 %% -------------------- CONFIG --------------------
 opts.caffe_version          = 'caffe_faster_rcnn';
-opts.gpu_id                 = gpu_id;
+opts.gpu_id                 = 1;
 active_caffe_mex(opts.gpu_id, opts.caffe_version);
 addpath('./datasets/VOCdevkit2007/VOCdevkit/VOCcode_incremental');
 
 % do validation, or not 
 opts.do_val                 = false;
 % model
-model                       = Model.ZF_for_Faster_RCNN_ICUB_10objs;
+model                       = Model.ZF_for_Faster_RCNN_ICUB_20objs;
 % cache base
 cache_base_proposal         = 'faster_rcnn_ICUB_ZF';
 cache_base_fast_rcnn        = '';
 %dataset
 dataset.TASK1                     = [];
 use_flipped                 = false;
-imdb_cache_name = 'cache_iCWT_TASK1_10objs';
+imdb_cache_name = 'cache_iCWT_features_20objs';
 mkdir(['imdb/' imdb_cache_name]);
 % chosen_classes = {'cellphone1','cellphone2', 'mouse2', 'mouse5', 'perfume1', 'perfume4', ...
 %                   'remote4', 'remote5', 'soapdispenser1', 'soapdispenser4', 'sunglasses4', ...
 %                   'sunglasses5',  'glass6', 'glass8', 'hairbrush1', 'hairbrush4', 'ovenglove1', ...
 %                   'ovenglove7', 'squeezer5', 'squeezer8'};
-chosen_classes = {'cellphone1', 'mouse2', 'perfume1', ...
-                  'remote4', 'soapdispenser1', ...
-                  'sunglasses5',  'glass8', 'hairbrush4', 'ovenglove1', ...
-                  'squeezer5'};              
-dataset.TASK1                     = Dataset.icub_dataset(dataset.TASK1, 'train', use_flipped, imdb_cache_name, 'train_TASK1_10objs', chosen_classes);
-dataset.TASK1                     = Dataset.icub_dataset(dataset.TASK1, 'test', false, imdb_cache_name, 'test_TASK1_10objs', chosen_classes);
-output_dir                        = 'output_iCWT_TASK1_10objs_40k20k_newBatchSize';
+chosen_classes = {'mug3', 'pencilcase3', 'pencilcase9', 'ringbinder4', 'ringbinder5',...
+                  'wallet7', 'flower5', 'flower9', 'book6', 'book8', 'bodylotion2', ...
+                  'bodylotion8','glass8', 'hairclip2', 'hairclip10', 'sprayer9', ...
+                  'squeezer1', 'squeezer2', 'perfume1', 'soapdispenser8'};              
+dataset.TASK1                     = Dataset.icub_dataset(dataset.TASK1, 'train', use_flipped, imdb_cache_name, 'train_iCWT_TASK2_20objs', chosen_classes);
+% dataset.TASK1                     = Dataset.icub_dataset(dataset.TASK1, 'test', false, imdb_cache_name, 'test_TASK1_10objs', chosen_classes);
+output_dir                        = 'output_iCWT_features_20objs';
 dataset.TASK1.imdb_train{1}.removed_classes={};
-dataset.TASK1.imdb_test{1}.removed_classes={};
+% dataset.TASK1.imdb_test{1}.removed_classes={};
 %% -------------------- TRAIN --------------------
 % conf
 fprintf('preparing configurations...\n');
@@ -81,10 +81,10 @@ model.stage2_fast_rcnn      = Faster_RCNN_Train.do_fast_rcnn_train(conf_fast_rcn
 fprintf('\n***************\nfinal test\n***************\n');
 model.stage2_rpn.nms        = model.final_test.nms;
 fprintf('saving workspace...');
-save('workspaces/ZF_iCWT_TASK1', '-v7.3');
+save('workspaces/ZF_iCWT_features_new', '-v7.3');
 
 fprintf('saving models...');
-%Faster_RCNN_Train.gather_rpn_fast_rcnn_models(conf_proposal, conf_fast_rcnn, model, dataset.TASK1);
+Faster_RCNN_Train.gather_rpn_fast_rcnn_models(conf_proposal, conf_fast_rcnn, model, dataset.TASK1, output_dir);
 
 if isstruct(dataset.TASK1.roidb_test)
    tmp_roi = dataset.TASK1.roidb_test;
