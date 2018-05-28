@@ -193,12 +193,12 @@ public:
         // read images from ports
         yarp::sig::ImageOf<yarp::sig::PixelFloat> *float_in_yarp=depthPort.read();
 
-        yarp::sig::ImageOf<yarp::sig::PixelRgb> *rgb_in_yarp = imageInPort.read();
+        //yarp::sig::ImageOf<yarp::sig::PixelRgb> *rgb_in_yarp = imageInPort.read();
         
         depth = *float_in_yarp;
 
         // prepare ports
-        yarp::sig::ImageOf<yarp::sig::PixelRgb>  &rgb_out_yarp  = imageOutPort.prepare();
+        //yarp::sig::ImageOf<yarp::sig::PixelRgb>  &rgb_out_yarp  = imageOutPort.prepare();
         yarp::sig::ImageOf<yarp::sig::PixelMono> &mono_out_yarp  = depthImageOutPort.prepare();
         yarp::os::Bottle &target  = targetPort.prepare();
 
@@ -212,7 +212,7 @@ public:
             internalElements = data.get(0).asList()->get(0).asList()->size();
         }
 
-        rgb_out_yarp = *rgb_in_yarp;
+        //rgb_out_yarp = *rgb_in_yarp;
 
         //convert float image
         cv::Mat float_cv = cv::cvarrToMat((IplImage *)float_in_yarp->getIplImage());
@@ -221,18 +221,14 @@ public:
         float_cv -= minVal;
         float_cv.convertTo(mono_cv, CV_8U, 255.0/(maxVal-minVal) );
 
-        cv::Mat img_cv(float_in_yarp->height(), float_in_yarp->width(), CV_8UC1, cv::Scalar(255));
+        cv::Mat mono_img_cv(float_in_yarp->height(), float_in_yarp->width(), CV_8UC1, cv::Scalar(255));
 
-        img_cv = img_cv - mono_cv;
+        mono_img_cv = mono_img_cv - mono_cv;
 
         cv::Mat mask;
-        inRange(img_cv, cv::Scalar(255), cv::Scalar(255), mask);
-        cv::Mat black_image(img_cv.size(), CV_8U, cv::Scalar(0));
-        black_image.copyTo(img_cv, mask);
-
-        IplImage ipltemp=img_cv;
-        mono_out_yarp.resize(ipltemp.width, ipltemp.height);
-        cvCopy( &ipltemp, (IplImage *) mono_out_yarp.getIplImage());
+        inRange(mono_img_cv, cv::Scalar(255), cv::Scalar(255), mask);
+        cv::Mat black_image(mono_img_cv.size(), CV_8U, cv::Scalar(0));
+        black_image.copyTo(mono_img_cv, mask);
         
         std::vector<cv::Point> neck2D;
         std::vector<cv::Point> nose2D;
@@ -330,7 +326,7 @@ public:
             }
         }
 
-        cv::Mat out_cv = cv::cvarrToMat((IplImage *)rgb_out_yarp.getIplImage());
+        //cv::Mat out_cv = cv::cvarrToMat((IplImage *)rgb_out_yarp.getIplImage());
 
         //need this increment as case might be that skeleton does not satisfy conditions to fill in bottle
         int increment = 0;
@@ -427,7 +423,7 @@ public:
                     
                     if (leftWrist2D[i].x > 0 && leftWrist2D[i].y > 0)
                     {
-                        circle(out_cv, cv::Point(leftWrist2D[i].x, leftWrist2D[i].y), 6, colourHands, CV_FILLED, 8, 0);
+                        //circle(out_cv, cv::Point(leftWrist2D[i].x, leftWrist2D[i].y), 6, colourHands, CV_FILLED, 8, 0);
                         if (getPoint3D(leftWrist2D[i].x, leftWrist2D[i].y, pLeft))
                         {
                             point3D.x = pLeft[0];
@@ -454,7 +450,7 @@ public:
 
                     if (rightWrist2D[i].x > 0 && rightWrist2D[i].y > 0)
                     {
-                        circle(out_cv, cv::Point(rightWrist2D[i].x, rightWrist2D[i].y), 6, colourHands, CV_FILLED, 8, 0);
+                        //circle(out_cv, cv::Point(rightWrist2D[i].x, rightWrist2D[i].y), 6, colourHands, CV_FILLED, 8, 0);
                         if (getPoint3D(rightWrist2D[i].x, rightWrist2D[i].y, pRight))
                         {
                             point3D.x = pRight[0];
@@ -479,7 +475,7 @@ public:
                     }
                     if (leftElbow2D[i].x > 0 && leftElbow2D[i].y > 0)
                     {
-                        circle(out_cv, cv::Point(leftElbow2D[i].x, leftElbow2D[i].y), 3, colourHands, CV_FILLED, 8, 0);
+                        //circle(out_cv, cv::Point(leftElbow2D[i].x, leftElbow2D[i].y), 3, colourHands, CV_FILLED, 8, 0);
                         if (getPoint3D(leftElbow2D[i].x, leftElbow2D[i].y, pRight))
                         {
                             point3D.x = pRight[0];
@@ -505,7 +501,7 @@ public:
                     
                     if (rightElbow2D[i].x > 0 && rightElbow2D[i].y > 0)
                     {
-                        circle(out_cv, cv::Point(rightElbow2D[i].x, rightElbow2D[i].y), 3, colourHands, CV_FILLED, 8, 0);
+                        //circle(out_cv, cv::Point(rightElbow2D[i].x, rightElbow2D[i].y), 3, colourHands, CV_FILLED, 8, 0);
                         if (getPoint3D(rightElbow2D[i].x, rightElbow2D[i].y, pRight))
                         {
                             point3D.x = pRight[0];
@@ -616,6 +612,8 @@ public:
         cv::Point elbow;
 
         yDebug() << "NECK size " << neck3D.size();
+        
+        cv::Mat cleanedImg (float_in_yarp->height(), float_in_yarp->width(), CV_8UC1, cv::Scalar(0));
 
         for (int i = 0; i < neck3D.size(); i++)
         {
@@ -678,8 +676,8 @@ public:
                     if (isLeft)
                     {
                         yDebug() << "SHOULD LOOK AT LEFT HAND";
-                        circle(out_cv, cv::Point(neck2D[i].x, neck2D[i].y), 6, cv::Scalar(0,76, 153), CV_FILLED, 8, 0);
-                        circle(out_cv, cv::Point(leftWrist2D[i].x, leftWrist2D[i].y), 6, cv::Scalar(255,255,255), CV_FILLED, 8, 0);
+                        //circle(out_cv, cv::Point(neck2D[i].x, neck2D[i].y), 6, cv::Scalar(0,76, 153), CV_FILLED, 8, 0);
+                        //circle(out_cv, cv::Point(leftWrist2D[i].x, leftWrist2D[i].y), 6, cv::Scalar(255,255,255), CV_FILLED, 8, 0);
                         hand.x = leftWrist2D[i].x;
                         hand.y = leftWrist2D[i].y;
                         elbow.x = leftElbow2D[i].x;
@@ -689,8 +687,8 @@ public:
                     else if (isRight)
                     {
                         yDebug() << "SHOULD LOOK AT RIGHT HAND";
-                        circle(out_cv, cv::Point(neck2D[i].x, neck2D[i].y), 6, cv::Scalar(0,76, 153), CV_FILLED, 8, 0);
-                        circle(out_cv, cv::Point(rightWrist2D[i].x, rightWrist2D[i].y), 6, cv::Scalar(255,255,255), CV_FILLED, 8, 0);
+                        //circle(out_cv, cv::Point(neck2D[i].x, neck2D[i].y), 6, cv::Scalar(0,76, 153), CV_FILLED, 8, 0);
+                        //circle(out_cv, cv::Point(rightWrist2D[i].x, rightWrist2D[i].y), 6, cv::Scalar(255,255,255), CV_FILLED, 8, 0);
                         hand.x = rightWrist2D[i].x;
                         hand.y = rightWrist2D[i].y;
                         elbow.x = rightElbow2D[i].x;
@@ -702,15 +700,15 @@ public:
             }
         }
 
-        /*if (hand.x > 0 && hand.y > 0)
+        if (hand.x > 0 && hand.y > 0)
         {
             int chosenValue = -1;
 
-            double value = out_depth_cv.at<uchar>(hand);
+            double value = mono_img_cv.at<uchar>(hand);
             yDebug() << "VALUE IS " << value << "at " << hand.x << hand.y ;
             int maxValThreshed = (value - 3);
-            cv::Mat cleanedImg;
-            cv::threshold(out_depth_cv, cleanedImg, maxValThreshed, 255, cv::THRESH_BINARY);
+            
+            cv::threshold(mono_img_cv, cleanedImg, maxValThreshed, 255, cv::THRESH_BINARY);
 
             std::vector<std::vector<cv::Point> > cnt;
             std::vector<cv::Vec4i> hrch;
@@ -734,18 +732,16 @@ public:
                 yInfo() << "MOMENTS" << mc[x].x << hand.x << abs(hand.x-mc[x].x);
                 yInfo() << "AREA" << contourArea(cnt[x]) ;
 
-                if ( abs(hand.x-mc[x].x) < 30 && contourArea(cnt[x]) > 300 && contourArea(cnt[x]) < 6000)
+                if ( abs(hand.x-mc[x].x) < 50 && contourArea(cnt[x]) > 300 && contourArea(cnt[x]) < 5000)
                 {
                     chosenValue = x;
                     yDebug() << "******************" << chosenValue;
                 }
-
             }
 
             if (chosenValue >= 0)
             {
-
-                cv::Mat overlayFrame;
+                /*cv::Mat overlayFrame;
                 out_cv.copyTo(overlayFrame);
                 cv::drawContours( overlayFrame, cnt, chosenValue, cvScalar(0, 102, 0), CV_FILLED, 8, hrch, 0, cv::Point() );
                 double opacity = 0.4;
@@ -753,11 +749,13 @@ public:
 
                 circle(out_cv, mc[chosenValue], 3, cv::Scalar(0, 255, 0), -1, 8, 0);
                 //cv::drawContours( out_cv, cnt, chosenValue, cvScalar(160, 160, 160), CV_FILLED, 8, hrch, 0, cv::Point() );
+                 */
                 approxPolyDP( cv::Mat(cnt[chosenValue]), contours_poly[chosenValue], 3, true );
                 boundRect[chosenValue] = boundingRect( cv::Mat(contours_poly[chosenValue]) );
-
-                cv::rectangle(out_cv, boundRect[chosenValue].tl(), boundRect[chosenValue].br(), cv::Scalar( 224, 224, 224), 2, 8);
+                 
+                cv::rectangle(mono_img_cv, boundRect[chosenValue].tl(), boundRect[chosenValue].br(), cv::Scalar( 255, 255, 255), 2, 8);
                 yarp::os::Bottle tmp;
+                 
 
                 yDebug() << "will clear vector of size " << shapes.size() ;
                 shapes.clear();
@@ -816,15 +814,16 @@ public:
                         tmp.addInt(shapes[elements[i].second].get(3).asInt());
                     }
                 }
-
                 //targetPort.write();
             }
-        }*/
+        }
+        
+        IplImage ipltemp=mono_img_cv;
+        mono_out_yarp.resize(ipltemp.width, ipltemp.height);
+        cvCopy( &ipltemp, (IplImage *) mono_out_yarp.getIplImage());
         
         depthImageOutPort.write();
         imageOutPort.write();
-        //blobPort.write();
-
     }
 };
 
