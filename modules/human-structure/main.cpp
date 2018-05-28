@@ -489,9 +489,7 @@ public:
                     }
                 }
                 
-                /*yarp::os::Bottle tmp;
-                yInfo() << "###########";
-                yInfo() << topLeft.x << topLeft.y << bottomRight.x << bottomRight.y;
+                yarp::os::Bottle tmp;
 
                 if (topLeft.x < bottomRight.x && topLeft.y < bottomRight.y)
                 {
@@ -499,7 +497,7 @@ public:
                     tmp.addInt(topLeft.y);
                     tmp.addInt(bottomRight.x);
                     tmp.addInt(bottomRight.y);
-                    yInfo() << "IN NORMAL" << tmp.toString();
+                    //yInfo() << "IN NORMAL" << tmp.toString();
                     elements.push_back(std::make_pair(topLeft.x,increment));
                     shapes.push_back(tmp);
                     increment++;
@@ -510,8 +508,8 @@ public:
                     tmp.addInt(topLeft.y);
                     tmp.addInt(bottomRight.x);
                     tmp.addInt(bottomRight.y);
-                    yError() << "WTF NORMAL" << tmp.toString();
-                }*/
+                    //yError() << "WTF NORMAL" << tmp.toString();
+                }
             }
             else
             {
@@ -669,7 +667,7 @@ public:
                 mu[x] = moments( cnt[x], false );
                 mc[x] = cv::Point2f( mu[x].m10/mu[x].m00 , mu[x].m01/mu[x].m00 );
 
-                if ( abs(hand.x-mc[x].x) < 50 && contourArea(cnt[x]) > 300 && contourArea(cnt[x]) < 5000)
+                if ( abs(hand.x-mc[x].x) < 100 && contourArea(cnt[x]) > 300 && contourArea(cnt[x]) < 5000)
                 {
                     chosenValue = x;
                 }
@@ -737,7 +735,7 @@ public:
                         tmp.addInt(shapes[elements[i].second].get(3).asInt());
                     }
                 }
-                //targetPort.write();
+                targetPort.write();
             }
         }
         
@@ -747,6 +745,7 @@ public:
         
         depthImageOutPort.write();
         imageOutPort.write();
+        blobPort.write();
     }
 };
 
