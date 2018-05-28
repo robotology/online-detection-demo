@@ -43,7 +43,6 @@ class Processing : public yarp::os::BufferedPort<yarp::os::Bottle>
     std::string moduleName;
 
     yarp::os::RpcServer handlerPort;
-    yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> >    imageInPort;
     yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> >    imageOutPort;
     yarp::os::BufferedPort<yarp::os::Bottle >    targetPort;
     yarp::os::BufferedPort<yarp::os::Bottle >    blobPort;
@@ -83,7 +82,6 @@ public:
         this->useCallback();
 
         BufferedPort<yarp::os::Bottle >::open( "/" + moduleName + "/skeleton:i" );
-        imageInPort.open("/" + moduleName + "/image:i");
         imageOutPort.open("/" + moduleName + "/image:o");
         targetPort.open("/" + moduleName + "/target:o");
         blobPort.open("/" + moduleName + "/blobs:o");
@@ -92,7 +90,6 @@ public:
 		depthImageOutPort.open("/" + moduleName + "/depthImage:o");
 
         yarp::os::Network::connect("/yarpOpenPose/target:o", BufferedPort<yarp::os::Bottle >::getName().c_str(), "fast_tcp");
-        yarp::os::Network::connect("/yarpOpenPose/propag:o", imageInPort.getName().c_str(), "fast_tcp");
         yarp::os::Network::connect(imageOutPort.getName().c_str(), "/viewer/structure", "fast_tcp");
         yarp::os::Network::connect(camPort.getName().c_str(), "/depthCamera/rpc:i", "fast_tcp");
         yarp::os::Network::connect("/depthCamera/depthImage:o", depthPort.getName().c_str(), "fast_tcp");
@@ -115,7 +112,6 @@ public:
     void close()
     {
         imageOutPort.close();
-        imageInPort.close();
         BufferedPort<yarp::os::Bottle >::close();
         targetPort.close();
         blobPort.close();
@@ -129,7 +125,6 @@ public:
     {
         BufferedPort<yarp::os::Bottle >::interrupt();
         imageOutPort.interrupt();
-        imageInPort.interrupt();
         targetPort.interrupt();
         blobPort.interrupt();
         camPort.interrupt();
@@ -186,23 +181,15 @@ public:
     /********************************************************/
     void onRead( yarp::os::Bottle &data )
     {
-
         if (!camera_configured)
             camera_configured=getCameraOptions();
 
-        // read images from ports
         yarp::sig::ImageOf<yarp::sig::PixelFloat> *float_in_yarp=depthPort.read();
-
-        //yarp::sig::ImageOf<yarp::sig::PixelRgb> *rgb_in_yarp = imageInPort.read();
-        
         depth = *float_in_yarp;
 
-        // prepare ports
-        //yarp::sig::ImageOf<yarp::sig::PixelRgb>  &rgb_out_yarp  = imageOutPort.prepare();
         yarp::sig::ImageOf<yarp::sig::PixelMono> &mono_out_yarp  = depthImageOutPort.prepare();
         yarp::os::Bottle &target  = targetPort.prepare();
 
-        //get skeletons
         int skeletonSize = data.get(0).asList()->size();
         int internalElements = 0;
 
@@ -211,8 +198,6 @@ public:
             target = data;
             internalElements = data.get(0).asList()->get(0).asList()->size();
         }
-
-        //rgb_out_yarp = *rgb_in_yarp;
 
         //convert float image
         cv::Mat float_cv = cv::cvarrToMat((IplImage *)float_in_yarp->getIplImage());
@@ -326,9 +311,6 @@ public:
             }
         }
 
-        //cv::Mat out_cv = cv::cvarrToMat((IplImage *)rgb_out_yarp.getIplImage());
-
-        //need this increment as case might be that skeleton does not satisfy conditions to fill in bottle
         int increment = 0;
         isHand = false;
 
@@ -392,18 +374,6 @@ public:
                     bottomRight.y = 1;
                 else if (bottomRight.y > 239)
                     bottomRight.y = 239;
-
-
-                cv::Scalar colour(0,76, 153);
-                cv::Scalar colourHands(51,255, 51);
-
-                //circle(out_cv, topLeft, 3, colour, 1, 8);
-                //circle(out_cv, bottomRight, 3, colour, 1, 8);
-                
-                //circle(out_cv, leftWrist2D[i], 6, colourHands, CV_FILLED, 8);
-                //circle(out_cv, rightWrist2D[i], 6, colourHands, CV_FILLED, 8);
-
-                //cv::rectangle(out_cv, topLeft, bottomRight, colour, 2, 8);
                 
                 yarp::sig::Vector pLeft;
                 yarp::sig::Vector pNeck;
@@ -411,8 +381,6 @@ public:
 
                 if (neck2D[i].x > 0 && neck2D[i].y > 0)
                 {
-                    //circle(out_cv, cv::Point(neck2D[i].x, neck2D[i].y), 7, colour, -1, 8);
-
                     if (getPoint3D(neck2D[i].x, neck2D[i].y, pNeck))
                     {
                         point3D.x = pNeck[0];
@@ -423,7 +391,6 @@ public:
                     
                     if (leftWrist2D[i].x > 0 && leftWrist2D[i].y > 0)
                     {
-                        //circle(out_cv, cv::Point(leftWrist2D[i].x, leftWrist2D[i].y), 6, colourHands, CV_FILLED, 8, 0);
                         if (getPoint3D(leftWrist2D[i].x, leftWrist2D[i].y, pLeft))
                         {
                             point3D.x = pLeft[0];
@@ -438,7 +405,6 @@ public:
                             point3D.z = 0.0;
                             leftWrist3D.push_back(point3D);
                         }
-
                     }
                     else
                     {
@@ -450,7 +416,6 @@ public:
 
                     if (rightWrist2D[i].x > 0 && rightWrist2D[i].y > 0)
                     {
-                        //circle(out_cv, cv::Point(rightWrist2D[i].x, rightWrist2D[i].y), 6, colourHands, CV_FILLED, 8, 0);
                         if (getPoint3D(rightWrist2D[i].x, rightWrist2D[i].y, pRight))
                         {
                             point3D.x = pRight[0];
@@ -475,7 +440,6 @@ public:
                     }
                     if (leftElbow2D[i].x > 0 && leftElbow2D[i].y > 0)
                     {
-                        //circle(out_cv, cv::Point(leftElbow2D[i].x, leftElbow2D[i].y), 3, colourHands, CV_FILLED, 8, 0);
                         if (getPoint3D(leftElbow2D[i].x, leftElbow2D[i].y, pRight))
                         {
                             point3D.x = pRight[0];
@@ -501,7 +465,6 @@ public:
                     
                     if (rightElbow2D[i].x > 0 && rightElbow2D[i].y > 0)
                     {
-                        //circle(out_cv, cv::Point(rightElbow2D[i].x, rightElbow2D[i].y), 3, colourHands, CV_FILLED, 8, 0);
                         if (getPoint3D(rightElbow2D[i].x, rightElbow2D[i].y, pRight))
                         {
                             point3D.x = pRight[0];
@@ -579,10 +542,6 @@ public:
                     else if (bottomRight.y > 239)
                         bottomRight.y = 239;
 
-                    //circle(out_cv, topLeft, 3, cv::Scalar(255, 0 , 0), 1, 8);
-
-                   // cv::rectangle(out_cv, topLeft, bottomRight, cv::Scalar( 255, 0, 0), 2, 8);
-
                     yarp::os::Bottle tmp;
 
                     if (topLeft.x < bottomRight.x && topLeft.y < bottomRight.y)
@@ -617,24 +576,13 @@ public:
 
         for (int i = 0; i < neck3D.size(); i++)
         {
-            yDebug() << "****************************************************************** Checking skeleton" << i;
             if (neck2D[i].x > 0)
             {
-                yDebug() << "2D LEFT HAND *************************************" << leftWrist2D[i].x << leftWrist2D[i].y;
-                yDebug() << "2D RIGHT HAND ************************************" << rightWrist2D[i].x << rightWrist2D[i].y;
-                yDebug() << "3D LEFT HAND *************************************" << leftWrist3D[i].x << leftWrist3D[i].y << leftWrist3D[i].z ;
-                yDebug() << "3D RIGHT HAND ************************************" << rightWrist3D[i].x << rightWrist3D[i].y << rightWrist3D[i].z ;
-                yDebug() << "3D LEFT ELBOW ************************************" << leftElbow3D[i].x << leftElbow3D[i].y << leftElbow3D[i].z ;
-                yDebug() << "3D RIGHT ELBOW ***********************************" << rightElbow3D[i].x << rightElbow3D[i].y << rightElbow3D[i].z ;
-                
                 bool isLeft = false;
                 bool isRight = false;
                 
                 double wristsDiff = fabs( leftWrist3D[i].z - rightWrist3D[i].z);
                 double elbowsDiff = fabs( leftElbow3D[i].z - rightElbow3D[i].z);
-                
-                yDebug() << "FABS HAND ****************************************" << wristsDiff;
-                yDebug() << "FABS ELBOW ***************************************" << elbowsDiff;
                 
                 if (neck3D[i].z > 0)
                 {
@@ -676,8 +624,6 @@ public:
                     if (isLeft)
                     {
                         yDebug() << "SHOULD LOOK AT LEFT HAND";
-                        //circle(out_cv, cv::Point(neck2D[i].x, neck2D[i].y), 6, cv::Scalar(0,76, 153), CV_FILLED, 8, 0);
-                        //circle(out_cv, cv::Point(leftWrist2D[i].x, leftWrist2D[i].y), 6, cv::Scalar(255,255,255), CV_FILLED, 8, 0);
                         hand.x = leftWrist2D[i].x;
                         hand.y = leftWrist2D[i].y;
                         elbow.x = leftElbow2D[i].x;
@@ -687,8 +633,6 @@ public:
                     else if (isRight)
                     {
                         yDebug() << "SHOULD LOOK AT RIGHT HAND";
-                        //circle(out_cv, cv::Point(neck2D[i].x, neck2D[i].y), 6, cv::Scalar(0,76, 153), CV_FILLED, 8, 0);
-                        //circle(out_cv, cv::Point(rightWrist2D[i].x, rightWrist2D[i].y), 6, cv::Scalar(255,255,255), CV_FILLED, 8, 0);
                         hand.x = rightWrist2D[i].x;
                         hand.y = rightWrist2D[i].y;
                         elbow.x = rightElbow2D[i].x;
@@ -705,7 +649,6 @@ public:
             int chosenValue = -1;
 
             double value = mono_img_cv.at<uchar>(hand);
-            yDebug() << "VALUE IS " << value << "at " << hand.x << hand.y ;
             int maxValThreshed = (value - 3);
             
             cv::threshold(mono_img_cv, cleanedImg, maxValThreshed, 255, cv::THRESH_BINARY);
@@ -715,51 +658,31 @@ public:
 
             findContours( cleanedImg, cnt, hrch, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE );
 
-            //outImageDepth.zero();
-
             std::vector<std::vector<cv::Point> > contours_poly( cnt.size() );
             std::vector<cv::Rect> boundRect( cnt.size() );
 
             std::vector<cv::Moments> mu(cnt.size() );
             std::vector<cv::Point2f> mc( cnt.size() );
-
-            yInfo() << "contour size" <<  cnt.size();
+            
             for (int x = 0; x < cnt.size(); x++)
             {
                 mu[x] = moments( cnt[x], false );
                 mc[x] = cv::Point2f( mu[x].m10/mu[x].m00 , mu[x].m01/mu[x].m00 );
 
-                yInfo() << "MOMENTS" << mc[x].x << hand.x << abs(hand.x-mc[x].x);
-                yInfo() << "AREA" << contourArea(cnt[x]) ;
-
                 if ( abs(hand.x-mc[x].x) < 50 && contourArea(cnt[x]) > 300 && contourArea(cnt[x]) < 5000)
                 {
                     chosenValue = x;
-                    yDebug() << "******************" << chosenValue;
                 }
             }
 
             if (chosenValue >= 0)
             {
-                /*cv::Mat overlayFrame;
-                out_cv.copyTo(overlayFrame);
-                cv::drawContours( overlayFrame, cnt, chosenValue, cvScalar(0, 102, 0), CV_FILLED, 8, hrch, 0, cv::Point() );
-                double opacity = 0.4;
-                cv::addWeighted(overlayFrame, opacity, out_cv, 1 - opacity, 0, out_cv);
-
-                circle(out_cv, mc[chosenValue], 3, cv::Scalar(0, 255, 0), -1, 8, 0);
-                //cv::drawContours( out_cv, cnt, chosenValue, cvScalar(160, 160, 160), CV_FILLED, 8, hrch, 0, cv::Point() );
-                 */
                 approxPolyDP( cv::Mat(cnt[chosenValue]), contours_poly[chosenValue], 3, true );
                 boundRect[chosenValue] = boundingRect( cv::Mat(contours_poly[chosenValue]) );
                  
                 cv::rectangle(mono_img_cv, boundRect[chosenValue].tl(), boundRect[chosenValue].br(), cv::Scalar( 255, 255, 255), 2, 8);
                 yarp::os::Bottle tmp;
-                 
-
-                yDebug() << "will clear vector of size " << shapes.size() ;
                 shapes.clear();
-                yDebug() << "vector is now cleared, size" << shapes.size();
 
                 tmp.addInt(boundRect[chosenValue].tl().x);
                 tmp.addInt(boundRect[chosenValue].tl().y);
@@ -772,15 +695,15 @@ public:
 
         if (elements.size()>0)
         {
-            for (int i=0; i<elements.size(); i++)
-                yInfo() << "Testing elements " << i << elements[i].first << elements[i].second;
+            //for (int i=0; i<elements.size(); i++)
+            //    yInfo() << "Testing elements " << i << elements[i].first << elements[i].second;
 
             std::sort(elements.begin(), elements.end());
 
-            for (int i=0; i<elements.size(); i++)
-                yInfo() << "Sorted elements " << i << elements[i].first << elements[i].second;
+            //for (int i=0; i<elements.size(); i++)
+            //    yInfo() << "Sorted elements " << i << elements[i].first << elements[i].second;
 
-            yInfo() << "SHAPE SIZE IS " << shapes.size();
+            //yInfo() << "SHAPE SIZE IS " << shapes.size();
 
             if ( shapes.size() > 0)
             {
@@ -794,7 +717,7 @@ public:
                 else
                    mainList.addString("face");
 
-                yInfo() << "**************** SIZE" << elements.size() << shapes.size() ;
+                //yInfo() << "**************** SIZE" << elements.size() << shapes.size() ;
                 for (int i=0; i<shapes.size(); i++)
                 {
                     yarp::os::Bottle &tmp = mainList.addList();
@@ -807,7 +730,7 @@ public:
                     }
                     else
                     {
-                        yInfo() << "**************** " << shapes[elements[i].second].toString();
+                        //yInfo() << "**************** " << shapes[elements[i].second].toString();
                         tmp.addInt(shapes[elements[i].second].get(0).asInt());
                         tmp.addInt(shapes[elements[i].second].get(1).asInt());
                         tmp.addInt(shapes[elements[i].second].get(2).asInt());
