@@ -22,7 +22,9 @@
 #include <yarp/os/Network.h>
 #include <yarp/os/Log.h>
 #include <yarp/os/LogStream.h>
-#include <yarp/os/Semaphore.h>
+#include <yarp/os/Mutex.h>
+
+#include <yarp/os/LockGuard.h>
 #include <yarp/sig/Image.h>
 #include <yarp/sig/Vector.h>
 #include <yarp/math/Math.h>
@@ -77,7 +79,8 @@ public:
     };
 
     /********************************************************/
-    bool open(){
+    bool open()
+    {
 
         this->useCallback();
 
@@ -97,6 +100,7 @@ public:
         yarp::os::Network::connect("/yarpOpenPose/image:o", "/viewer/skeletons", "fast_tcp");
 
         camera_configured=true;
+        
         isHand = false;
 
         fov_h = 55;
@@ -189,13 +193,16 @@ public:
 
         yarp::sig::ImageOf<yarp::sig::PixelMono> &mono_out_yarp  = depthImageOutPort.prepare();
         yarp::os::Bottle &target  = targetPort.prepare();
+        target.clear();
+        yarp::os::Bottle target_unordered;
+        target_unordered.clear();
 
         int skeletonSize = data.get(0).asList()->size();
         int internalElements = 0;
 
         if (skeletonSize>0)
         {
-            target = data;
+            target_unordered = data;
             internalElements = data.get(0).asList()->get(0).asList()->size();
         }
 
@@ -293,7 +300,6 @@ public:
                             point.y = (int)propFieldPos->get(2).asDouble();
                             leftElbow2D.push_back(point);
                         }
-
                         if ( std::strcmp (propFieldPos->get(0).asString().c_str(),"RWrist") == 0)
                         {
                             point.x = (int)propFieldPos->get(1).asDouble();
@@ -388,7 +394,6 @@ public:
                         point3D.z = pNeck[2];
                         neck3D.push_back(point3D);
                     }
-                    
                     if (leftWrist2D[i].x > 0 && leftWrist2D[i].y > 0)
                     {
                         if (getPoint3D(leftWrist2D[i].x, leftWrist2D[i].y, pLeft))
@@ -413,7 +418,6 @@ public:
                         point3D.z = 0.0;
                         leftWrist3D.push_back(point3D);
                     }
-
                     if (rightWrist2D[i].x > 0 && rightWrist2D[i].y > 0)
                     {
                         if (getPoint3D(rightWrist2D[i].x, rightWrist2D[i].y, pRight))
@@ -567,8 +571,6 @@ public:
         
         cv::Point hand;
         cv::Point elbow;
-
-        yDebug() << "NECK size " << neck3D.size();
         
         cv::Mat cleanedImg (float_in_yarp->height(), float_in_yarp->width(), CV_8UC1, cv::Scalar(0));
 
@@ -668,9 +670,7 @@ public:
                 mc[x] = cv::Point2f( mu[x].m10/mu[x].m00 , mu[x].m01/mu[x].m00 );
 
                 if ( abs(hand.x-mc[x].x) < 100 && contourArea(cnt[x]) > 300 && contourArea(cnt[x]) < 5000)
-                {
                     chosenValue = x;
-                }
             }
 
             if (chosenValue >= 0)
@@ -688,7 +688,8 @@ public:
                 tmp.addInt(boundRect[chosenValue].br().y);
 
                 shapes.push_back(tmp);
-                isHand = true;            }
+                isHand = true;
+            }
         }
 
         if (elements.size()>0)
@@ -701,8 +702,8 @@ public:
             //for (int i=0; i<elements.size(); i++)
             //    yInfo() << "Sorted elements " << i << elements[i].first << elements[i].second;
 
-            //yInfo() << "SHAPE SIZE IS " << shapes.size();
-
+            yarp::os::Bottle &organisedList = target.addList();
+            
             if ( shapes.size() > 0)
             {
                 yarp::os::Bottle &blobs  = blobPort.prepare();
@@ -715,10 +716,11 @@ public:
                 else
                    mainList.addString("face");
 
-                //yInfo() << "**************** SIZE" << elements.size() << shapes.size() ;
+                //yInfo() << "**************** element SIZE" << elements.size() << "shape SIZE" << shapes.size() ;
                 for (int i=0; i<shapes.size(); i++)
                 {
                     yarp::os::Bottle &tmp = mainList.addList();
+                    
                     if (isHand)
                     {
                         tmp.addInt(shapes[i].get(0).asInt());
@@ -728,13 +730,20 @@ public:
                     }
                     else
                     {
-                        //yInfo() << "**************** " << shapes[elements[i].second].toString();
                         tmp.addInt(shapes[elements[i].second].get(0).asInt());
                         tmp.addInt(shapes[elements[i].second].get(1).asInt());
                         tmp.addInt(shapes[elements[i].second].get(2).asInt());
                         tmp.addInt(shapes[elements[i].second].get(3).asInt());
                     }
                 }
+                
+                //Send ordered skeletons
+                for (int i=0; i<elements.size(); i++)
+                {
+                    yarp::os::Bottle &tmpList = organisedList.addList();
+                    tmpList.append(*data.get(0).asList()->get(elements[i].second).asList());
+                }
+                
                 targetPort.write();
             }
         }
@@ -785,6 +794,7 @@ public:
     /**********************************************************/
     bool close()
     {
+        closing = true;
         processing->interrupt();
         processing->close();
         delete processing;
