@@ -1,4 +1,4 @@
-#!/usr/local/bin/lua
+#!/usr/bin/lua
 
 -- Copyright: (C) 2017 iCub Facility - Istituto Italiano di Tecnologia (IIT)
 
@@ -50,12 +50,12 @@ print ("using:", whichRobot)
 interrupting = false
 signal.signal(signal.SIGINT, function(signum)
     interrupting = true
-    look_at_angle(0,-35,5)
+    look_at_angle(0,-25,5)
 end)
 
 signal.signal(signal.SIGTERM, function(signum)
     interrupting = true
-    look_at_angle(0,-35,5)
+    look_at_angle(0,-25,5)
 end)
 
 ---------------------------------------
@@ -70,6 +70,7 @@ port_ispeak = yarp.BufferedPortBottle()
 port_draw_image = yarp.BufferedPortBottle()
 port_cmd_detection = yarp.BufferedPortBottle()
 port_cmd_gaze = yarp.BufferedPortBottle()
+port_google = yarp.RpcClient()
 
 
 if whichRobot == "icub" then
@@ -91,6 +92,7 @@ port_ispeak:open("/manager/ispeak:o")
 port_draw_image:open("/manager/draw:o")
 port_cmd_detection:open("/manager/detection/cmd:o")
 port_cmd_gaze:open("/manager/gaze/cmd:o")
+port_google:open("/manager/googlePort:o")
 
 if whichRobot == "icub" then
     port_sfm_rpc:open("/detection/sfm/rpc")
@@ -103,6 +105,11 @@ ret = ret and yarp.NetworkBase_connect(port_ispeak:getName(), "/iSpeak")
 --ret = ret and yarp.NetworkBase_connect(port_draw_image:getName(), "/detection-image/cmd:i")
 --ret = ret and yarp.NetworkBase_connect(port_cmd_detection:getName(), "/detection/command:i")
 --ret = ret and yarp.NetworkBase_connect("/dispBlobber/roi/left:o", "/onTheFlyRec/gaze/blob" )
+
+
+--ret = ret and yarp.NetworkBase_connect("/manager/googlePort:o", "/yarp-google-speech/rpc" )
+--ret = ret and yarp.NetworkBase_connect("/yarp-google-speech/result:o", "/start-ask/speech:i")
+--ret = ret and yarp.NetworkBase_connect("/start-ask/start:o", "/iSpeak")
 
 if whichRobot == "icub" then
     print ("Going through ICUB's connection")
@@ -123,6 +130,8 @@ if ret == false then
     print("\n\nERROR WITH CONNECTIONS, PLEASE CHECK\n\n")
     os.exit()
 end
+
+yarp.NetworkBase_disconnect("/faceLandmarks/target:o", "/onTheFlyRec/gaze/face")
 
 azi = 0.0
 ele = 0.0
@@ -147,6 +156,27 @@ function speak(port, str)
     port:write()
    yarp.Time_delay(1.0)
 end
+
+function google_start()
+    local cmd = yarp.Bottle()
+    local reply = yarp.Bottle()
+    cmd:clear()
+    cmd:addString("start")
+    print("command is ",cmd:toString())
+    port_google:write(cmd,reply)
+    print("reply is ",reply:toString())
+end
+
+function google_stop()
+    local cmd = yarp.Bottle()
+    local reply = yarp.Bottle()
+    cmd:clear()
+    cmd:addString("stop")
+    print("command is ",cmd:toString())
+    port_google:write(cmd,reply)
+    print("reply is ",reply:toString())
+end
+
 
 ---------------------------------------
 -- functions Point Control           --
@@ -532,7 +562,7 @@ function getObjectsAround(det)
 
             print ("got as distance ", distance, det:get(i):asList():get(5):asString())
 
-            if distance < 5500 then
+            if distance < 6500 then
                 objectList:addString(det:get(i):asList():get(5):asString())
             end
         end
@@ -620,24 +650,41 @@ while state ~= "quit" and not interrupting do
             cmd_rx == "home" or cmd_rx == "quit" or
              cmd_rx == "closest-to" or cmd_rx == "where-is" or
               cmd_rx == "train" or cmd_rx == "forget" or
-               cmd_rx == "hello" then
+               cmd_rx == "hello" or cmd_rx == "listen" or 
+                cmd_rx == "track" then
 
             clearDraw()
             multipleDraw:clear()
             multipleName:clear()
             state = cmd_rx
 
-            if state == "hello" then
-                look_at_angle(0, 0, 0)
-                yarp.Time_delay(2.0)
+            if cmd_rx ~= "track" then
+                yarp.NetworkBase_disconnect("/faceLandmarks/target:o", "/onTheFlyRec/gaze/face")
+            end
+
+            if state == "listen" then
+                google_start()
+                speak(port_ispeak, "yes?")
+                
+                yarp.Time_delay(3.5)
+
+                google_stop()
+
+            elseif state == "track" then
+                yarp.NetworkBase_connect("/faceLandmarks/target:o", "/onTheFlyRec/gaze/face")
+            elseif state == "hello" then
+                if isInteracting == false then
+                    look_at_angle(0, 0, 0)
+                    yarp.Time_delay(0.5)
+                end
                 startFace()
-                speak(port_ispeak, "hello")
+                speak(port_ispeak, "How can I help you")
                 isInteracting = true
 
             elseif state == "train" then
                 if isInteracting == false then
                     look_at_angle(0, 0, 0)
-                    yarp.Time_delay(2.0)
+                    yarp.Time_delay(0.5)
                 end
                 startGaze()
                 object = cmd:get(1):asString()
@@ -827,7 +874,12 @@ while state ~= "quit" and not interrupting do
                 speak(port_ispeak, tosay)
                 stopGaze()
                 yarp.Time_delay(0.5)
-                look_at_angle(azi, ele, ver)
+                look_at_angle(0, 0, 0)
+
+                startFace()
+                speak(port_ispeak, "How can I help you")
+                isInteracting = true
+                
             end
         end
 
@@ -984,7 +1036,7 @@ clearDraw()
 if whichRobot == "icub" then
     look_at_angle(0, -36, 5)
 else
-    look_at_angle(0, -35, 5)
+    look_at_angle(0, -25, 5)
 end
 
 stopGaze()
