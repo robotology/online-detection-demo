@@ -4,3 +4,4 @@
 
 add_subdirectory(human-structure)
 add_subdirectory(test-dispBlobber)
+add_subdirectory(yarp-blob)
