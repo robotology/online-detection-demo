@@ -85,6 +85,7 @@ class DetectionsHandler (yarp.RFModule):
          cv2.putText(im, text, (int(bbox[0]) + 1, int(bbox[1]) - 5), font, scale, (255,255,255))
 
     def _drawDetections(self, im, all_dets, thresh=0.15, vis=False):
+            print 'drawDetections*********************************\n'
             if all_dets is not None:
             #if not all_dets.size() == 0:
                     print 'here'
@@ -110,6 +111,7 @@ class DetectionsHandler (yarp.RFModule):
 				    font = cv2.FONT_HERSHEY_SIMPLEX
 				    text = '{:s} {:.3f}'.format(cls, score)
 				    self._set_label(im, text, font, color, bbox)
+                                    self._counter_old = 0
 
 		        elif dets.get(0).isString() and dets.get(0).asString() == 'train':
 			   for i in range(0,all_dets.size()):
@@ -127,7 +129,6 @@ class DetectionsHandler (yarp.RFModule):
 				self._set_label(im, text, font, color, bbox)
             elif self._old_all_dets is not None:
                     print 'HERE'
-                    self._counter_old = self._counter_old +1
             	    all_dets = self._old_all_dets
 		    for i in range(0,all_dets.size()):
 			dets = all_dets.get(i).asList()
@@ -165,7 +166,8 @@ class DetectionsHandler (yarp.RFModule):
 				font = cv2.FONT_HERSHEY_SIMPLEX
 				text = 'Train: {:s}'.format(cls)
 				self._set_label(im, text, font, color, bbox)
-                    if self._counter_old == 4:
+                    self._counter_old = self._counter_old +1
+                    if self._counter_old == 20:
                         self._old_all_dets.clear()
                         self._counter_old = 0
 

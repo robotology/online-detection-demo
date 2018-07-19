@@ -131,7 +131,7 @@ if ret == false then
     os.exit()
 end
 
-yarp.NetworkBase_disconnect("/faceLandmarks/target:o", "/onTheFlyRec/gaze/face")
+--yarp.NetworkBase_disconnect("/faceLandmarks/target:o", "/onTheFlyRec/gaze/face")
 
 azi = 0.0
 ele = 0.0
@@ -176,7 +176,6 @@ function google_stop()
     port_google:write(cmd,reply)
     print("reply is ",reply:toString())
 end
-
 
 ---------------------------------------
 -- functions Point Control           --
@@ -262,6 +261,7 @@ end
 -- functions Gaze Control            --
 ---------------------------------------
 function startFace(port)
+    stopGaze()
    local wb = port_cmd_gaze:prepare()
     wb:clear()
     wb:addString("track-face")
@@ -272,6 +272,7 @@ end
 ---------------------------------------------------------------------------------------------------------------
 
 function startGaze(port)
+    stopGaze()
    local wb = port_cmd_gaze:prepare()
     wb:clear()
     wb:addString("track-blob")
@@ -658,9 +659,9 @@ while state ~= "quit" and not interrupting do
             multipleName:clear()
             state = cmd_rx
 
-            if cmd_rx ~= "track" then
-                yarp.NetworkBase_disconnect("/faceLandmarks/target:o", "/onTheFlyRec/gaze/face")
-            end
+           -- if cmd_rx ~= "track" then
+            --    yarp.NetworkBase_disconnect("/faceLandmarks/target:o", "/onTheFlyRec/gaze/face")
+           -- end
 
             if state == "listen" then
                 google_start()
@@ -671,11 +672,12 @@ while state ~= "quit" and not interrupting do
                 google_stop()
 
             elseif state == "track" then
-                yarp.NetworkBase_connect("/faceLandmarks/target:o", "/onTheFlyRec/gaze/face")
+                startFace()
+                --yarp.NetworkBase_connect("/faceLandmarks/target:o", "/onTheFlyRec/gaze/face")
             elseif state == "hello" then
                 if isInteracting == false then
                     look_at_angle(0, 0, 0)
-                    yarp.Time_delay(0.5)
+                    yarp.Time_delay(1.5)
                 end
                 startFace()
                 speak(port_ispeak, "How can I help you")
@@ -684,7 +686,7 @@ while state ~= "quit" and not interrupting do
             elseif state == "train" then
                 if isInteracting == false then
                     look_at_angle(0, 0, 0)
-                    yarp.Time_delay(0.5)
+                    yarp.Time_delay(1.5)
                 end
                 startGaze()
                 object = cmd:get(1):asString()
@@ -876,7 +878,7 @@ while state ~= "quit" and not interrupting do
                 yarp.Time_delay(0.5)
                 look_at_angle(0, 0, 0)
 
-                startFace()
+                --startFace()
                 speak(port_ispeak, "How can I help you")
                 isInteracting = true
                 
@@ -1042,6 +1044,16 @@ end
 stopGaze()
 speak(port_ispeak, "Bye bye")
 
+yarp.NetworkBase_disconnect("/detection/dets:o", port_detection:getName())
+yarp.NetworkBase_disconnect("/detection/speech:o", port_cmd:getName())
+yarp.NetworkBase_disconnect(port_ispeak:getName(), "/iSpeak")
+yarp.NetworkBase_disconnect(port_gaze_tx:getName(), "/cer_gaze-controller/target:i")
+yarp.NetworkBase_disconnect(port_gaze_rpc:getName(), "/cer_gaze-controller/rpc")
+yarp.NetworkBase_disconnect("/cer_gaze-controller/state:o", port_gaze_rx:getName() )
+yarp.NetworkBase_disconnect(port_cmd_gaze:getName(), "/onTheFlyRec/gaze" )
+yarp.NetworkBase_disconnect(port_draw_image:getName(), "/detection-image/cmd:i" )
+yarp.NetworkBase_disconnect(port_cmd_detection:getName(), "/detection/command:i" )
+
 port_cmd:close()
 port_detection:close()
 port_gaze_tx:close()
@@ -1057,5 +1069,6 @@ port_cmd_detection:close()
 clearDraw()
 port_draw_image:close()
 port_cmd_gaze:close()
+port_google:close()
 
 yarp.Network_fini()
