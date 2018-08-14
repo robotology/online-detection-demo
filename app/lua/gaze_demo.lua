@@ -338,6 +338,7 @@ yarp.NetworkBase_disconnect(port_cmd_gaze:getName(), "/onTheFlyRec/gaze" )
 yarp.NetworkBase_disconnect(port_draw_image:getName(), "/detection-image/cmd:i" )
 yarp.NetworkBase_disconnect(port_cmd_detection:getName(), "/detection/command:i" )
 
+port_gaze_direction:close()
 port_cmd:close()
 port_detection:close()
 port_gaze_tx:close()

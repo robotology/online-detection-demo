@@ -71,6 +71,7 @@ port_draw_image = yarp.BufferedPortBottle()
 port_cmd_detection = yarp.BufferedPortBottle()
 port_cmd_gaze = yarp.BufferedPortBottle()
 port_google = yarp.RpcClient()
+port_gaze_direction = yarp.BufferedPortBottle()
 
 
 if whichRobot == "icub" then
@@ -85,6 +86,7 @@ end
 
 port_cmd:open("/manager/cmd:i")
 port_detection:open("/manager/targets:i")
+port_gaze_direction:open("/manager/gaze/targets:i")
 port_gaze_tx:open("/manager/gaze/tx")
 port_gaze_rpc:open("/manager/gaze/rpc")
 port_gaze_rx:open("/manager/gaze/rx")
@@ -124,6 +126,7 @@ else
     ret = ret and yarp.NetworkBase_connect(port_gaze_rpc:getName(), "/cer_gaze-controller/rpc")
     ret = ret and yarp.NetworkBase_connect("/cer_gaze-controller/state:o", port_gaze_rx:getName() )
     ret = ret and yarp.NetworkBase_connect(port_cmd_gaze:getName(), "/onTheFlyRec/gaze" )
+    ret = ret and yarp.NetworkBase_connect("/yarpOpenFace/target:o", port_gaze_direction:getName())
 end
 
 if ret == false then
@@ -138,9 +141,9 @@ ele = 0.0
 ver = 5.0
 
 if whichRobot == "icub" then
-    ele = -36.0
+    ele = 0.0
 else
-    ele = -32.0
+    ele = 0.0
 end
 
 index = -1
@@ -154,7 +157,7 @@ function speak(port, str)
     wb:clear()
     wb:addString(str)
     port:write()
-   yarp.Time_delay(1.0)
+   yarp.delay(1.0)
 end
 
 function google_start()
@@ -266,7 +269,7 @@ function startFace(port)
     wb:clear()
     wb:addString("track-face")
     port_cmd_gaze:write()
-   yarp.Time_delay(1.0)
+   yarp.delay(1.0)
 end
 
 ---------------------------------------------------------------------------------------------------------------
@@ -277,7 +280,7 @@ function startGaze(port)
     wb:clear()
     wb:addString("track-blob")
     port_cmd_gaze:write()
-   yarp.Time_delay(1.0)
+   yarp.delay(1.0)
 end
 
 ---------------------------------------------------------------------------------------------------------------
@@ -286,7 +289,7 @@ function stopGaze()
     wb:clear()
     wb:addString("stop")
     port_cmd_gaze:write()
-   yarp.Time_delay(1.0)
+   yarp.delay(1.0)
 end
 
 ---------------------------------------------------------------------------------------------------------------
@@ -340,6 +343,25 @@ function look_at_angle(azi,ele,ver)
     port_gaze_tx:write()
 
     print("look_at_angle:", tx:toString())
+end
+
+---------------------------------------------------------------------------------------------------------------
+
+function look_at_cartesian(x,y,z)
+    local tx = port_gaze_tx:prepare()
+    
+    tx:put("control-frame","gaze")
+    tx:put("target-type","cartesian")
+    local location = yarp.Bottle()
+    local val = location:addList()
+    val:addDouble(x)
+    val:addDouble(y)
+    val:addDouble(z)
+    tx:put("target-location",location:get(0))
+    
+    port_gaze_tx:write()
+
+    print("look_at_cartesian:", tx:toString())
 end
 
 ---------------------------------------------------------------------------------------------------------------
@@ -457,6 +479,28 @@ function getObjectIndex(det)
     return indexes
 end
 
+---------------------------------------------------------------------------------------------------------------
+
+function getCenterObject(det)
+    local centerindex =-1
+    print("in getCenterObject with size", det:size())
+    for i=0,det:size()-1,1 do
+        local thistx = (det:get(i):asList():get(0):asInt() + det:get(i):asList():get(2):asInt()) / 2
+        local thisty = (det:get(i):asList():get(1):asInt() + det:get(i):asList():get(3):asInt()) / 2
+
+        local distancex = math.abs(160-thistx)
+        local distancey = math.abs(120-thisty)
+
+        print("Found object X and object Y ", thistx, thisty)
+        print("Found distance X and distance Y ", distancex, distancey)
+
+        if distancex < 60 and distancey < 70 then
+            print("Found index i")
+            centerindex = i
+        end
+    end
+    return centerindex
+end
 ---------------------------------------------------------------------------------------------------------------
 
 function getClosestObject(det)
@@ -596,9 +640,9 @@ end
 --might not be useful anymore. Fixed a recent bug on the gaze controller
 if whichRobot == "icub" then
     bind_roll()
-    yarp.Time_delay(0.2)
+    yarp.delay(0.2)
     set_tneck(1.2)
-    yarp.Time_delay(0.2)
+    yarp.delay(0.2)
     ARE_home()
 end
 
@@ -652,7 +696,7 @@ while state ~= "quit" and not interrupting do
              cmd_rx == "closest-to" or cmd_rx == "where-is" or
               cmd_rx == "train" or cmd_rx == "forget" or
                cmd_rx == "hello" or cmd_rx == "listen" or 
-                cmd_rx == "track" then
+                cmd_rx == "track" or cmd_rx == "what-is" then
 
             clearDraw()
             multipleDraw:clear()
@@ -663,13 +707,36 @@ while state ~= "quit" and not interrupting do
             --    yarp.NetworkBase_disconnect("/faceLandmarks/target:o", "/onTheFlyRec/gaze/face")
            -- end
 
+            
+
             if state == "listen" then
                 google_start()
                 speak(port_ispeak, "yes?")
                 
-                yarp.Time_delay(3.5)
+                yarp.delay(3.5)
 
                 google_stop()
+
+            elseif state == "what-is" then
+
+                local gazeDir = port_gaze_direction:read(false)
+
+                if gazeDir ~= nil then
+                    print("looping det ", gazeDir:size())
+                    local tx = gazeDir:get(0):asList():get(0):asDouble()
+                    local ty = gazeDir:get(0):asList():get(1):asDouble()
+                    local tz = gazeDir:get(0):asList():get(2):asDouble()
+                    print( "tx is", tx )
+                    print( "ty is", ty )
+                    print( "tz is", tz )
+
+                    speak(port_ispeak, "looking at your gaze")
+                    
+                    time_t1 = os.time()
+
+                    look_at_cartesian(tx, ty, tz)
+                end
+
 
             elseif state == "track" then
                 startFace()
@@ -677,7 +744,7 @@ while state ~= "quit" and not interrupting do
             elseif state == "hello" then
                 if isInteracting == false then
                     look_at_angle(0, 0, 0)
-                    yarp.Time_delay(1.5)
+                    yarp.delay(1.5)
                 end
                 startFace()
                 speak(port_ispeak, "How can I help you")
@@ -686,8 +753,9 @@ while state ~= "quit" and not interrupting do
             elseif state == "train" then
                 if isInteracting == false then
                     look_at_angle(0, 0, 0)
-                    yarp.Time_delay(1.5)
+                    yarp.delay(1.5)
                 end
+
                 startGaze()
                 object = cmd:get(1):asString()
                 sendTrain(object)
@@ -750,7 +818,7 @@ while state ~= "quit" and not interrupting do
             elseif state == "home" then
                 clearDraw()
                 stopGaze()
-                yarp.Time_delay(0.5)
+                yarp.delay(0.5)
                 look_at_angle(azi, ele, ver)
                 speak(port_ispeak, "OK")
 
@@ -784,7 +852,7 @@ while state ~= "quit" and not interrupting do
                     speak(port_ispeak, "I do not see any objects")
                 end
             elseif state == "where-is" then
-                yarp.Time_delay(1.0)
+                yarp.delay(1.0)
                 object = cmd:get(1):asString()
                 object = object:lower()
                 local det = port_detection:read(false)
@@ -814,7 +882,7 @@ while state ~= "quit" and not interrupting do
                         look_at_pixel("left",tx,ty)
 
                         --delay one second to let the head move ok...
-                        yarp.Time_delay(1.0)
+                        yarp.delay(1.0)
 
                         local list = yarp.Bottle()
                         list = getObjectsAround(det)
@@ -875,7 +943,7 @@ while state ~= "quit" and not interrupting do
                 local tosay = "Excellent, now I know the " .. object
                 speak(port_ispeak, tosay)
                 stopGaze()
-                yarp.Time_delay(0.5)
+                yarp.delay(0.5)
                 look_at_angle(0, 0, 0)
 
                 --startFace()
@@ -886,9 +954,9 @@ while state ~= "quit" and not interrupting do
         end
 
     elseif state == "forget" then
-        yarp.Time_delay(0.1)
+        yarp.delay(0.1)
     elseif state == "home" then
-            yarp.Time_delay(0.1)
+            yarp.delay(0.1)
 
     elseif state == "look" then
 
@@ -947,7 +1015,31 @@ while state ~= "quit" and not interrupting do
 
             clearDraw()
         end
-        yarp.Time_delay(0.1)
+        yarp.delay(0.1)
+
+    elseif state == "what-is" then
+        
+        time_t2 = os.difftime(os.time(), time_t1)
+
+        local det = port_detection:read(false)
+        local found = false
+        if det ~= nil then
+            local index = getCenterObject(det)
+            if index > -1 then
+                local object = det:get(index):asList():get(5):asString()
+                speak(port_ispeak, "I think this is a " .. object)
+                found = true
+            end
+        end
+
+        if time_t2 > 4 or found then
+            clearDraw()
+            stopGaze()
+            yarp.delay(0.5)
+            look_at_angle(azi, ele, ver)
+            --speak(port_ispeak, "OK")
+            state = "look"
+        end
 
     elseif state == "look-around" then
         local det = port_detection:read(false)
@@ -1024,21 +1116,21 @@ while state ~= "quit" and not interrupting do
                         sendDraw(bot)
                     end
                 end
-                yarp.Time_delay(0.1)
+                yarp.delay(0.1)
             end
         end
 
     elseif state == "look" then
-        yarp.Time_delay(0.1)
+        yarp.delay(0.1)
     end
 end
 
 clearDraw()
 
 if whichRobot == "icub" then
-    look_at_angle(0, -36, 5)
+    look_at_angle(0, 0, 5)
 else
-    look_at_angle(0, -25, 5)
+    look_at_angle(0, 0, 5)
 end
 
 stopGaze()

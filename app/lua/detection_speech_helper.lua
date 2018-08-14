@@ -59,7 +59,7 @@ end
 objects = {"robot", "table", "sprayer", "mug", "cup" ,"flower", "sunflower", "bottle", "book", "wallet", "toy", "badge", "phone", "soda", "hand"}
 
 -- defining speech grammar in order to expand the speech recognition
-grammar="Listen | Track faces | Return to home position | Look around | Look at the #Object | Where is the #Object | See you soon | What is close to the #Object | Have a look at this #Object | Forget the #Object | Forget all objects | Hey R1"
+grammar="Listen | Track faces | Return to home position | Look around | Look at the #Object | Where is the #Object | See you soon | What is this | What is close to the #Object | Have a look at this #Object | Forget the #Object | Forget all objects | Hey R1"
 
 function SM_RGM_Expand(port, vocab, word)
     local wb = yarp.Bottle()
@@ -109,7 +109,7 @@ print ("ready to receive command ")
 ---------------------------------------
 
 while state ~= "quit" and not interrupting do
-print("SEDERE")
+
     local result = SM_Reco_Grammar(port_speech_recog, grammar)
     print("received REPLY: ", result:toString() )
     local speechcmd =  result:get(1):asString()
@@ -131,9 +131,13 @@ print("SEDERE")
             instruction:addString(object)
         end
     elseif speechcmd == "What" then
-        instruction:addString("closest-to")
-        local object = result:get(11):asString()
-        instruction:addString(object)
+        if result:get(5):asString() == "close" then
+            instruction:addString("closest-to")
+            local object = result:get(11):asString()
+            instruction:addString(object)
+        elseif result:get(5):asString() == "this" then
+            instruction:addString("what-is")
+        end
     elseif speechcmd == "Where" then
         instruction:addString("where-is")
         local object = result:get(7):asString()
@@ -165,7 +169,7 @@ print("SEDERE")
         instruction:addString("speech")
         sendSpeech(port_speech_output, instruction)
         if speechcmd == "Listen" then
-            yarp.Time_delay(3.5)
+            yarp.delay(3.5)
         end
     end
 end
