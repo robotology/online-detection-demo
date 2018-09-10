@@ -126,7 +126,7 @@ else
     ret = ret and yarp.NetworkBase_connect(port_gaze_rpc:getName(), "/cer_gaze-controller/rpc")
     ret = ret and yarp.NetworkBase_connect("/cer_gaze-controller/state:o", port_gaze_rx:getName() )
     ret = ret and yarp.NetworkBase_connect(port_cmd_gaze:getName(), "/onTheFlyRec/gaze" )
-    ret = ret and yarp.NetworkBase_connect("/yarpOpenFace/target:o", port_gaze_direction:getName())
+--    ret = ret and yarp.NetworkBase_connect("/yarpOpenFace/target:o", port_gaze_direction:getName()) GAZE_REMOVED
 end
 
 if ret == false then
