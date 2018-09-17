@@ -6,7 +6,7 @@ import yarp.RpcServer
 import yarp.BufferedPortBottle
 import yarp.Port
 import yarp.Bottle
-import yarp.Time
+%import yarp.Time
 import yarp.ImageRgb
 import yarp.Image
 import yarp.PixelRgb
@@ -52,6 +52,8 @@ pause(0.5);
 % Images options
 h       = 240;
 w       = 320;
+% h       = 480;
+% w       = 640;
 pixSize = 3;
 tool    = yarp.matlab.YarpImageHelper(h, w);
 

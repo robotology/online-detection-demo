@@ -8,6 +8,7 @@ yarp_initialization;
 
 configuration_script;
 
+
 active_caffe_mex(cnn_model.opts.gpu_id, cnn_model.opts.caffe_version);
 
 % cnn model
@@ -25,6 +26,7 @@ disp('Setting Fast R-CNN...');
 cnn_model.fast_rcnn_net = caffe.Net(cnn_model.proposal_detection_model.detection_net_def, 'test');
 cnn_model.fast_rcnn_net.copy_from(cnn_model.proposal_detection_model.detection_net);
 
+cnn_model.proposal_detection_model.is_share_feature = is_share_feature;
 % set gpu/cpu
 if cnn_model.opts.use_gpu
     caffe.set_mode_gpu();
@@ -214,6 +216,7 @@ while ~strcmp(state,'quit')
 
             region_classifier      = [];
             bbox_regressor         = [];
+            region_classifier.training_opts = cls_opts;
             disp('Done.')
             disp('If you want to load an old dataset, please type: load dataset *datasetname*.')
         
@@ -284,11 +287,19 @@ while ~strcmp(state,'quit')
 
                     % -- Network forward
                     
-                    features             = cnn_features_shared_conv(cnn_model.proposal_detection_model.conf_detection, im, regions_for_features(:, 1:4), cnn_model.fast_rcnn_net, 'fc7', ...
-                                                              cnn_model.rpn_net.blobs(cnn_model.proposal_detection_model.last_shared_output_blob_name));
+%                     features             = cnn_features_shared_conv(cnn_model.proposal_detection_model.conf_detection, im, regions_for_features(:, 1:4), cnn_model.fast_rcnn_net, 'fc7', ...
+%                                                               cnn_model.rpn_net.blobs(cnn_model.proposal_detection_model.last_shared_output_blob_name));
 %                     features             = cnn_features_demo(cnn_model.proposal_detection_model.conf_detection, im, regions_for_features(:, 1:4), ...
-%                                                                    cnn_model.fast_rcnn_net, [], 'fc7');         
+%                                                                    cnn_model.fast_rcnn_net, [], 'pool5');         
 %                     fprintf('--Feature extraction required %f seconds\n', toc(feature_tic));
+
+                    if cnn_model.proposal_detection_model.is_share_feature
+                           features             = cnn_features_shared_conv(cnn_model.proposal_detection_model.conf_detection, im, regions_for_features(:, 1:4), cnn_model.fast_rcnn_net, region_classifier.training_opts.feat_layer, ...
+                                                                           cnn_model.rpn_net.blobs(cnn_model.proposal_detection_model.last_shared_output_blob_name));
+                    else
+                           features             = cnn_features_demo(cnn_model.proposal_detection_model.conf_detection, im, regions_for_features(:, 1:4), ...
+                                                                    cnn_model.fast_rcnn_net, [], region_classifier.training_opts.feat_layer);                                                
+                    end
 
                     % Update total features datasets
                     pos_bbox_regressor.feat        = cat(1, pos_bbox_regressor.feat, features(1:size(cur_bbox_pos,1),:));
@@ -341,7 +352,7 @@ while ~strcmp(state,'quit')
            % im_gpu = gpuArray(im);
            
            % Performing detection
-           if ~isempty(region_classifier)
+           if isfield(region_classifier, 'classes') && ~isempty(dataset.classes)
                region_classifier.training_opts = cls_opts;
                [cls_scores boxes] = Detect(im, dataset.classes, cnn_model, region_classifier, bbox_regressor, detect_thresh);
            else
@@ -366,6 +377,7 @@ while ~strcmp(state,'quit')
                bbox_regressor.models(idx_to_remove)              = [];
            else
                region_classifier = [];
+               region_classifier.training_opts = cls_opts;
                bbox_regressor    = [];
            end
            
@@ -394,7 +406,7 @@ while ~strcmp(state,'quit')
                region_classifier         = Train_region_classifier(region_classifier,dataset.reg_classifier, cls_opts,cls_to_train);
                region_classifier.classes = dataset.classes;
                bbox_regressor            = Train_bbox_regressor(bbox_regressor, dataset.bbox_regressor, cls_to_train); 
-              
+               region_classifier.training_opts = cls_opts;
                disp('Done.');
            else
                disp('Specified dataset does not exist.');

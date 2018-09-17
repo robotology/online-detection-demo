@@ -87,7 +87,7 @@ class DetectionsHandler (yarp.RFModule):
     def _drawDetections(self, im, all_dets, thresh=0.45, vis=False):
             if all_dets is not None:
             #if not all_dets.size() == 0:
-                    print 'here'
+#                    print 'here'
                     self._old_all_dets = all_dets
 		    for i in range(0,all_dets.size()):
 			dets = all_dets.get(i).asList()
@@ -126,7 +126,7 @@ class DetectionsHandler (yarp.RFModule):
 				text = 'Train: {:s}'.format(cls)
 				self._set_label(im, text, font, color, bbox)
             elif self._old_all_dets is not None:
-                    print 'HERE'
+#                    print 'HERE'
                     self._counter_old = self._counter_old +1
             	    all_dets = self._old_all_dets
 		    for i in range(0,all_dets.size()):
