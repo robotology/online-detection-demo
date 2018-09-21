@@ -72,16 +72,13 @@ class DetectionsHandler (yarp.RFModule):
          self._out_buf_image.setExternal(self._out_buf_array, self._out_buf_array.shape[1], self._out_buf_array.shape[0])
 
 
-         print 'Setting detections data...\n'
-         
+         print 'Setting buffer data...\n'        
          self._old_classes        = {}
          self._old_bboxes         = {}
          self._is_train           = False
          self._old_train_bottle   = yarp.Bottle()
          self._old_train_counter  = 0
          self._current_detections = yarp.Bottle()
-         # self._current_detections.clear()
-         # self._current_detections = self._out_det_port.prepare()
 
     def _set_label(self, im, text, font, color, bbox):
     	 scale = 0.4
@@ -97,13 +94,14 @@ class DetectionsHandler (yarp.RFModule):
          cv2.putText(im, text, (int(bbox[0]) + 1, int(bbox[1]) - 5), font, scale, (255,255,255))
 
     def _pruneOldDetections(self):
-        # Remove from the buffers of old detections all the boxes that are older than 30 frames 
+         # Remove all boxes that are older than T frames from the buffers of old detections  
+         # and all train display older than T1 framse
          print 'pruning old detections'
          for cls_old in self._old_classes.keys():
-             if self._old_classes[cls_old] >= 8:
+             if self._old_classes[cls_old] >= 8: # T = 8
                  del self._old_classes[cls_old]
                  del self._old_bboxes[cls_old]
-         if self._old_train_counter >= 3:
+         if self._old_train_counter >= 3: # T1 = 3 
              self._old_train_bottle = yarp.Bottle()
              self._old_train_counter = 0
             
@@ -111,7 +109,8 @@ class DetectionsHandler (yarp.RFModule):
 
     def _checkOldDetectionsAndUpdate(self, all_dets_received):
          all_dets = all_dets_received
-         if all_dets is not None and not all_dets.get(0).asList().get(0).isString(): #If it's not None and if it's not train command
+         if all_dets is not None and not all_dets.get(0).asList().get(0).isString(): 
+         # If received Bottle is not None and if it's not train command
              self._is_train = False
              print 'here'
              # Add to old detections all the new received detections that are not present in the buffers
@@ -152,18 +151,19 @@ class DetectionsHandler (yarp.RFModule):
              print 'After updating:' 
              print self._old_classes
              print self._old_bboxes
-
+         # If received Bottle is not None and it's a train command
          elif all_dets is not None and all_dets.get(0).asList().get(0).isString() and all_dets.get(0).asList().get(0).asString() == 'train':
              self._is_train = True
              self._old_train_bottle = all_dets
              self._old_train_counter = 0
-  
+         
+         # If received Bottle is empty and model is training
          elif all_dets is None and self._is_train:
              all_dets = self._old_train_bottle
              self._old_train_counter = self._old_train_counter + 1
              
              
-         # If received detection is empty but there are old detections in the buffer, populate all_dets with old detections from the buffer
+         # If received Bottle is empty but there are old detections in the buffer, populate all_dets with old detections from the buffer
          elif all_dets is None and bool(self._old_classes) and not self._is_train:
              print 'HERE'
              all_dets = yarp.Bottle()
@@ -179,7 +179,8 @@ class DetectionsHandler (yarp.RFModule):
 	         b.addString(cls_old)
                  print 'After updating when received detection is empty:' 
                  print self._old_classes
-                 print self._old_bboxes       
+                 print self._old_bboxes 
+      
          return all_dets                   
 
     def _drawDetections(self, im, all_dets_received, thresh=0.15, vis=False):
@@ -232,9 +233,6 @@ class DetectionsHandler (yarp.RFModule):
                     self._current_detections.clear()
                     b = self._current_detections.addList()
                     
-
-            #print 'sending detections...'
-            #self._out_det_port.write()
 
 
             # Return an RGB image with drawn detections
@@ -299,28 +297,19 @@ class DetectionsHandler (yarp.RFModule):
             received_image = self._input_image_port.read()
             print 'Image received...\n'
             self._in_buf_image.copy(received_image)
-            print 'Array assigned...\n'
             assert self._in_buf_array.__array_interface__['data'][0] == self._in_buf_image.getRawImage().__long__()
 
-            #Read detections from port
-            print 'Waiting for detections...\n'
+            #Read Detections or Annotations from port
+            print 'Waiting for detections or annotations...\n'
             detections = yarp.Bottle()
             detections.clear()
 
             detections = self._input_detections_port.read(False)
-            
-            if detections is not None:
-		    print detections.get(0).asList().get(0).asDouble()
-		    print detections.get(0).asList().get(1).asDouble()
-		    print detections.get(0).asList().get(2).asDouble()
-		    print detections.get(0).asList().get(3).asDouble()
-		    print detections.get(0).asList().get(4).asString()
 
             frame = self._in_buf_array
             frame = cv2.cvtColor(frame,cv2.COLOR_RGB2BGR)
             
             t_draw = time.time()
-            # raw_input() #**************************************************************************************************************
             plotted_image = self._drawDetections(frame, detections)
             print 'Time required for drawing on image: %s' % (time.time() - t_draw)
 
