@@ -76,6 +76,9 @@ class DetectionsHandler (yarp.RFModule):
          
          self._old_classes        = {}
          self._old_bboxes         = {}
+         self._is_train           = False
+         self._old_train_bottle   = yarp.Bottle()
+         self._old_train_counter  = 0
          self._current_detections = yarp.Bottle()
          # self._current_detections.clear()
          # self._current_detections = self._out_det_port.prepare()
@@ -97,14 +100,19 @@ class DetectionsHandler (yarp.RFModule):
         # Remove from the buffers of old detections all the boxes that are older than 30 frames 
          print 'pruning old detections'
          for cls_old in self._old_classes.keys():
-             if self._old_classes[cls_old] >= 10:
+             if self._old_classes[cls_old] >= 8:
                  del self._old_classes[cls_old]
                  del self._old_bboxes[cls_old]
+         if self._old_train_counter >= 3:
+             self._old_train_bottle = yarp.Bottle()
+             self._old_train_counter = 0
+            
            
 
     def _checkOldDetectionsAndUpdate(self, all_dets_received):
          all_dets = all_dets_received
          if all_dets is not None and not all_dets.get(0).asList().get(0).isString(): #If it's not None and if it's not train command
+             self._is_train = False
              print 'here'
              # Add to old detections all the new received detections that are not present in the buffers
 	     for j in range(0,all_dets_received.size()):
@@ -145,13 +153,23 @@ class DetectionsHandler (yarp.RFModule):
              print self._old_classes
              print self._old_bboxes
 
+         elif all_dets is not None and all_dets.get(0).asList().get(0).isString() and all_dets.get(0).asList().get(0).asString() == 'train':
+             self._is_train = True
+             self._old_train_bottle = all_dets
+             self._old_train_counter = 0
+  
+         elif all_dets is None and self._is_train:
+             all_dets = self._old_train_bottle
+             self._old_train_counter = self._old_train_counter + 1
+             
+             
          # If received detection is empty but there are old detections in the buffer, populate all_dets with old detections from the buffer
-         elif bool(self._old_classes):
+         elif all_dets is None and bool(self._old_classes) and not self._is_train:
              print 'HERE'
+             all_dets = yarp.Bottle()
              for cls_old in self._old_classes:
                  self._old_classes[cls_old] = self._old_classes[cls_old] + 1
-                 all_dets = yarp.Bottle()
-	         b = yarp.Bottle()
+	         # b = yarp.Bottle()
 	         b = all_dets.addList()
 	         b.addDouble(self._old_bboxes[cls_old][0])
 	         b.addDouble(self._old_bboxes[cls_old][1])
