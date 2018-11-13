@@ -210,7 +210,7 @@ public:
 
         findContours( cleanedImg, cnt, hrch, CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE );
 
-        std::vector<cv::Moments> mu(cnt.size() );
+        std::vector<cv::Moments> mu( cnt.size() );
         std::vector<cv::Point2f> mc( cnt.size() );
 
         //yInfo() << "contour size" << cnt.size();
