@@ -40,4 +40,16 @@ service yarpAugmentation_IDL
      * @return true/false on success/failure
      */
     bool setBackgrounds(1:string value);
+
+    /**
+     * starts the augmentation
+     * @return true/false on success/failure
+     */
+    bool startAugmentation();
+
+    /**
+     * stops the augmentation
+     * @return true/false on success/failure
+     */
+    bool stopAugmentation();
 }

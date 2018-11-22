@@ -100,7 +100,7 @@ public:
         yarp::os::Network::connect("/yarpOpenPose/image:o", "/viewer/skeletons", "fast_tcp");
 
         camera_configured=true;
-        
+
         isHand = false;
 
         fov_h = 55;
@@ -221,7 +221,7 @@ public:
         inRange(mono_img_cv, cv::Scalar(255), cv::Scalar(255), mask);
         cv::Mat black_image(mono_img_cv.size(), CV_8U, cv::Scalar(0));
         black_image.copyTo(mono_img_cv, mask);
-        
+
         std::vector<cv::Point> neck2D;
         std::vector<cv::Point> nose2D;
         std::vector<cv::Point> rightEar2D;
@@ -380,7 +380,7 @@ public:
                     bottomRight.y = 1;
                 else if (bottomRight.y > 239)
                     bottomRight.y = 239;
-                
+
                 yarp::sig::Vector pLeft;
                 yarp::sig::Vector pNeck;
                 yarp::sig::Vector pRight;
@@ -466,7 +466,7 @@ public:
                         point3D.z = 0.0;
                         leftElbow3D.push_back(point3D);
                     }
-                    
+
                     if (rightElbow2D[i].x > 0 && rightElbow2D[i].y > 0)
                     {
                         if (getPoint3D(rightElbow2D[i].x, rightElbow2D[i].y, pRight))
@@ -492,7 +492,7 @@ public:
                         rightElbow3D.push_back(point3D);
                     }
                 }
-                
+
                 yarp::os::Bottle tmp;
 
                 if (topLeft.x < bottomRight.x && topLeft.y < bottomRight.y)
@@ -568,10 +568,10 @@ public:
                 }
             }
         }
-        
+
         cv::Point hand;
         cv::Point elbow;
-        
+
         cv::Mat cleanedImg (float_in_yarp->height(), float_in_yarp->width(), CV_8UC1, cv::Scalar(0));
 
         for (int i = 0; i < neck3D.size(); i++)
@@ -580,10 +580,10 @@ public:
             {
                 bool isLeft = false;
                 bool isRight = false;
-                
+
                 double wristsDiff = fabs( leftWrist3D[i].z - rightWrist3D[i].z);
                 double elbowsDiff = fabs( leftElbow3D[i].z - rightElbow3D[i].z);
-                
+
                 if (neck3D[i].z > 0)
                 {
                     if (leftWrist3D[i].z > 0 && rightWrist3D[i].z > 0 )
@@ -620,7 +620,7 @@ public:
                     {
                         yDebug() << "ignoring skeleton, rubbish";
                     }
-                    
+
                     if (isLeft)
                     {
                         yDebug() << "SHOULD LOOK AT LEFT HAND";
@@ -629,7 +629,7 @@ public:
                         elbow.x = leftElbow2D[i].x;
                         elbow.y = leftElbow2D[i].y;
                     }
-                    
+
                     else if (isRight)
                     {
                         yDebug() << "SHOULD LOOK AT RIGHT HAND";
@@ -650,7 +650,7 @@ public:
 
             double value = mono_img_cv.at<uchar>(hand);
             int maxValThreshed = (value - 3);
-            
+
             cv::threshold(mono_img_cv, cleanedImg, maxValThreshed, 255, cv::THRESH_BINARY);
 
             std::vector<std::vector<cv::Point> > cnt;
@@ -663,7 +663,7 @@ public:
 
             std::vector<cv::Moments> mu(cnt.size() );
             std::vector<cv::Point2f> mc( cnt.size() );
-            
+
             for (int x = 0; x < cnt.size(); x++)
             {
                 mu[x] = moments( cnt[x], false );
@@ -677,7 +677,7 @@ public:
             {
                 approxPolyDP( cv::Mat(cnt[chosenValue]), contours_poly[chosenValue], 3, true );
                 boundRect[chosenValue] = boundingRect( cv::Mat(contours_poly[chosenValue]) );
-                 
+
                 cv::rectangle(mono_img_cv, boundRect[chosenValue].tl(), boundRect[chosenValue].br(), cv::Scalar( 255, 255, 255), 2, 8);
                 yarp::os::Bottle tmp;
                 shapes.clear();
@@ -703,7 +703,7 @@ public:
             //    yInfo() << "Sorted elements " << i << elements[i].first << elements[i].second;
 
             yarp::os::Bottle &organisedList = target.addList();
-            
+
             if ( shapes.size() > 0)
             {
                 yarp::os::Bottle &blobs  = blobPort.prepare();
@@ -720,7 +720,7 @@ public:
                 for (int i=0; i<shapes.size(); i++)
                 {
                     yarp::os::Bottle &tmp = mainList.addList();
-                    
+
                     if (isHand)
                     {
                         tmp.addInt(shapes[i].get(0).asInt());
@@ -736,22 +736,22 @@ public:
                         tmp.addInt(shapes[elements[i].second].get(3).asInt());
                     }
                 }
-                
+
                 //Send ordered skeletons
                 for (int i=0; i<elements.size(); i++)
                 {
                     yarp::os::Bottle &tmpList = organisedList.addList();
                     tmpList.append(*data.get(0).asList()->get(elements[i].second).asList());
                 }
-                
+
                 targetPort.write();
             }
         }
-        
+
         IplImage ipltemp=mono_img_cv;
         mono_out_yarp.resize(ipltemp.width, ipltemp.height);
         cvCopy( &ipltemp, (IplImage *) mono_out_yarp.getIplImage());
-        
+
         depthImageOutPort.write();
         imageOutPort.write();
         blobPort.write();
