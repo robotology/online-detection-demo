@@ -49,26 +49,28 @@ class Multiview : public yarp::os::BufferedPort<yarp::os::Bottle>
     yarp::os::RpcServer handlerPort;
     yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> >   imageInPort;
     yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> >   imageOutPort;
-    
+
     std::string path;
     std::string newOjectPath;
     std::vector<std::string> files;
-    
+
     std::map<std::string, cv::Rect> imagesInfo;
     std::vector<std::string> imagesNames;
-    
+
     std::map<double, cv::Rect> objectsWithConfidence;
     std::map<double, cv::Rect> objectsInBackgroud;
-    
+
     cv::Mat allImages;
-    
+
     std::string newName;
     bool inTraining;
     bool avoid;
-    
+    bool checkedNameValidity;
+    bool nameExists;
+
     std::map<std::string, cv::Mat> matInfo;
     std::vector<cv::Mat> matList;
-    
+
     cv::Mat originalImage;
     cv::Mat clearImage;
     cv::Mat image_cv;
@@ -95,47 +97,37 @@ public:
         BufferedPort<yarp::os::Bottle>::open( "/" + moduleName + "/detections:i" );
         imageInPort.open("/" + moduleName + "/image:i");
         imageOutPort.open("/" + moduleName + "/image:o");
-      
-        yarp::os::Network::connect(imageOutPort.getName().c_str(), "/viewer/objects", "mjpeg");
-        //yarp::os::Network::connect(imageOutPort.getName().c_str(), "/viewer/test", "fast_tcp");
-        yarp::os::Network::connect( "/depthCamera/rgbImage:o", imageInPort.getName().c_str(), "mjpeg");
-        
-        //yDebug() << "the path is: " << path.c_str();
-        //newOjectPath = "/Users/vtikha/Desktop/GTC/new/imagesOjects";
 
         inTraining = false;
         avoid = false;
-        
-        //std::vector<cv::Mat> matList;
-        //matList = getAllImages(path);
-        
+        checkedNameValidity = false;
+
         matList.clear();
         matInfo.clear();
-        
+
         yarp::sig::ImageOf<yarp::sig::PixelRgb> *inImage = imageInPort.read();
         cv::Mat image = cv::cvarrToMat((IplImage *)inImage->getIplImage());
         cv::Mat tmpBlack(image.size(), CV_8UC3, cv::Scalar(0, 0, 0));
         allImages = tmpBlack.clone();
         image_cv = tmpBlack.clone();
-        
+
         imagesInfo.clear();
-        
-        //allImages = gatherImages(matList);
-        
+
         yarp::os::Network::connect("/detection/dets:o", BufferedPort<yarp::os::Bottle>::getName().c_str(), "tcp");
         yarp::os::Network::connect("/dets", BufferedPort<yarp::os::Bottle>::getName().c_str(), "tcp");
-        
-        //allImages.convertTo(allImages, CV_8U, 0.5);
-        //imwrite( "test.png", allImages );
+
+        yarp::os::Network::connect(imageOutPort.getName().c_str(), "/viewer/objects", "mjpeg");
+        yarp::os::Network::connect( "/depthCamera/rgbImage:o", imageInPort.getName().c_str(), "mjpeg");
+
         return true;
     }
-    
+
     /********************************************************/
     std::vector<cv::Mat> getAllImages(std::string &path)
     {
         files.clear();
         imagesNames.clear();
-        
+
         files = GetDirectoryFiles(path);
         std::vector<std::string> nameList;
         for ( auto i = files.begin(); i != files.end(); i++ )
@@ -145,17 +137,16 @@ public:
             std::string::size_type idx=0;
             if (std::isalnum(tmp[idx]))
             {
-                yDebug() << "isAlpha";
                 std::string cleanstr = tmp.substr(0, tmp.size()-4);
                 imagesNames.push_back(cleanstr);
                 nameList.push_back(tmp);
             }
         }
-        
+
         std::vector<cv::Mat> matList;
-        
+
         yDebug() << "The size of objects collected is:" << nameList.size();
-        
+
         for (int i = 0; i<nameList.size(); i++)
         {
             yInfo() << nameList[i].c_str();
@@ -164,17 +155,17 @@ public:
             yDebug() << "File " << imageFile.c_str();
             image = cv::imread(imageFile, CV_LOAD_IMAGE_COLOR);
             resize(image, image, cv::Size(100, 120), 0, 0, cv::INTER_CUBIC);
-            
+
             if(! image.data )                              // Check for invalid input
             {
                 yError() << "Cannot load file " << imageFile;
             }
-            
+
             matList.push_back(image);
         }
         return matList;
     }
-    
+
     /********************************************************/
     void close()
     {
@@ -190,95 +181,166 @@ public:
         imageOutPort.interrupt();
         imageOutPort.interrupt();
     }
-    
+
     /********************************************************/
     void configureImages()
     {
         resize(image_cv, image_cv, allImages.size(), 0, 0, cv::INTER_CUBIC);
-        
+
         originalImage = allImages.clone();
         clearImage = allImages.clone();
-        
+
     }
 
     /********************************************************/
     void onRead( yarp::os::Bottle &bottle_yarp )
     {
-        //yDebug() << "*************************";
-        
         yarp::sig::ImageOf<yarp::sig::PixelRgb> &outImage  = imageOutPort.prepare();
-        //yDebug() << "the size of the bottle is " << bottle_yarp.size();
-        
-        //yDebug() << bottle_yarp.toString();
-       
+
         originalImage = allImages.clone();
         clearImage = allImages.clone();
-        
+
         bool contrastDone = false;
-        
+
         objectsWithConfidence.clear();
-       
+
         for (size_t j=0; j<bottle_yarp.size(); j++)
         {
             if (!contrastDone)
                 originalImage.convertTo(originalImage, CV_8U, 0.3);
-            
+
             if (bottle_yarp.get(0).isList())
             {
                 yarp::os::Bottle *item=bottle_yarp.get(j).asList();
-            
+
                 if (item->get(0).asString().compare("train") == 0)
                 {
                     yarp::sig::ImageOf<yarp::sig::PixelRgb> *inImage = imageInPort.read();
-                    
+
                     newName = item->get(5).asString();
-                    
+
+                    int  nameIndex =-1;
+
+                    bool nameExists = false;
+
+                    if (!checkedNameValidity)
+                    {
+                        yDebug()<< "*******************************";
+
+                        if (imagesNames.size()>0)
+                            yDebug()<< "Have the following name list";
+                        else
+                            yDebug()<< "Do not have any names in list";
+
+                        for (int i = 0; i< imagesNames.size(); i++)
+                        {
+                            yDebug()<< imagesNames[i].c_str();
+                            if(imagesNames[i].compare(newName) == 0)
+                            {
+                                yError() << " name " << imagesNames[i].c_str() << "==" << newName.c_str();
+
+                                nameIndex = i;
+                                avoid = true;
+                                nameExists = true;
+                            }
+                        }
+                        if (avoid)
+                            yError() << "already got this name " << imagesNames[nameIndex].c_str();
+                        else
+                            yDebug() << "Found a new name" << newName.c_str();
+
+                        checkedNameValidity = true;
+                    }
+
+                    if (nameExists)
+                    {
+                        cv::Mat image = cv::cvarrToMat((IplImage *)inImage->getIplImage());
+
+                        cv::Point tl, br;
+                        tl.x = item->get(1).asDouble();
+                        tl.y = item->get(2).asDouble();
+
+                        br.x = item->get(3).asDouble();
+                        br.y = item->get(4).asDouble();
+
+                        cv::Rect myROI(tl.x, tl.y, br.x-tl.x, br.y-tl.y);
+
+                        cv::Mat croppedImage = image(myROI);
+
+                        resize(croppedImage, croppedImage, cv::Size(100, 120), 0, 0, cv::INTER_CUBIC);
+
+                        //matInfo.insert(std::make_pair(newName, croppedImage));
+
+                        std::map<std::string, cv::Mat>::iterator iter;
+
+                        yDebug() << "WILL NOW CHANGE THE IMAGE" ;
+                        //croppedImage.copyTo(matInfo.find(newName)->second);
+                        matInfo.find(newName)->second = croppedImage.clone();
+                        yDebug() << "IMAGE CHANGED" ;
+
+                        std::map<std::string, cv::Mat>::iterator it = matInfo.begin();
+                        while(it != matInfo.end())
+                        {
+                            if (it->first.compare(newName) == 0)
+                            {
+                                //matList.push_back(it->second);
+                                matList[nameIndex] = it->second;
+                            }
+                            it++;
+                        }
+
+                        allImages = gatherImages(matList);
+                        cv::cvtColor( allImages, allImages, CV_BGR2RGB );
+
+                    }
+
                     if (!avoid)
                     {
                         imagesNames.push_back(newName);
-                        
+
                         /*cv::Mat image;
                         std::string imageFile = newOjectPath + "/" + newName + ".png";
                         yDebug() << "File " << imageFile.c_str();
                         image = cv::imread(imageFile, CV_LOAD_IMAGE_COLOR);
                         resize(image, image, cv::Size(100, 120), 0, 0, cv::INTER_CUBIC);
-                        
+
                         std::string saveAsName = path + "/" + newName + ".png";
                         imwrite( saveAsName, image );
-                        
+
                         std::vector<cv::Mat> matList;
                         matList = getAllImages(path);
                         allImages = gatherImages(matList);
                          */
-                        
+
+
                         cv::Mat image = cv::cvarrToMat((IplImage *)inImage->getIplImage());
-                        
+
                         cv::Point tl, br;
                         tl.x = item->get(1).asDouble();
                         tl.y = item->get(2).asDouble();
-                        
+
                         br.x = item->get(3).asDouble();
                         br.y = item->get(4).asDouble();
-                        
+
                         cv::Rect myROI(tl.x, tl.y, br.x-tl.x, br.y-tl.y);
-                        
+
                         cv::Mat croppedImage = image(myROI);
-                        
+
                         resize(croppedImage, croppedImage, cv::Size(100, 120), 0, 0, cv::INTER_CUBIC);
-                        
+
                         matInfo.insert(std::make_pair(newName, croppedImage));
-                        
+
                         /*std::map<std::string, cv::Mat>::iterator it;
-                        
+
                         it = matInfo.find(newName);
-                        
+
                         matList.clear();
-                        
+
                         if(it != matInfo.end())
                         {
                             matList.push_back(it->second);
                         }*/
-                        
+
                         std::map<std::string, cv::Mat>::iterator it = matInfo.begin();
                         while(it != matInfo.end())
                         {
@@ -288,19 +350,19 @@ public:
                             }
                             it++;
                         }
-                        
+
                         allImages = gatherImages(matList);
                         cv::cvtColor( allImages, allImages, CV_BGR2RGB );
-                        
+
                         avoid = true;
                     }
-                    
+
                     configureImages();
-                    
+
                     std::map<std::string, cv::Rect>::iterator it = imagesInfo.begin();
-                    
+
                     cv::Rect ROI;
-                    
+
                     cv::Mat cropped_image;
                     while(it != imagesInfo.end())
                     {
@@ -314,13 +376,14 @@ public:
                         }
                         it++;
                     }
-                    
+
                     image_cv = originalImage.clone();
                     cv::cvtColor( image_cv, image_cv, CV_BGR2RGB );
                 }
                 else if (item->get(0).asString().compare("done.") == 0  && avoid)
                 {
                     avoid = false;
+                    checkedNameValidity = false;
                     image_cv = originalImage.clone();
                     cv::cvtColor( image_cv, image_cv, CV_BGR2RGB );
                 }
@@ -329,20 +392,20 @@ public:
                     yDebug() << item->toString().c_str();
                     yarp::os::Bottle *elements = item->get(6).asList();
                     yDebug() << "size is" << elements->size() << elements->toString().c_str();
-                    
+
                     if (elements->size() != matInfo.size())
                     {
                         yError() << "GOT A MIS-ALIGNMENT OF OBJECTS";
-                        
+
                         yError() << " matInfo size " << matInfo.size();
                         std::string value;
-                        
+
                         std::set<std::string> stringList;
                         for (size_t i=0; i<elements->size(); i++)
                             stringList.insert(elements->get(i).asString());
-                        
+
                         std::map<std::string, cv::Mat>::iterator iter = matInfo.begin();
-                        
+
                         while(iter != matInfo.end())
                         {
                             if (stringList.find(iter->first) == stringList.end())
@@ -352,16 +415,16 @@ public:
                                 matInfo.erase(iter);
                                 break;
                             }
-                            
+
                             iter++;
                         }
-                        
+
                         yDebug() << __LINE__;
                         yError() << " matInfo size " << matInfo.size();
                         matList.clear();
                         imagesNames.clear();
                         std::map<std::string, cv::Mat>::iterator subInt = matInfo.begin();
-                        
+
                         while(subInt != matInfo.end())
                         {
                             imagesNames.push_back(subInt->first);
@@ -369,21 +432,17 @@ public:
                             yError() << "Inserting objects find" << subInt->first;
                             subInt++;
                         }
-                        
-                        yDebug() << __LINE__;
+
                         allImages = gatherImages(matList);
-                        yDebug() << __LINE__;
                         cv::cvtColor( allImages, allImages, CV_BGR2RGB );
-                        yDebug() << __LINE__;
                     }
-                    yDebug() << __LINE__;
-                    
+
                     std::string objectOfInterest = item->get(5).asString();
                     double confidence = item->get(4).asDouble();
                     yDebug() << "object of interest is" << objectOfInterest << "with confidence" << confidence;
-                    
+
                     std::map<std::string, cv::Rect>::iterator it = imagesInfo.begin();
-                    
+
                     cv::Rect ROI;
                     cv::Mat cropped_image;
                     while(it != imagesInfo.end())
@@ -391,7 +450,7 @@ public:
                         if (it->first.compare(objectOfInterest) == 0)
                         {
                             ROI = it->second;
-                            
+
                             objectsWithConfidence.insert(std::make_pair(confidence, ROI));
                         }
                         it++;
@@ -400,9 +459,9 @@ public:
             }
             contrastDone = true;
         }
-        
+
         std::map<double, cv::Rect>::iterator it = objectsWithConfidence.begin();
-        
+
         while(it != objectsWithConfidence.end())
         {
             cv::Rect ROI = it->second;
@@ -415,34 +474,34 @@ public:
             rectangle( originalImage, ROI.tl(), ROI.br(), cv::Scalar(0, 255, 0), 2, 8, 0 );
             it++;
         }
-        
+
         image_cv = originalImage.clone();
         cv::cvtColor( image_cv, image_cv, CV_BGR2RGB );
-        
+
         IplImage yarpImg = image_cv;
         outImage.resize(yarpImg.width, yarpImg.height);
         cvCopy( &yarpImg, (IplImage *)outImage.getIplImage());
         imageOutPort.write();
     }
-    
+
     /********************************************************/
     cv::Mat gatherImages(std::vector<cv::Mat> &matList)
     {
         imagesInfo.clear();
-        
+
         int size;
         int i;
         int m, n;
         int x, y;
-        
+
         // w - Maximum number of images in a row
         // h - Maximum number of images in a column
         int w, h;
-        
+
         // scale - How much we have to resize the image
         float scale;
         int max;
-        
+
         // If the number of arguments is lesser than 0 or greater than 12
         // return without displaying
         if(matList.size() <= 0) {
@@ -451,7 +510,7 @@ public:
         else if(matList.size() > 14) {
             yError() << "Number of images too large, can only handle maximally 12 images at a time ...";
         }
-        
+
         // Determine the size of the image,
         // and the number of rows/cols
         // from number of arguments
@@ -479,47 +538,47 @@ public:
             w = 4; h = 3;
             size = 150;
         }
-        
+
         // Create a new 3 channel image
         cv::Mat DispImage = cv::Mat::zeros(cv::Size(100 + size*w, 60 + size*h), CV_8UC3);
-        
+
         // Loop for nArgs number of arguments
         for (i = 0, m = 20, n = 20; i < matList.size(); i++, m += (20 + size))
         {
             cv::Mat img = matList[i].clone();
-            
+
             if(img.empty()) {
                 yError() << "Invalid arguments";
             }
-            
+
             // Find the width and height of the image
             x = img.cols;
             y = img.rows;
-            
+
             // Find whether height or width is greater in order to resize the image
             max = (x > y)? x: y;
-            
+
             // Find the scaling factor to resize the image
             scale = (float) ( (float) max / size );
-            
+
             // Used to Align the images
             if( i % w == 0 && m!= 20) {
                 m = 20;
                 n+= 20 + size;
             }
-            
+
             // Set the image ROI to display the current image
             // Resize the input image and copy the it to the Single Big Image
             cv::Rect ROI(m, n, (int)( x/scale ), (int)( y/scale ));
             cv::Mat temp; resize(img,temp, cv::Size(ROI.width, ROI.height));
-            
+
             imagesInfo.insert(std::make_pair(imagesNames[i].c_str(), ROI));
-            
+
             temp.copyTo(DispImage(ROI));
         }
         return DispImage;
     }
-    
+
     /********************************************************/
     std::vector<std::string> GetDirectoryFiles(const std::string& dir)
     {
@@ -530,14 +589,14 @@ public:
   //          std::cout << "Error opening : " << std::strerror(errno) << dir << std::endl;
   //          return files;
   //      }
-  //      
+  //
   //      while ((dirent_ptr = readdir(directory_ptr.get())) != nullptr)
   //      {
   //          files.push_back(std::string(dirent_ptr->d_name));
   //     }
   //     return files;
     }
-    
+
 };
 
 /********************************************************/
