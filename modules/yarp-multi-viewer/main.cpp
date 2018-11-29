@@ -93,7 +93,6 @@ public:
     bool open(){
 
         this->useCallback();
-
         BufferedPort<yarp::os::Bottle>::open( "/" + moduleName + "/detections:i" );
         imageInPort.open("/" + moduleName + "/image:i");
         imageOutPort.open("/" + moduleName + "/image:o");
@@ -291,7 +290,6 @@ public:
 
                         allImages = gatherImages(matList);
                         cv::cvtColor( allImages, allImages, CV_BGR2RGB );
-
                     }
 
                     if (!avoid)
@@ -387,10 +385,16 @@ public:
                     image_cv = originalImage.clone();
                     cv::cvtColor( image_cv, image_cv, CV_BGR2RGB );
                 }
-                else if (!avoid && item->size()>0 && item->get(0).asString().compare("train") != 0 && item->get(0).asString().compare("done.") != 0)
+                else if (matInfo.size() > 0 && !avoid && item->size()>0 && item->get(0).asString().compare("train") != 0 && item->get(0).asString().compare("done.") != 0)
                 {
                     yDebug() << item->toString().c_str();
-                    yarp::os::Bottle *elements = item->get(6).asList();
+                    yarp::os::Bottle *elements;
+
+                    if (item->size()>1)
+                        elements = item->get(6).asList();
+                    else
+                        elements = item->get(0).asList();
+
                     yDebug() << "size is" << elements->size() << elements->toString().c_str();
 
                     if (elements->size() != matInfo.size())
@@ -415,11 +419,9 @@ public:
                                 matInfo.erase(iter);
                                 break;
                             }
-
                             iter++;
                         }
 
-                        yDebug() << __LINE__;
                         yError() << " matInfo size " << matInfo.size();
                         matList.clear();
                         imagesNames.clear();
@@ -437,10 +439,15 @@ public:
                         cv::cvtColor( allImages, allImages, CV_BGR2RGB );
                     }
 
-                    std::string objectOfInterest = item->get(5).asString();
-                    double confidence = item->get(4).asDouble();
-                    yDebug() << "object of interest is" << objectOfInterest << "with confidence" << confidence;
+                    std::string objectOfInterest;
+                    double confidence;
+                    if (item->size()>1)
+                    {
+                        confidence = item->get(4).asDouble();
+                        objectOfInterest = item->get(5).asString();
 
+                        yDebug() << "object of interest is" << objectOfInterest << "with confidence" << confidence;
+                    }
                     std::map<std::string, cv::Rect>::iterator it = imagesInfo.begin();
 
                     cv::Rect ROI;
@@ -474,10 +481,8 @@ public:
             rectangle( originalImage, ROI.tl(), ROI.br(), cv::Scalar(0, 255, 0), 2, 8, 0 );
             it++;
         }
-
         image_cv = originalImage.clone();
         cv::cvtColor( image_cv, image_cv, CV_BGR2RGB );
-
         IplImage yarpImg = image_cv;
         outImage.resize(yarpImg.width, yarpImg.height);
         cvCopy( &yarpImg, (IplImage *)outImage.getIplImage());
