@@ -227,7 +227,6 @@ while ~strcmp(state,'quit')
        case{'train'} 
            %% -------------------------------------------- TRAIN -------------------------------------------------------
            disp('----------------------TRAIN----------------------');
-%            disp('Waiting image and annotations from ports...');
            
            annotations_bottle = portAnnotation.read(true);
            yarpImage   = portImage.read(true);  
@@ -281,17 +280,10 @@ while ~strcmp(state,'quit')
 %                     fprintf('--Positives and negatives selection required %f seconds\n', toc(selection_tic));
 
                     % Extract features from regions 
-%                     feature_tic = tic;
                     % -- Select regions to extract features from
                     regions_for_features           = cat(1, cur_bbox_pos, curr_cls_neg); % cur_bbox_pos contains gt_box too so no need to repeat it  
 
                     % -- Network forward
-                    
-%                     features             = cnn_features_shared_conv(cnn_model.proposal_detection_model.conf_detection, im, regions_for_features(:, 1:4), cnn_model.fast_rcnn_net, 'fc7', ...
-%                                                               cnn_model.rpn_net.blobs(cnn_model.proposal_detection_model.last_shared_output_blob_name));
-%                     features             = cnn_features_demo(cnn_model.proposal_detection_model.conf_detection, im, regions_for_features(:, 1:4), ...
-%                                                                    cnn_model.fast_rcnn_net, [], 'pool5');         
-%                     fprintf('--Feature extraction required %f seconds\n', toc(feature_tic));
 
                     if cnn_model.proposal_detection_model.is_share_feature
                            features             = cnn_features_shared_conv(cnn_model.proposal_detection_model.conf_detection, im, regions_for_features(:, 1:4), cnn_model.fast_rcnn_net, region_classifier.training_opts.feat_layer, ...
@@ -340,7 +332,6 @@ while ~strcmp(state,'quit')
 
          case{'test'}
            %% ------------------------------------------- DETECT ----------------------------------------------------
-%            disp('Waiting image from port...');
            detection_tic = tic;
 
            yarpImage   = portImage.read(true);                       % get the yarp image from port
@@ -365,7 +356,13 @@ while ~strcmp(state,'quit')
              boxes_cell{i} = [boxes{i}, cls_scores{i}];
            end           
            sendDetections(boxes_cell, portDets, portImg, im, dataset.classes, tool, [h,w,pixSize]);
-           fprintf('Detection required %f seconds\n', toc(detection_tic));   
+           tocs = tocs + toc(detection_tic);
+           tocs_counter = tocs_counter + 1;
+           if tocs_counter == 50
+               fprintf('Detection requires %f seconds\n', tocs/50.0);
+               tocs = 0;
+               tocs_counter = 0;
+           end
            
         case{'forget'}
            %% ------------------------------------------- FORGET ----------------------------------------------------
@@ -586,11 +583,19 @@ function sendDetections(detections, detPort, imgPort, image, classes, tool, img_
                 det_list.addDouble(detections{i}(j,4));       % y_max
                 det_list.addDouble(detections{i}(j,5));       % score
                 det_list.addString(classes{i});               % string label
+                tmp_cls_list = det_list.addList();
+                for c =  1:length(classes)
+                    tmp_cls_list.addString(classes{c})
+                end
             end
         end
     else
         det_list = b.addList();
-       disp('no detection found')
+        tmp_cls_list = det_list.addList();
+        for c =  1:length(classes)
+            tmp_cls_list.addString(classes{c})
+        end
+        disp('no detection found')
     end
     
 
