@@ -5,15 +5,16 @@ addpath(genpath('../FALKON_paper'));
 %% PATHS
 disp('Configuring required paths...');
 current_path            = pwd;
-% cnn_model_path          = [current_path '/output_voc2007/faster_rcnn_VOC2007_ZF']; %-------------------------------------------
-cnn_model_path          = [current_path '/output_iCWT_features_20objs/faster_rcnn_final/faster_rcnn_ICUB_ZF']; %-------------------------------------------
-% cnn_model_path            = [current_path '/output_iCWT_TASK1_20objs_80k40k/faster_rcnn_final'];
+cnn_model_path          = [current_path '/outputs/output_iCWT_features_20objs/faster_rcnn_final/faster_rcnn_ICUB_ZF']; %-------------------------------------------
+% cnn_model_path          = [current_path '/outputs/output_ZF_ICUBFeature100_165k110k/faster_rcnn_final/faster_rcnn_ICUB_ZF']; %-------------------------------------------
+
 % feature_statistics_path = [current_path '/Demo/Conf/statistics_T1features_forT2.mat' ]; %-------------------------------------------
 % feature_statistics_path = [current_path '/Demo/Conf/new_params/pascal/stats.mat' ]; %-------------------------------------------
 feature_statistics_path = [current_path '/Demo/Conf/new_params/icub/stats.mat' ]; %-------------------------------------------
+% feature_statistics_path = [current_path '/Demo/Conf/new_params/icub/ZF100_feature_Stats.mat' ]; %-------------------------------------------
+
 % feature_statistics_path = [current_path '/Demo/Conf/feature_statistics_icub_Resnet50.mat' ]; %-------------------------------------------
 
-% feature_statistics_path = [current_path '/Demo/Conf/feature_statistics_voc_2007_train__layer_7.mat' ];
 %% FILES
 default_dataset_name      = 'def_dataset.mat'; %---------------------------------------------------------------------------------------------------------------
 default_model_name        = 'def_model.mat';   %---------------------------------------------------------------------------------------------------------------
@@ -26,7 +27,7 @@ cnn_model.opts.gpu_id                  = 1;
 disp('Configuring RPN params...');
 cnn_model.opts.per_nms_topN            = 6000;
 cnn_model.opts.nms_overlap_thres       = 0.7;
-after_nms_topN_train                   = 900; %---------------------------------------------------------------------------------------------------------------
+after_nms_topN_train                   = 500; %---------------------------------------------------------------------------------------------------------------
 after_nms_topN_test                    = 300; %---------------------------------------------------------------------------------------------------------------
 cnn_model.opts.use_gpu                 = true;
 cnn_model.opts.test_scales             = 600;
@@ -53,7 +54,7 @@ negatives_selection.iterations         = 10; %----------------------------------
 negatives_selection.neg_ovr_thresh     = 0.3;
 % negatives_selection.evict_easy_thresh  = -0.6;
 % negatives_selection.select_hard_thresh = -0.5;
-negatives_selection.evict_easy_thresh  = -1.0;
+negatives_selection.evict_easy_thresh  = -0.9;
 negatives_selection.select_hard_thresh = -0.7;
 cls_opts.negatives_selection           = negatives_selection;
 cls_opts.feat_layer                    = 'fc7'; %------------------------------------------------------------------------------------------------------------
@@ -65,7 +66,7 @@ train_classifier_options               = struct;
 train_classifier_options.memToUse      = 10;          % GB of memory to use (using "[]" will allow the machine to use all the free memory)
 train_classifier_options.useGPU        = 1;           % flag for using or not the GPU
 train_classifier_options.T             = 150;
-train_classifier_options.M             = 2000;
+train_classifier_options.M             = 1500;
 train_classifier_options.lambda        = 0.001;
 train_classifier_options.sigma         = 15;
 train_classifier_options.kernel        = gaussianKernel(train_classifier_options.sigma); 
@@ -75,3 +76,9 @@ cls_opts.statistics                    = statistics;
 %% Bbox regression options
 bbox_opts = struct;
 bbox_opts.min_overlap = 0.6;
+
+tocs = 0;
+tocs_counter = 0;
+
+%% Application options
+show_regions = true;

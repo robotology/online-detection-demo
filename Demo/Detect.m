@@ -1,4 +1,4 @@
-function [cls_scores  pred_boxes] = Detect(im, classes, cnn_model, cls_model, bbox_model, detect_thresh)
+function [cls_scores  pred_boxes] = Detect(im, classes, cnn_model, cls_model, bbox_model, detect_thresh, show_regions, portRegs)
 %INFERENCE Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -9,6 +9,21 @@ function [cls_scores  pred_boxes] = Detect(im, classes, cnn_model, cls_model, bb
     [boxes, scores]             = proposal_im_detect(cnn_model.proposal_detection_model.conf_proposal, cnn_model.rpn_net, im);
     aboxes                      = boxes_filter([boxes, scores], cnn_model.opts.per_nms_topN, cnn_model.opts.nms_overlap_thres, ...
                                                 cnn_model.opts.after_nms_topN, cnn_model.opts.use_gpu);
+    if show_regions
+        b = portRegs.prepare();
+        b.clear();
+        for i = 1:length(aboxes)
+                % Prepare list
+                reg_list = b.addList();
+                % Add bounding box coordinates, score and string label of detected the object
+                reg_list.addDouble(aboxes(i,1));       % x_min
+                reg_list.addDouble(aboxes(i,2));       % y_min
+                reg_list.addDouble(aboxes(i,3));       % x_max
+                reg_list.addDouble(aboxes(i,4));       % y_max
+                reg_list.addDouble(aboxes(i,5));       % score objectness
+        end
+        portRegs.write();
+    end
 %     fprintf('--Region proposal prediction required %f seconds\n', toc(regions_tic));
 
     %feature extraction from regions    
@@ -24,7 +39,7 @@ function [cls_scores  pred_boxes] = Detect(im, classes, cnn_model, cls_model, bb
     
     %% Regions classification and scores thresholding
 %     cls_tic = tic;
-    [cls_boxes, cls_scores, inds] = predict_FALKON(features, cls_model, 0.5, aboxes(:, 1:4));
+    [cls_boxes, cls_scores, inds] = predict_FALKON(features, cls_model, 0.3, aboxes(:, 1:4));
 %     fprintf('--Region classification required %f seconds\n', toc(cls_tic));
 
     %% Bounding boxes refinement

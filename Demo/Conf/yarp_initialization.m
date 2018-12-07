@@ -17,6 +17,8 @@ portImage      = yarp.BufferedPortImageRgb;      % Buffered Port for reading ima
 portAnnotation = yarp.BufferedPortBottle;        % Port for receiving annotations
 portDets       = yarp.BufferedPortBottle;        % Port for sending detections
 portImg        = yarp.Port;                      % Port for propagating images
+portRegs       = yarp.BufferedPortBottle;        % Port for sending detections
+
 
 %first close the port just in case (this is to try to prevent matlab from beuing unresponsive)
 portCmd.close;
@@ -24,6 +26,8 @@ portImage.close;
 portAnnotation.close;
 portDets.close;
 portImg.close;
+portRegs.close;
+
 
 %open the ports 
 disp('opening ports...');
@@ -48,6 +52,9 @@ portImg.open('/detection/img:o');
 disp('opened port /detection/img:o');
 pause(0.5);
 
+portRegs.open('/detection/regions:o');
+disp('opened port /detection/regions:o');
+pause(0.5);
 
 % Images options
 h       = 240;

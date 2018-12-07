@@ -345,7 +345,7 @@ while ~strcmp(state,'quit')
            % Performing detection
            if isfield(region_classifier, 'classes') && ~isempty(dataset.classes)
                region_classifier.training_opts = cls_opts;
-               [cls_scores boxes] = Detect(im, dataset.classes, cnn_model, region_classifier, bbox_regressor, detect_thresh);
+               [cls_scores boxes] = Detect(im, dataset.classes, cnn_model, region_classifier, bbox_regressor, detect_thresh, show_regions, portRegs);
            else
                boxes      = [];
                cls_scores = [];
@@ -595,7 +595,7 @@ function sendDetections(detections, detPort, imgPort, image, classes, tool, img_
         for c =  1:length(classes)
             tmp_cls_list.addString(classes{c})
         end
-        disp('no detection found')
+       % disp('no detection found')
     end
     
 
