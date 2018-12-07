@@ -44,7 +44,7 @@ total_rois = size(rois_blob, 4);
 feat_dim = -1;
 feat = [];
 curr = 1;
-batch_size = 256;
+batch_size = 150;
 
 batch_padding = calculate_batch_padding(total_rois, batch_size);
 
@@ -64,12 +64,12 @@ for i = 1:ceil(total_rois / batch_size)
     
     % first batch, init feat_dim and feat
     if i == 1
-        if layer == 'fc7'
+        if strcmp(layer, 'fc7')
             feat_dim = 4096;
-        elseif layer == 'fc6'
+        elseif strcmp(layer, 'fc6')
             feat_dim = 4096;
-        elseif layer == 'pool5'
-            feat_dim = 9216;
+        elseif strcmp(layer,'pool5')
+            feat_dim = 2048;
         else
             error('Error: unrecognized layer');
         end

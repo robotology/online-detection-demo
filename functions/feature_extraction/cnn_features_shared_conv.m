@@ -46,12 +46,12 @@ for i = 1:ceil(total_rois / batch_size)
     
     % first batch, init feat_dim and feat
     if i == 1
-        if layer == 'fc7'
+        if strcmp(layer, 'fc7')
             feat_dim = 4096;
-        elseif layer == 'fc6'
+        elseif strcmp(layer, 'fc6')
             feat_dim = 4096;
-        elseif layer == 'pool5'
-            feat_dim = 9216;
+        elseif strcmp(layer,'pool5')
+            feat_dim = 2048;
         else
             error('Error: unrecognized layer');
         end

@@ -36,7 +36,6 @@ catch
     d = cnn_load_cached_pool5_features(rcnn_model.cache_name, ...
         imdb.name, image_ids{i});
     X = d.feat(randperm(size(d.feat,1), min(boxes_per_image, size(d.feat,1))), :);
-%     X = rcnn_pool5_to_fcX(X, layer, rcnn_model);
 
     ns = cat(1, ns, sqrt(sum(X.^2, 2)));
   end

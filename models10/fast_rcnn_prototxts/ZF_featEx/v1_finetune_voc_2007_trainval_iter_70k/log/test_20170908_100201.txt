@@ -1,6 +1,0 @@
-if system_dependent('IsDebugMode')==1, dbcont; end
-if system_dependent('IsDebugMode')==1, dbcont; end
-if system_dependent('IsDebugMode')==1, dbcont; end
-if system_dependent('IsDebugMode')==1, dbcont; end
-load('workspace_fake_exp.mat')
-cellfun(@(x, y) Incremental_Faster_RCNN_Train.do_extract_features(conf_fast_rcnn, model.feature_extraction, 'train', x, y), dataset.TASK2.imdb_train, dataset.TASK2.roidb_train);
