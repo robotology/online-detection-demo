@@ -5,8 +5,8 @@
 cmake_minimum_required(VERSION 3.1)
 project(detection-demo)
 
-find_package(YARP 3.1 REQUIRED COMPONENTS OS sig dev math rosmsg)
 find_package(ICUBcontrib REQUIRED)
+find_package(YARP 3.1 REQUIRED COMPONENTS OS sig dev math rosmsg cv)
 find_package(OpenCV REQUIRED)
 list(APPEND CMAKE_MODULE_PATH ${ICUBCONTRIB_MODULE_PATH})
 

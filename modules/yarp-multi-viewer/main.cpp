@@ -27,6 +27,7 @@
 #include <yarp/sig/Vector.h>
 #include <yarp/math/Math.h>
 #include <yarp/sig/ImageFile.h>
+#include <yarp/cv/Cv.h>
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/opencv.hpp>
@@ -75,6 +76,8 @@ class Multiview : public yarp::os::BufferedPort<yarp::os::Bottle>
     cv::Mat clearImage;
     cv::Mat image_cv;
 
+    bool setupImage;
+
 public:
     /********************************************************/
 
@@ -103,20 +106,16 @@ public:
 
         matList.clear();
         matInfo.clear();
-
-        yarp::sig::ImageOf<yarp::sig::PixelRgb> *inImage = imageInPort.read();
-        cv::Mat image = cv::cvarrToMat((IplImage *)inImage->getIplImage());
-        cv::Mat tmpBlack(image.size(), CV_8UC3, cv::Scalar(0, 0, 0));
-        allImages = tmpBlack.clone();
-        image_cv = tmpBlack.clone();
+    
+        setupImage = false;
 
         imagesInfo.clear();
 
-        yarp::os::Network::connect("/detection/dets:o", BufferedPort<yarp::os::Bottle>::getName().c_str(), "tcp");
-        yarp::os::Network::connect("/dets", BufferedPort<yarp::os::Bottle>::getName().c_str(), "tcp");
+        //yarp::os::Network::connect("/detection/dets:o", BufferedPort<yarp::os::Bottle>::getName().c_str(), "tcp");
+        //yarp::os::Network::connect("/dets", BufferedPort<yarp::os::Bottle>::getName().c_str(), "tcp");
 
-        yarp::os::Network::connect(imageOutPort.getName().c_str(), "/viewer/objects", "mjpeg");
-        yarp::os::Network::connect( "/depthCamera/rgbImage:o", imageInPort.getName().c_str(), "mjpeg");
+        //yarp::os::Network::connect(imageOutPort.getName().c_str(), "/viewer/objects", "mjpeg");
+        //yarp::os::Network::connect( "/depthCamera/rgbImage:o", imageInPort.getName().c_str(), "mjpeg");
 
         return true;
     }
@@ -194,6 +193,25 @@ public:
     /********************************************************/
     void onRead( yarp::os::Bottle &bottle_yarp )
     {
+        if (!setupImage)
+        {
+            yDebug() << "setting up image";
+            while (imageInPort.getInputCount() < 1)
+            {
+                yError() << "waiting for connections";
+                yarp::os::Time::delay(0.1);
+            }
+            yarp::sig::ImageOf<yarp::sig::PixelRgb> *inImage = imageInPort.read();
+            //cv::Mat image = cv::cvarrToMat((IplImage *)inImage->getIplImage());
+            cv::Mat image = yarp::cv::toCvMat(*inImage);
+            cv::Mat tmpBlack(image.size(), CV_8UC3, cv::Scalar(0, 0, 0));
+            allImages = tmpBlack.clone();
+            image_cv = tmpBlack.clone();
+            yDebug() << "done setting up image";
+            setupImage = true;
+        }
+
+        //yDebug() << "running";
         yarp::sig::ImageOf<yarp::sig::PixelRgb> &outImage  = imageOutPort.prepare();
 
         originalImage = allImages.clone();
@@ -253,7 +271,8 @@ public:
 
                     if (nameExists)
                     {
-                        cv::Mat image = cv::cvarrToMat((IplImage *)inImage->getIplImage());
+                        cv::Mat image = yarp::cv::toCvMat(*inImage);
+                        //cv::Mat image = cv::cvarrToMat((IplImage *)inImage->getIplImage());
 
                         cv::Point tl, br;
                         tl.x = item->get(1).asDouble();
@@ -310,8 +329,8 @@ public:
                         allImages = gatherImages(matList);
                          */
 
-
-                        cv::Mat image = cv::cvarrToMat((IplImage *)inImage->getIplImage());
+                        cv::Mat image = yarp::cv::toCvMat(*inImage);
+                        //cv::Mat image = cv::cvarrToMat((IplImage *)inImage->getIplImage());
 
                         cv::Point tl, br;
                         tl.x = item->get(1).asDouble();
@@ -483,9 +502,12 @@ public:
         }
         image_cv = originalImage.clone();
         cv::cvtColor( image_cv, image_cv, CV_BGR2RGB );
-        IplImage yarpImg = image_cv;
-        outImage.resize(yarpImg.width, yarpImg.height);
-        cvCopy( &yarpImg, (IplImage *)outImage.getIplImage());
+        
+        //IplImage yarpImg = image_cv;
+        //outImage.resize(yarpImg.width, yarpImg.height);
+        //cvCopy( &yarpImg, (IplImage *)outImage.getIplImage());
+        outImage = yarp::cv::fromCvMat<yarp::sig::PixelRgb>(image_cv);
+        
         imageOutPort.write();
     }
 
