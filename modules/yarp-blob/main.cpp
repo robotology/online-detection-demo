@@ -30,6 +30,7 @@
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/opencv.hpp>
+#include <yarp/cv/Cv.h>
 
 #include <cstring>
 #include <vector>
@@ -110,6 +111,14 @@ public:
         depthImageOutPort.interrupt();
         displayImageOutPort.interrupt();
     }
+    /****************************************************************/
+    bool setDepthRange(double closeRange, double longRange)
+    {
+        this->minVal = closeRange;
+        this->maxVal = longRange;
+        yDebug() << "using" << minVal << maxVal;
+        return true;
+    }
 
     /****************************************************************/
     bool getCameraOptions()
@@ -170,7 +179,8 @@ public:
 
         depth = float_yarp;
 
-        cv::Mat float_original_cv = cv::cvarrToMat((IplImage *)float_yarp.getIplImage());
+        cv::Mat float_original_cv = yarp::cv::toCvMat(float_yarp);
+        //cv::Mat float_original_cv = cv::cvarrToMat((IplImage *)float_yarp.getIplImage());
         cv::Mat float_cv = float_original_cv;
 
         cv::Mat mono_cv = cv::Mat::ones(float_yarp.height(), float_yarp.width(), CV_8UC1);
@@ -250,14 +260,16 @@ public:
             }
         }
 
-        IplImage yarpImg = img_cv;
-        outDepthImage.resize(yarpImg.width, yarpImg.height);
-        cvCopy( &yarpImg, (IplImage *) outDepthImage .getIplImage());
+        //IplImage yarpImg = img_cv;
+        //outDepthImage.resize(yarpImg.width, yarpImg.height);
+        //cvCopy( &yarpImg, (IplImage *) outDepthImage .getIplImage());
+        outDepthImage = yarp::cv::fromCvMat<yarp::sig::PixelMono>(img_cv);
         depthImageOutPort.write();
 
-        IplImage yarpImgrgb = rgb_cv;
-        outImage.resize(yarpImgrgb.width, yarpImgrgb.height);
-        cvCopy( &yarpImgrgb, (IplImage *) outImage.getIplImage());
+        //IplImage yarpImgrgb = rgb_cv;
+        //outImage.resize(yarpImgrgb.width, yarpImgrgb.height);
+        //cvCopy( &yarpImgrgb, (IplImage *) outImage.getIplImage());
+        outImage = yarp::cv::fromCvMat<yarp::sig::PixelRgb>(rgb_cv);
         displayImageOutPort.write();
 
     }
@@ -281,6 +293,9 @@ public:
     {
         this->rf=&rf;
         std::string moduleName = rf.check("name", yarp::os::Value("yarp-blob"), "module name (string)").asString();
+        double closeRange = rf.check("minVal", yarp::os::Value(0.25), "minVal depth value (double)").asDouble();
+        double longRange = rf.check("maxVal", yarp::os::Value(1.25), "maxVal depth value (double)").asDouble();
+
         setName(moduleName.c_str());
 
         rpcPort.open(("/"+getName("/rpc")).c_str());
@@ -290,6 +305,8 @@ public:
         processing = new Processing( moduleName );
         /* now start the thread to do the work */
         processing->open();
+
+        processing->setDepthRange(closeRange, longRange);
 
         attach(rpcPort);
 
