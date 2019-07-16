@@ -53,7 +53,7 @@ class Processing : public yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::P
     yarp::sig::ImageOf<yarp::sig::PixelFloat> depth;
 
     double minVal = 0.2;
-    double maxVal = 1.25;
+    double maxVal = 3.25;
 
     cv::Mat overlayFrame;
 
@@ -198,7 +198,7 @@ public:
         cv::Point minLoc, maxLoc;
         cv::minMaxLoc( img_cv, &minVal, &maxVal, &minLoc, &maxLoc );
 
-        int imageThreshRatioLow = 50;
+        int imageThreshRatioLow = 100;
 
         int maxValThreshed = (maxVal - imageThreshRatioLow );
 
@@ -208,7 +208,7 @@ public:
         std::vector<std::vector<cv::Point> > cnt;
         std::vector<cv::Vec4i> hrch;
 
-        findContours( cleanedImg, cnt, hrch, CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE );
+        findContours( cleanedImg, cnt, hrch, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE );
 
         std::vector<cv::Moments> mu( cnt.size() );
         std::vector<cv::Point2f> mc( cnt.size() );
@@ -224,7 +224,7 @@ public:
 
             //yInfo() << "contour area" << contourArea(cnt[i]);
 
-            if (contourArea(cnt[i]) > 500 && contourArea(cnt[i]) < 6000)
+            if (contourArea(cnt[i]) > 0 && contourArea(cnt[i]) < 1000)
             {
                 //double value = img_blobs.at<uchar>(cv::Point(mc[i].x, mc[i].y));
 
@@ -239,12 +239,14 @@ public:
 
                 //findContours( img_blobs, cnt, hrch, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE );
 
-                cv::drawContours( img_out, cnt, i, cvScalar(255,255,255), CV_FILLED, 8, hrch, 0, cv::Point() );
+                cv::drawContours( img_cv, cnt, i, cvScalar(0,0,0), CV_FILLED, 8, hrch, 0, cv::Point() );
 
-                rgb_cv.copyTo(overlayFrame);
-                cv::drawContours( overlayFrame, cnt, i, cvScalar(255, 102, 102), CV_FILLED, 8, hrch, 0, cv::Point() );
-                double opacity = 0.8;
-                cv::addWeighted(overlayFrame, opacity, i, 1 - opacity, 0, rgb_cv);
+                //cv::drawContours( img_out, cnt, i, cvScalar(255,255,255), CV_FILLED, 8, hrch, 0, cv::Point() );
+
+                //rgb_cv.copyTo(overlayFrame);
+                //cv::drawContours( overlayFrame, cnt, i, cvScalar(255, 102, 102), CV_FILLED, 8, hrch, 0, cv::Point() );
+                //double opacity = 0.8;
+                //cv::addWeighted(overlayFrame, opacity, i, 1 - opacity, 0, rgb_cv);
             }
         }
 

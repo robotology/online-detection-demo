@@ -73,6 +73,8 @@ port_cmd_gaze = yarp.BufferedPortBottle()
 port_google = yarp.RpcClient()
 port_gaze_direction = yarp.BufferedPortBottle()
 
+port_augmented_rpc = yarp.RpcClient()
+
 
 if whichRobot == "icub" then
     port_gaze_tx = yarp.BufferedPortBottle()
@@ -95,6 +97,8 @@ port_draw_image:open("/manager/draw:o")
 port_cmd_detection:open("/manager/detection/cmd:o")
 port_cmd_gaze:open("/manager/gaze/cmd:o")
 port_google:open("/manager/googlePort:o")
+
+port_augmented_rpc:open("/manager/augmented:o")
 
 if whichRobot == "icub" then
     port_sfm_rpc:open("/detection/sfm/rpc")
@@ -617,6 +621,26 @@ end
 
 ---------------------------------------------------------------------------------------------------------------
 
+function startAugmentation()
+    local cmd = port_augmented_rpc:prepare()
+    cmd:clear()
+    cmd:addString("startAugmentation")
+
+    port_cmd_detection:write()
+end
+
+---------------------------------------------------------------------------------------------------------------
+
+function stopAugmentation()
+    local cmd = port_augmented_rpc:prepare()
+    cmd:clear()
+    cmd:addString("stopAugmentation")
+
+    port_augmented_rpc:write()
+end
+
+---------------------------------------------------------------------------------------------------------------
+
 function sendTrain(objName)
     local cmd = port_cmd_detection:prepare()
     cmd:clear()
@@ -658,6 +682,7 @@ drawString = "robot"
 isSpeech = false
 
 isInteracting = false
+isAugmenting = false
 
 lookedObject = ""
 
@@ -759,6 +784,11 @@ while state ~= "quit" and not interrupting do
                 startGaze()
                 object = cmd:get(1):asString()
                 sendTrain(object)
+                if cmd:size() > 3 then
+                    startAugmentation()
+                    isAugmenting = true
+                end
+                
                 speak(port_ispeak, "Let me have a look at the " .. object)
 
             elseif state == "forget" then
@@ -950,6 +980,10 @@ while state ~= "quit" and not interrupting do
                 speak(port_ispeak, "How can I help you")
                 isInteracting = true
                 
+                if isAugmenting
+                    stopAugmentation()
+                    isAugmenting = false
+                end
             end
         end
 

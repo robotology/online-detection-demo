@@ -49,7 +49,7 @@ class Processing : public yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::P
     yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> >       imagePort;
     yarp::os::BufferedPort<yarp::os::Bottle>  targetPort;
 
-    yarp::os::RpcClient rpc;
+    yarp::os::RpcServer rpc;
     std::string path;
 
     int incrementFile;
@@ -105,7 +105,7 @@ public:
 
         this->useCallback();
 
-        BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelMono> >::open( "/" + moduleName + "/disparity:i" );
+        BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelMono> >::open( "/" + moduleName + "/depth:i" );
         inPort.open("/"+ moduleName + "/image:i");
         outPort.open("/"+ moduleName + "/depth:o");
         imagePort.open("/" + moduleName + "/image:o");
@@ -113,15 +113,6 @@ public:
         frameNum = 1;
 
         rpc.open("/"+moduleName+"/rpcdata");
-
-        yarp::os::Network::connect(rpc.getName(), "/yarpdataplayer/rpc:i");
-
-        yarp::os::Network::connect("/SFM/disp:o", "/yarp-augmentation/disparity:i");
-        yarp::os::Network::connect("/icub/camcalib/left/out", "/yarp-augmentation/image:i");
-
-        yarp::os::Network::connect("/yarp-augmentation/depth:o", "/depth");
-        yarp::os::Network::connect("/yarp-augmentation/image:o", "/image");
-
 
         yDebug() << "the path is: " << path.c_str();
 
@@ -166,6 +157,7 @@ public:
     /********************************************************/
     void onRead( yarp::sig::ImageOf<yarp::sig::PixelMono> &dispImage )
     {
+
         yarp::sig::ImageOf<yarp::sig::PixelRgb> &augmentedImage  = imagePort.prepare();
         yarp::sig::ImageOf<yarp::sig::PixelRgb> &outImage  = outPort.prepare();
         yarp::os::Bottle &outTargets = targetPort.prepare();
@@ -179,8 +171,10 @@ public:
         augmentedImage.zero();
 
         cv::Mat inColour_cv = cv::cvarrToMat((IplImage *)inImage->getIplImage());
-        cv::Mat disp = cv::cvarrToMat((IplImage *)dispImage.getIplImage());
+        
+        cv::Mat imgout = inColour_cv.clone();
 
+        cv::Mat disp = cv::cvarrToMat((IplImage *)dispImage.getIplImage());
 
         double sigmaX1 = 1.5;
         double sigmaY1 = 1.5;
@@ -191,16 +185,16 @@ public:
 
         cv::threshold(disp, disp, backgroundThresh, -1, CV_THRESH_TOZERO);
 
-        int dilate_niter = 4;
-        int erode_niter = 2;
-        double sigmaX2 = 2;
-        double sigmaY2 = 2;
+        int dilate_niter = 2;
+        int erode_niter = 1;
+        double sigmaX2 = 1;
+        double sigmaY2 = 1;
 
-        cv::dilate(disp, disp, cv::Mat(), cv::Point(-1,-1), dilate_niter, cv::BORDER_CONSTANT, cv::morphologyDefaultBorderValue());
+        //cv::dilate(disp, disp, cv::Mat(), cv::Point(-1,-1), dilate_niter, cv::BORDER_CONSTANT, cv::morphologyDefaultBorderValue());
 
-        cv::GaussianBlur(disp, disp, cv::Size(gaussSize,gaussSize), sigmaX2, sigmaY2, cv::BORDER_DEFAULT);
+       // cv::GaussianBlur(disp, disp, cv::Size(gaussSize,gaussSize), sigmaX2, sigmaY2, cv::BORDER_DEFAULT);
 
-        cv::erode(disp, disp, cv::Mat(), cv::Point(-1,-1), erode_niter, cv::BORDER_CONSTANT, cv::morphologyDefaultBorderValue());
+        //cv::erode(disp, disp, cv::Mat(), cv::Point(-1,-1), erode_niter, cv::BORDER_CONSTANT, cv::morphologyDefaultBorderValue());
 
         /* Find the max value and its position and apply a threshold to remove the backgound */
         double minVal, maxVal;
@@ -213,14 +207,14 @@ public:
         if (maxValThreshed < 80)
             maxValThreshed = 80;
 
-        cv::Mat cleanedImg;
-        cv::threshold(disp, cleanedImg, maxValThreshed, 255, cv::THRESH_BINARY);
+        //cv::Mat cleanedImg;
+        //cv::threshold(disp, cleanedImg, maxValThreshed, 255, cv::THRESH_BINARY);
 
         /* Find the contour of the closest objects */
         std::vector<std::vector<cv::Point> > cnt;
         std::vector<cv::Vec4i> hrch;
 
-        findContours( cleanedImg, cnt, hrch, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_TC89_L1 );
+        findContours( disp, cnt, hrch, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_TC89_L1 );
 
         /* get moments and mass center */
         std::vector<cv::Moments> mu(cnt.size() );
@@ -237,9 +231,13 @@ public:
 
         /* Use pointPolygonTest using the previous maxvalue location to compare with all contours found */
         int highestVal = -1;
+
+        yDebug() << "contour" << cnt.size();
+
         for( size_t i = 0; i< cnt.size(); i++ )
         {
-            if (pointPolygonTest( cnt[i], cv::Point2f(maxLoc.x, maxLoc.y), 1 ) > 0)
+            //if (pointPolygonTest( cnt[i], cv::Point2f(maxLoc.x, maxLoc.y), 1 ) > 0 && contourArea(cnt[i]) > 400 && contourArea(cnt[i]) < 10000)
+                if (pointPolygonTest( cnt[i], cv::Point2f(maxLoc.x, maxLoc.y), 1 ) > 0)
                 highestVal = i;
         }
 
@@ -335,20 +333,21 @@ public:
             }
 
             frameNum++;
-
-            IplImage imgout;
+            
             if (allowedAugmentation)
             {
-                imgout = imageOutput;
+                imgout = imageOutput.clone();
 
             }
-            else
-                imgout = inColour_cv;
-
-            augmentedImage.resize(imgout.width, imgout.height);
-            cvCopy( &imgout, (IplImage *) augmentedImage.getIplImage());
-            imagePort.write();
+            //else
+                //imgout = inColour_cv.clone();
+            
         }
+        
+        IplImage orig = imgout;
+        augmentedImage.resize(inImage->width(), inImage->height());
+        cvCopy( &orig, (IplImage *) augmentedImage.getIplImage());
+        imagePort.write();
 
         IplImage out = disp;
         outImage.resize(out.width, out.height);
@@ -518,12 +517,14 @@ public:
     bool startAugmentation()
     {
         processing->allowedAugmentation = true;
+        return true;
     }
 
     /********************************************************/
     bool stopAugmentation()
     {
         processing->allowedAugmentation = false;
+        return true;
     }
 };
 
