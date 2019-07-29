@@ -106,7 +106,7 @@ public:
 
         matList.clear();
         matInfo.clear();
-    
+
         setupImage = false;
 
         imagesInfo.clear();
@@ -389,7 +389,7 @@ public:
                             cropped_image = clearImage(ROI);
                             cropped_image.convertTo(cropped_image, CV_8U, 0.8);
                             cropped_image.copyTo(originalImage(ROI));
-                            rectangle( originalImage, ROI.tl(), ROI.br(), cv::Scalar(0, 0, 255), 2, 8, 0 );
+                            rectangle( originalImage, ROI.tl(), ROI.br(), cv::Scalar(255, 0, 0), 2, 8, 0 );
                         }
                         it++;
                     }
@@ -502,12 +502,12 @@ public:
         }
         image_cv = originalImage.clone();
         cv::cvtColor( image_cv, image_cv, CV_BGR2RGB );
-        
+
         //IplImage yarpImg = image_cv;
         //outImage.resize(yarpImg.width, yarpImg.height);
         //cvCopy( &yarpImg, (IplImage *)outImage.getIplImage());
         outImage = yarp::cv::fromCvMat<yarp::sig::PixelRgb>(image_cv);
-        
+
         imageOutPort.write();
     }
 
