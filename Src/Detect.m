@@ -39,7 +39,7 @@ function [cls_scores  pred_boxes] = Detect(im, classes, cnn_model, cls_model, bb
     
     %% Regions classification and scores thresholding
 %     cls_tic = tic;
-    [cls_boxes, cls_scores, inds] = predict_FALKON(features, cls_model, 0.3, aboxes(:, 1:4));
+    [cls_boxes, cls_scores, inds] = predict_FALKON(features, cls_model, 0.0, aboxes(:, 1:4));
 %     fprintf('--Region classification required %f seconds\n', toc(cls_tic));
 
     %% Bounding boxes refinement
