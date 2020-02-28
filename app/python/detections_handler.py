@@ -63,6 +63,7 @@ class DetectionsHandler (yarp.RFModule):
          self._in_buf_array = np.ones((image_h, image_w, 3), dtype = np.uint8)
          self._in_buf_image = yarp.ImageRgb()
          self._in_buf_image.resize(image_w, image_h)
+         print('Before setExternal...\n')
          self._in_buf_image.setExternal(self._in_buf_array, self._in_buf_array.shape[1], self._in_buf_array.shape[0])
 
          print('Preparing output image...\n')
@@ -293,6 +294,7 @@ class DetectionsHandler (yarp.RFModule):
          self._out_det_img_port.close()
          self._rpc_thresh_port.close()
          self._input_train_port.close()
+         self._out_det_port.close()
 
     def run(self):
 
@@ -360,9 +362,11 @@ if __name__ == '__main__':
 
     detHandler = DetectionsHandler(args.input_image_port_name, args.out_det_img_port_name, args.input_detections_port_name, args.rpc_thresh_port_name, args.out_det_port_name, args.image_width, args.image_height)
 
-    #try:
-    detHandler.run()
+    try:
+        detHandler.run()
 
-    #finally:
-     #   print('Closing DetectionsHandler'
-      #  detHandler.cleanup()
+    finally:
+        print('Closing DetectionsHandler')
+        detHandler.cleanup()
+
+
