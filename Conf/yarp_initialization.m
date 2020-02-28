@@ -63,8 +63,8 @@ pause(0.5);
 % Images options
 h       = 240;
 w       = 320;
-% h       = 480;
-% w       = 640;
+%h       = 480;
+%w       = 640;
 pixSize = 3;
 tool    = yarp.matlab.YarpImageHelper(h, w);
 
