@@ -13,8 +13,8 @@ faster_rcnn_final/faster_rcnn_ICUB_ZF/model.mat
 models/
 data/
 datasets/
-external/caffe
-external/
+#external/caffe
+#external/
 output/
 cachedir/
 imdb/cache
