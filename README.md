@@ -62,7 +62,7 @@ Note that, we modified the provided version in order to use Resnet50 and Resnet1
 
 Instructions provided below will place `caffe` directory in `external/faster_rcnn/external` folder and will compile it locally and compile Faster R-CNN.
 
-~~
+```
 cd $DETECTION_DIR/external/
 git clone https://github.com/ShaoqingRen/faster_rcnn.git
 cd $DETECTION_DIR
@@ -73,7 +73,7 @@ make matcaffe
 cd $DETECTION_DIR/external/faster_rcnn
 matlab faster_rcnn_build
 matlab startup
-~~
+```
 
 Please, refer to the installation instructions of Faster RCNN at this [link](https://github.com/ShaoqingRen/faster_rcnn#preparation-for-testing) for further details.
 
@@ -87,22 +87,21 @@ And then please, follow instructions of the [official repository](https://github
 
 
 Finally, please, type:
-
-~~
+```
 cd $DETECTION_DIR/
 matlab online_detection_build
 matlab startup
-~~
+```
 
 
 ## Usage
 This module allows to train a detection model online, in just few seconds. It relies on Faster R-CNN for feature extraction and on FALKON + Minibootstrap procedure for classification. Please, refer to the [paper](https://www.semanticscholar.org/paper/Speeding-Up-Object-Detection-Training-for-Robotics-Maiettini-Pasquale/6a8a3b27a78c78bc80984fca29554de3269d34d3) for further details about the algorithm.
 
 You can use your own Faster R-CNN pretrained weights as feature extraction module. We made available a ZF model, trained on 20 bjects of the iCubWorld Transformation dataset. In order to use it you can run the script fetch_model.sh by doing the following:
-~~
+```
 cd $DETECTION_DIR
 ./scripts/fetch_model.sh
-~~
+```
 
 The inputs of the module are listed below:
 
