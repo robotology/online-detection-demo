@@ -66,7 +66,7 @@ Instructions provided below will place `caffe` directory in `external/faster_rcn
 cd $DETECTION_DIR/external/
 git clone https://github.com/ShaoqingRen/faster_rcnn.git
 cd $DETECTION_DIR
-./scripts/fetch_caffe.sh
+./Scripts/fetch_caffe.sh
 cd external/faster_rcnn/external/caffe
 make
 make matcaffe
@@ -79,10 +79,10 @@ Please, refer to the installation instructions of Faster RCNN at this [link](htt
 
 #### FALKON installation
 In order to install FALKON, please follow the following instructions:
-~~
+```
 cd $DETECTION_DIR/external/
 git clone https://github.com/LCSL/FALKON_paper.git
-~~
+```
 And then please, follow instructions of the [official repository](https://github.com/LCSL/FALKON_paper).
 
 
@@ -100,7 +100,7 @@ This module allows to train a detection model online, in just few seconds. It re
 You can use your own Faster R-CNN pretrained weights as feature extraction module. We made available a ZF model, trained on 20 bjects of the iCubWorld Transformation dataset. In order to use it you can run the script fetch_model.sh by doing the following:
 ```
 cd $DETECTION_DIR
-./scripts/fetch_model.sh
+./Scripts/fetch_model.sh
 ```
 
 The inputs of the module are listed below:

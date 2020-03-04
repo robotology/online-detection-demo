@@ -1,9 +1,9 @@
 #!/bin/bash
 
 FILE=ZF_model_20objs.tar.gz
-URL_model=https://www.dropbox.com/s/410xryxh17uv13x/ZF_model_20objs.tar.gz?dl=0
-URL_stats=https://www.dropbox.com/s/6bbrofwx29b1sle/ZF20_feature_Stats.mat?dl=0
-DIRECTORY=external/faster_rcnn/Data/cnn_models
+URL_model=https://www.dropbox.com/s/410xryxh17uv13x/ZF_model_20objs.tar.gz
+URL_stats=https://www.dropbox.com/s/6bbrofwx29b1sle/ZF20_feature_Stats.mat
+DIRECTORY=Data/cnn_models
 
 if [ ! -d "$DIRECTORY"  ]; then
 
@@ -23,7 +23,10 @@ tar zxvf $FILE
 
 rm $FILE
 
+mkdir features_statistics
 cd features_statistics
+
+echo "Downloading Faster R-CNN feature statistics..."
 wget $URL_stats --no-check-certificate
 
 

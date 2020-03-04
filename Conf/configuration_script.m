@@ -5,13 +5,13 @@ addpath(genpath('../FALKON_paper'));
 %% PATHS
 disp('Configuring required paths...');
 current_path            = pwd;
-%cnn_model_path          = [current_path '/Data/cnn_models/output_iCWT_features_20objs/faster_rcnn_final/faster_rcnn_ICUB_ZF']; %-------------------------------------------
+cnn_model_path          = [current_path '/Data/cnn_models/output_iCWT_features_20objs/faster_rcnn_final/faster_rcnn_ICUB_ZF']; %-------------------------------------------
 
-%feature_statistics_path = [current_path '/Data/cnn_models/features_statistics/ZF20_feature_Stats.mat' ]; %-------------------------------------------
+feature_statistics_path = [current_path '/Data/cnn_models/features_statistics/ZF20_feature_Stats.mat' ]; %-------------------------------------------
 
-cnn_model_path          = [current_path '/Data/cnn_models/output_feature_ZF_icub20/faster_rcnn_final/faster_rcnn_feature_ZF_icub20']; %-------------------------------------------
+% cnn_model_path          = [current_path '/Data/cnn_models/output_feature_ZF_icub20/faster_rcnn_final/faster_rcnn_feature_ZF_icub20']; %-------------------------------------------
 
-feature_statistics_path = [current_path '/Data/cnn_models/features_statistics/scale/feat_stats20_20.mat' ]; %-------------------------------------------
+% feature_statistics_path = [current_path '/Data/cnn_models/features_statistics/scale/feat_stats20_20.mat' ]; %-------------------------------------------
 
 
 %% FILES
