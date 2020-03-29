@@ -22,6 +22,7 @@ portAnnotation = yarp.BufferedPortBottle;        % Port for receiving annotation
 portDets       = yarp.BufferedPortBottle;        % Port for sending detections
 portImg        = yarp.Port;                      % Port for propagating images
 portRegs       = yarp.BufferedPortBottle;        % Port for sending detections
+portRefine     = yarp.BufferedPortBottle;        % Port for sending commands for refinments
 
 
 %first close the port just in case (this is to try to prevent matlab from beuing unresponsive)
@@ -31,7 +32,7 @@ portAnnotation.close;
 portDets.close;
 portImg.close;
 portRegs.close;
-
+portRefine.close()
 
 %open the ports 
 disp('opening ports...');
@@ -60,11 +61,15 @@ portRegs.open('/detection/regions:o');
 disp('opened port /detection/regions:o');
 pause(0.5);
 
+portRefine.open('/detection/cmdrefine:o');
+disp('opened port /detection/cmdrefine:o');
+pause(0.5);
+
 % Images options
-h       = 240;
-w       = 320;
-%h       = 480;
-%w       = 640;
+% h       = 240;
+% w       = 320;
+h       = 480;
+w       = 640;
 pixSize = 3;
 tool    = yarp.matlab.YarpImageHelper(h, w);
 

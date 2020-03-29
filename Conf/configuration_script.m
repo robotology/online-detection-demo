@@ -5,13 +5,13 @@ addpath(genpath('../FALKON_paper'));
 %% PATHS
 disp('Configuring required paths...');
 current_path            = pwd;
-%cnn_model_path          = [current_path '/Data/cnn_models/output_iCWT_features_20objs/faster_rcnn_final/faster_rcnn_ICUB_ZF']; %-------------------------------------------
+cnn_model_path          = [current_path '/Data/cnn_models/output_iCWT_features_20objs/faster_rcnn_final/faster_rcnn_ICUB_ZF']; %-------------------------------------------
 
-%feature_statistics_path = [current_path '/Data/cnn_models/features_statistics/ZF20_feature_Stats.mat' ]; %-------------------------------------------
-
-cnn_model_path          = [current_path '/Data/cnn_models/output_feature_ZF_icub20/faster_rcnn_final/faster_rcnn_feature_ZF_icub20']; %-------------------------------------------
-
-feature_statistics_path = [current_path '/Data/cnn_models/features_statistics/scale/feat_stats20_20.mat' ]; %-------------------------------------------
+feature_statistics_path = [current_path '/Data/cnn_models/features_statistics/ZF20_feature_Stats.mat' ]; %-------------------------------------------
+% 
+% cnn_model_path          = [current_path '/Data/cnn_models/output_feature_ZF_icub20/faster_rcnn_final/faster_rcnn_feature_ZF_icub20']; %-------------------------------------------
+% 
+% feature_statistics_path = [current_path '/Data/cnn_models/features_statistics/scale/feat_stats20_20.mat' ]; %-------------------------------------------
 
 
 %% FILES
@@ -46,7 +46,7 @@ is_share_feature = 1; %---------------------------------------------------------
 fprintf('Classifier options setting...\n');
 cls_opts = struct;
 cls_opts.cls_mod = 'FALKON';
-max_img_for_new_class                  = 200; %---------------------------------------------------------------------------------------------------------------
+max_img_for_new_class                  = 80; %---------------------------------------------------------------------------------------------------------------
 max_img_for_old_class                  = max_img_for_new_class/2; 
 
 negatives_selection.policy             = 'bootStrap';

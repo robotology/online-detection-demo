@@ -4,7 +4,7 @@
 %  --------------------------------------------------------
 function [  ] = Detection_main(  )
 
-yarp_initialization;
+yarp_initialization;    
 
 configuration_script;
 
@@ -50,6 +50,80 @@ while ~strcmp(state,'quit')
                disp('switching to state Quit...');
                state = 'quit';
                
+           case{'refine'}
+               disp('switching to state Refine...');
+               state = 'refine';
+               % Send command to exploration and weakly supervised modules
+               portRefine.write();
+               b = portRefine.prepare();
+               b.clear();
+               b.addString('start');
+               b.addString('refine');
+               portRefine.write();
+               
+               % Initialize variables
+               disp('Initializing refinement variables...');
+               train_images_counter          = 0;
+               refine_dataset                = struct;
+               refine_dataset.classes        = dataset.classes;
+               refine_dataset.bbox_regressor = cell(size(dataset.bbox_regressor));
+               refine_dataset.reg_classifier = cell(size(dataset.reg_classifier));             
+               for i = 1:length(dataset.classes)
+                   refine_dataset.bbox_regressor{i} = struct;
+                   refine_dataset.bbox_regressor{i}.pos_bbox_regressor = struct;
+                   refine_dataset.bbox_regressor{i}.pos_bbox_regressor.box     = [];
+                   refine_dataset.bbox_regressor{i}.pos_bbox_regressor.feat    = [];
+                   refine_dataset.bbox_regressor{i}.y_bbox_regressor           = [];
+                   refine_dataset.reg_classifier{i} = struct;
+                   refine_dataset.reg_classifier{i}.pos_region_classifier.box  = [];
+                   refine_dataset.reg_classifier{i}.pos_region_classifier.feat = [];
+                   refine_dataset.reg_classifier{i}.neg_region_classifier.box  = [];
+                   refine_dataset.reg_classifier{i}.neg_region_classifier.feat = [];
+               end
+               cnn_model.opts.after_nms_topN = after_nms_topN_train;
+               classes_to_update_idx = [];
+               
+           case{'stop'}
+               action_to_stop = cmd_bottle.get(1).asString().toCharArray';
+               if strcmp(action_to_stop, 'refinement')
+                   disp('switching to state Update Model...');
+                   state = 'update_model';
+                   % Update dataset with the new collected dataset
+                   new_batches = 0;
+                   for j =1:length(classes_to_update_idx)
+                       c = classes_to_update_idx(j);
+                       dataset.bbox_regressor{c}.pos_bbox_regressor.box = cat(1, ...
+                                                        dataset.bbox_regressor{c}.pos_bbox_regressor.box, ...
+                                                        refine_dataset.bbox_regressor{c}.pos_bbox_regressor.box);
+                       dataset.bbox_regressor{c}.pos_bbox_regressor.feat = cat(1, ...
+                                                        dataset.bbox_regressor{c}.pos_bbox_regressor.feat, ...
+                                                        refine_dataset.bbox_regressor{c}.pos_bbox_regressor.feat);
+                       dataset.bbox_regressor{c}.y_bbox_regressor = cat(1, ...
+                                                        dataset.bbox_regressor{c}.y_bbox_regressor, ...
+                                                        refine_dataset.bbox_regressor{c}.y_bbox_regressor);
+                                                    
+                       dataset.reg_classifier{c}.pos_region_classifier.box = cat(1, ...
+                                                        dataset.reg_classifier{c}.pos_region_classifier.box, ...
+                                                        refine_dataset.reg_classifier{c}.pos_region_classifier.box);
+                       dataset.reg_classifier{c}.pos_region_classifier.feat = cat(1, ...
+                                                        dataset.reg_classifier{c}.pos_region_classifier.feat, ...
+                                                        refine_dataset.reg_classifier{c}.pos_region_classifier.feat);
+                       dataset.reg_classifier{c}.neg_region_classifier.box = cat(1, ...
+                                                        dataset.reg_classifier{c}.neg_region_classifier.box, ...
+                                                        refine_dataset.reg_classifier{c}.neg_region_classifier.box);
+                       dataset.reg_classifier{c}.neg_region_classifier.feat = cat(1, ...
+                                                        dataset.reg_classifier{c}.neg_region_classifier.feat, ...
+                                                        refine_dataset.reg_classifier{c}.neg_region_classifier.feat);
+                                                    
+                       if new_batches < ceil(size(refine_dataset.reg_classifier{c}.neg_region_classifier.box,1)/cls_opts.negatives_selection.batch_size)
+                           new_batches = ceil(size(refine_dataset.reg_classifier{c}.neg_region_classifier.box,1)/cls_opts.negatives_selection.batch_size);
+                       end
+                   end           
+                   cls_opts.negatives_selection.iterations = cls_opts.negatives_selection.iterations + new_batches;
+               else
+                   disp('Unknown action to stop')
+               end
+                               
            case{'train'}
                train_tic = tic;
                acquisition_tic = tic;
@@ -57,17 +131,18 @@ while ~strcmp(state,'quit')
                state = 'train'; 
                
                disp('Initializing train variables...');
-               new_label = cmd_bottle.get(1).asString().toCharArray';
-               new_to_add = isempty(find(strcmp(dataset.classes,new_label)));
+               new_label = cell(1);
+               new_label{1} = cmd_bottle.get(1).asString().toCharArray';
+               new_to_add = isempty(find(strcmp(dataset.classes,new_label{1})));
                if new_to_add
                    new_cls_idx                                = length(dataset.bbox_regressor) + 1;
-                   dataset.classes{length(dataset.classes)+1} = new_label;
+                   dataset.classes{length(dataset.classes)+1} = new_label{1};
                    max_img_per_class                          = max_img_for_new_class;
                    
                    total_negatives = negatives_selection.batch_size*negatives_selection.iterations;
                   
                else
-                   new_cls_idx                                               = find(strcmp(dataset.classes,new_label));
+                   new_cls_idx                                               = find(strcmp(dataset.classes,new_label{1}));
                    max_img_per_class                                         = max_img_for_new_class;
                    total_negatives                                           = negatives_selection.batch_size*negatives_selection.iterations;
 
@@ -221,6 +296,20 @@ while ~strcmp(state,'quit')
             state = 'test';
             cnn_model.opts.after_nms_topN = after_nms_topN_test;
             
+        
+       case{'update_model'}
+           actual_train_tic = tic;
+           region_classifier                      = Train_region_classifier(region_classifier, dataset.reg_classifier, cls_opts, classes_to_update_idx);               
+           bbox_regressor                         = Train_bbox_regressor(bbox_regressor, dataset.bbox_regressor, classes_to_update_idx);
+
+           fprintf('Train region classifier and bbox regressor required %f seconds\n', toc(actual_train_tic));
+           fprintf('Train process required %f seconds\n', toc(train_tic));
+
+           disp('Train done.');
+           disp('Restoring Test state...');
+           state = 'test';
+           cnn_model.opts.after_nms_topN          = after_nms_topN_test;
+           
        case{'train'} 
            %% -------------------------------------------- TRAIN -------------------------------------------------------
            disp('----------------------TRAIN----------------------');
@@ -230,8 +319,6 @@ while ~strcmp(state,'quit')
            
            if (annotations_bottle.size() ~= 0 && sum(size(yarpImage)) ~= 0)
                  fprintf('Processing image: %d/%d', train_images_counter, max_img_per_class);
-%                annotations = annotations_bottle.pop();
-%                if (annotations.asList().get(0).isString() && strcmp(annotations.asList().get(0).asString(), 'hand'))
                                 
                    % Gathering mat image and gpuarray
                    TEST = reshape(tool.getRawImg(yarpImage), [h w pixSize]); % need to reshape the matrix from 1D to h w pixelSize       
@@ -242,10 +329,11 @@ while ~strcmp(state,'quit')
                    % im_gpu = gpuArray(im);
 
                    % Gathering GT box and label 
+                   gt_boxes = zeros(length(annotations_bottle),4);
                    for j = 1:length(annotations_bottle)
-                       ann         = annotations_bottle.pop();
-                       gt_boxes    = [ann.asList().get(0).asDouble(), ann.asList().get(1).asDouble(), ...
-                                      ann.asList().get(2).asDouble(), ann.asList().get(3).asDouble()];  % bbox format: [tl_x, tl_y, br_x, br_y]
+                       ann           = annotations_bottle.pop();
+                       gt_boxes(j,:) = [ann.asList().get(0).asDouble(), ann.asList().get(1).asDouble(), ...
+                                        ann.asList().get(2).asDouble(), ann.asList().get(3).asDouble()];  % bbox format: [tl_x, tl_y, br_x, br_y]
                    end
                    forwardAnnotations(yarpImage, gt_boxes, new_label, portImg, portDets);
                     % Extract regions from image and filtering
@@ -258,7 +346,7 @@ while ~strcmp(state,'quit')
                     overlaps = boxoverlap(aboxes, gt_boxes); 
 
                     % Positive regions for bounding box regressor
-                    [cur_bbox_pos, cur_bbox_y]      = select_positives_for_bbox(aboxes(:,1:4), gt_boxes, overlaps, bbox_opts.min_overlap); 
+                    [cur_bbox_pos, cur_bbox_y, ~]      = select_positives_for_bbox(aboxes(:,1:4), gt_boxes, overlaps, bbox_opts.min_overlap); 
                     pos_bbox_regressor.box          = cat(1, pos_bbox_regressor.box, cur_bbox_pos);
                     y_bbox_regressor                = cat(1,y_bbox_regressor,cur_bbox_y);          
 
@@ -267,7 +355,7 @@ while ~strcmp(state,'quit')
 
                     % Select negative regions for region classifier
                     if curr_negative_number < total_negatives
-                        curr_cls_neg                = select_negatives_for_cls(aboxes(:,1:4), overlaps, negatives_selection); 
+                        [curr_cls_neg,~]                = select_negatives_for_cls(aboxes(:,1:4), overlaps, negatives_selection); 
                         neg_region_classifier.box   = cat(1, neg_region_classifier.box, curr_cls_neg);
                         curr_negative_number        = curr_negative_number + size(curr_cls_neg,1);
                     else
@@ -312,21 +400,166 @@ while ~strcmp(state,'quit')
                 dataset.reg_classifier{new_cls_idx}                       = struct;
                 dataset.reg_classifier{new_cls_idx}.pos_region_classifier = pos_region_classifier;
                 dataset.reg_classifier{new_cls_idx}.neg_region_classifier = neg_region_classifier;
-
-                actual_train_tic = tic;
-                region_classifier                      = Train_region_classifier(region_classifier, dataset.reg_classifier, cls_opts, new_cls_idx);
-                region_classifier.classes{new_cls_idx} = new_label;
-                bbox_regressor                         = Train_bbox_regressor(bbox_regressor, dataset.bbox_regressor, new_cls_idx);
                 
-                fprintf('Train region classifier and bbox regressor required %f seconds\n', toc(actual_train_tic));
-                fprintf('Train process required %f seconds\n', toc(train_tic));
+                region_classifier.classes{new_cls_idx} = new_label{1};
                 
-                disp('Train done.');
-                disp('Restoring Test state...');
-                state = 'test';
-                cnn_model.opts.after_nms_topN          = after_nms_topN_test;
+                classes_to_update_idx = new_cls_idx;
+                state = 'update_model';
            end
+           
+         case{'refine'}
+           %% -------------------------------------------- REFINE -------------------------------------------------------
+           disp('----------------------REFINE----------------------');
+           
+           annotations_bottle = portAnnotation.read(true);
+           yarpImage   = portImage.read(true);  
+           
+           if (annotations_bottle.size() ~= 0 && sum(size(yarpImage)) ~= 0)
+                 fprintf('Processing image: %d', train_images_counter);
+                             
+                   % Gathering mat image and gpuarray
+                   TEST = reshape(tool.getRawImg(yarpImage), [h w pixSize]); % need to reshape the matrix from 1D to h w pixelSize       
+                   im=uint8(zeros(h, w, pixSize));                           % create an empty image with the correct dimentions
+                   im(:,:,1)= cast(TEST(:,:,1),'uint8');                     % copy the image to the previoulsy create matrix
+                   im(:,:,2)= cast(TEST(:,:,2),'uint8');
+                   im(:,:,3)= cast(TEST(:,:,3),'uint8');         
+                   % im_gpu = gpuArray(im);
 
+                   % Gathering GT box and label 
+                   gt_boxes = zeros(size(annotations_bottle),4);
+                   new_labels = cell(size(annotations_bottle));
+                   for j = 1:size(annotations_bottle)
+                       ann           = annotations_bottle.pop();
+                       gt_boxes(j,:)   = [ann.asList().get(0).asDouble(), ann.asList().get(1).asDouble(), ...
+                                        ann.asList().get(2).asDouble(), ann.asList().get(3).asDouble()];  % bbox format: [tl_x, tl_y, br_x, br_y]
+                       new_labels{j} = ann.asList().get(4).asString().toCharArray';
+                       label_id = find(strcmp(dataset.classes,new_labels{j}));
+                       if isempty(label_id)
+                           % A new classes has been encountered
+                           dataset.classes{length(dataset.classes)+1} = new_labels{j};
+                           region_classifier.classes = dataset.classes;
+                           label_id = length(dataset.classes);
+                           
+                           refine_dataset.bbox_regressor{end+1} = struct;
+                           refine_dataset.bbox_regressor{end}.pos_bbox_regressor = struct;
+                           refine_dataset.bbox_regressor{end}.pos_bbox_regressor.box     = [];
+                           refine_dataset.bbox_regressor{end}.pos_bbox_regressor.feat    = [];
+                           refine_dataset.bbox_regressor{end}.y_bbox_regressor           = [];
+                           refine_dataset.reg_classifier{end+1} = struct;
+                           refine_dataset.reg_classifier{end}.pos_region_classifier.box  = [];
+                           refine_dataset.reg_classifier{end}.pos_region_classifier.feat = [];
+                           refine_dataset.reg_classifier{end}.neg_region_classifier.box  = [];
+                           refine_dataset.reg_classifier{end}.neg_region_classifier.feat = [];
+                           
+                           dataset.bbox_regressor{end+1} = struct;
+                           dataset.bbox_regressor{end}.pos_bbox_regressor = struct;
+                           dataset.bbox_regressor{end}.pos_bbox_regressor.box     = [];
+                           dataset.bbox_regressor{end}.pos_bbox_regressor.feat    = [];
+                           dataset.bbox_regressor{end}.y_bbox_regressor           = [];
+                           dataset.reg_classifier{end+1} = struct;
+                           dataset.reg_classifier{end}.pos_region_classifier.box  = [];
+                           dataset.reg_classifier{end}.pos_region_classifier.feat = [];
+                           dataset.reg_classifier{end}.neg_region_classifier.box  = [];
+                           dataset.reg_classifier{end}.neg_region_classifier.feat = [];
+                       end
+                       classes_to_update_idx = [classes_to_update_idx, label_id];
+                   end
+                  
+                   forwardAnnotations(yarpImage, gt_boxes, new_labels, portImg, portDets);
+                    % Extract regions from image and filtering
+                    [boxes, scores]                 = proposal_im_detect(cnn_model.proposal_detection_model.conf_proposal, cnn_model.rpn_net, im);
+                    aboxes                          = boxes_filter([boxes, scores], cnn_model.opts.per_nms_topN, cnn_model.opts.nms_overlap_thres, ...
+                                                                    cnn_model.opts.after_nms_topN, cnn_model.opts.use_gpu);
+
+                     
+                    % Positive regions for bounding box regressor
+                    tmp_dataset = struct;
+                    tmp_dataset.reg_classifier_pos_idx = cell(0);
+                    tmp_dataset.reg_classifier_neg_idx = cell(0);
+                    tmp_dataset.bbox_regressor_idx = cell(0); 
+                    tmp_dataset.classes        = cell(0);
+                    tmp_dataset.unique_idx = [];
+                    for j =1:length(new_labels)
+                        overlaps = boxoverlap(aboxes, gt_boxes(j,:));
+                        [cur_bbox_pos, cur_bbox_y, cur_bbox_idx] = select_positives_for_bbox(aboxes(:,1:4), gt_boxes(j,:), ...
+                                                                               overlaps, bbox_opts.min_overlap); 
+%                         cur_bbox_idx = [0, cur_bbox_idx];
+                        tmp_dataset.bbox_regressor_idx{j} = cur_bbox_idx;
+                      
+                        cls_id = find(strcmp(dataset.classes,new_labels{j}));
+                        tmp_dataset.classes{j} = new_labels{j};
+                        
+                        % Positive regions for bbox regressor
+                        refine_dataset.bbox_regressor{cls_id}.pos_bbox_regressor.box = cat(1, ...
+                                                                                       refine_dataset.bbox_regressor{cls_id}.pos_bbox_regressor.box, ...
+                                                                                       cur_bbox_pos);
+                        refine_dataset.bbox_regressor{cls_id}.y_bbox_regressor = cat(1, refine_dataset.bbox_regressor{cls_id}.y_bbox_regressor, ...
+                                                                                       cur_bbox_y);
+                                                                                   
+                        % Positive regions for region classifier
+                        curr_cls_pos = gt_boxes(j,:);
+                        curr_cls_pos_idx = j;
+                        tmp_dataset.reg_classifier_pos_idx{j} = curr_cls_pos_idx;
+                        refine_dataset.reg_classifier{cls_id}.pos_region_classifier.box = cat(1, ... 
+                                                                                       refine_dataset.reg_classifier{cls_id}.pos_region_classifier.box, ...
+                                                                                       curr_cls_pos);
+                                                                                   
+                        % Select negative regions for region classifier
+                        [curr_cls_neg, curr_cls_neg_idx] = select_negatives_for_cls(aboxes(:,1:4), overlaps, negatives_selection); 
+                        tmp_dataset.reg_classifier_neg_idx{j} = curr_cls_neg_idx;
+                        refine_dataset.reg_classifier{cls_id}.neg_region_classifier.box = cat(1, ...
+                                                                                       refine_dataset.reg_classifier{cls_id}.neg_region_classifier.box, ...
+                                                                                       curr_cls_neg);
+                        tmp_dataset.unique_idx = unique(cat(1, tmp_dataset.unique_idx, cur_bbox_idx, curr_cls_neg_idx));
+                          
+                    end
+                    % Extract features from regions 
+                    % -- Select regions to extract features from
+                    regions_for_features           = cat(1,gt_boxes, aboxes(tmp_dataset.unique_idx, 1:4));  
+
+                    % -- Network forward
+                    if cnn_model.proposal_detection_model.is_share_feature
+                           features             = cnn_features_shared_conv(cnn_model.proposal_detection_model.conf_detection, im, regions_for_features(:, 1:4), cnn_model.fast_rcnn_net, region_classifier.training_opts.feat_layer, ...
+                                                                           cnn_model.rpn_net.blobs(cnn_model.proposal_detection_model.last_shared_output_blob_name));
+                    else
+                           features             = cnn_features_demo(cnn_model.proposal_detection_model.conf_detection, im, regions_for_features(:, 1:4), ...
+                                                                    cnn_model.fast_rcnn_net, [], region_classifier.training_opts.feat_layer);                                                
+                    end
+
+                    % Update total features datasets
+                    % A questo punto le features saranno = [gt_feat, selected_aboxes_feat]
+                    for j =1:length(tmp_dataset.classes)
+                        cls_id = find(strcmp(dataset.classes,new_labels{j}));
+                        [~,tmp_b_id] = ismember(tmp_dataset.bbox_regressor_idx{j}, tmp_dataset.unique_idx);
+                        % tmp_b_id contiene gli indici di unique_idx in cui
+                        % si trovano elementi di bbox_regressor_idx.
+                        % gli elementi di unique_idx contengono l'info
+                        % dell'indice nella struttura delle regioni e
+                        % nell'indice l'info dell'indice della feature
+                        % corrispondente => se unique_idx(j) = i vuol dire
+                        % che la regione i-esima ha feature corrispondente
+                        % features(j)
+                        bbox_pos_idx = tmp_b_id + length(tmp_dataset.classes);
+                        [~,tmp_c_id] = ismember(tmp_dataset.reg_classifier_neg_idx{j}, tmp_dataset.unique_idx);
+                        cls_neg_idx = tmp_c_id + length(tmp_dataset.classes);
+                        refine_dataset.bbox_regressor{cls_id}.pos_bbox_regressor.feat = cat(1, ...
+                                                                refine_dataset.bbox_regressor{cls_id}.pos_bbox_regressor.feat, ...
+                                                                features(tmp_dataset.reg_classifier_pos_idx{j}, :) , ...
+                                                                features(1:size(bbox_pos_idx,1),:));
+                        refine_dataset.reg_classifier{cls_id}.pos_region_classifier.feat = cat(1, ...
+                                                                refine_dataset.reg_classifier{cls_id}.pos_region_classifier.feat, ...
+                                                                features(tmp_dataset.reg_classifier_pos_idx{j}, :));
+                        refine_dataset.reg_classifier{cls_id}.neg_region_classifier.feat = cat(1, ...
+                                                                refine_dataset.reg_classifier{cls_id}.neg_region_classifier.feat, ...
+                                                                features(cls_neg_idx,:));
+
+                    end
+                    
+                        
+                    classes_to_update_idx = unique(classes_to_update_idx);
+                    train_images_counter = train_images_counter +1;
+           end
+             
          case{'test'}
            %% ------------------------------------------- DETECT ----------------------------------------------------
            detection_tic = tic;
@@ -454,167 +687,8 @@ portImage.close;
 portAnnotation.close;
 portDets.close;
 portImg.close;
+portRefine.close;
 
 disp('Bye bye!');
-
-end
-
-function [cur_bbox_X, cur_bbox_Y] = select_positives_for_bbox(boxes, gt_box, overlaps, min_overlap)
-
-sel_ex = find(overlaps >= min_overlap); 
-
-cur_bbox_X = cat(1,gt_box, boxes(sel_ex, :));
-cur_bbox_Y = [];
-
-for j = 1:size(cur_bbox_X, 1)
-    ex_box = cur_bbox_X(j, :);
-
-    src_w = ex_box(3) - ex_box(1) + eps;
-    src_h = ex_box(4) - ex_box(2) + eps;
-    src_ctr_x = ex_box(1) + 0.5*src_w;
-    src_ctr_y = ex_box(2) + 0.5*src_h;
-
-    gt_w = gt_box(3) - gt_box(1) + eps;
-    gt_h = gt_box(4) - gt_box(2) + eps;
-    gt_ctr_x = gt_box(1) + 0.5*gt_w;
-    gt_ctr_y = gt_box(2) + 0.5*gt_h;
-
-    dst_ctr_x = (gt_ctr_x - src_ctr_x) * 1/src_w;
-    dst_ctr_y = (gt_ctr_y - src_ctr_y) * 1/src_h;
-    dst_scl_w = log(gt_w / src_w);
-    dst_scl_h = log(gt_h / src_h);
-
-    target = [dst_ctr_x dst_ctr_y dst_scl_w dst_scl_h];
-
-    cur_bbox_Y = cat(1,cur_bbox_Y,target);
-end
-end
-
-function curr_cls_neg = select_negatives_for_cls(aboxes, overlaps, negatives_selection)
-    I = find(overlaps < negatives_selection.neg_ovr_thresh);
-    idx = randperm(length(I), negatives_selection.neg_per_image);
-    curr_cls_neg = aboxes(I(idx),:);
-end
-
-function proposal_detection_model = load_proposal_detection_model(model_dir)
-    ld                          = load(fullfile(model_dir, 'model'));
-    proposal_detection_model    = ld.proposal_detection_model;
-    clear ld;
-    
-    proposal_detection_model.proposal_net_def ...
-                                = fullfile(model_dir, proposal_detection_model.proposal_net_def);
-    proposal_detection_model.proposal_net ...
-                                = fullfile(model_dir, proposal_detection_model.proposal_net);
-    proposal_detection_model.detection_net_def ...
-                                = fullfile(model_dir, proposal_detection_model.detection_net_def);
-    proposal_detection_model.detection_net ...
-                                = fullfile(model_dir, proposal_detection_model.detection_net);
-    
-end
-
-function aboxes = boxes_filter(aboxes, per_nms_topN, nms_overlap_thres, after_nms_topN, use_gpu)
-    % to speed up nms
-    if per_nms_topN > 0
-        aboxes = aboxes(1:min(length(aboxes), per_nms_topN), :);
-    end
-    % do nms
-    if nms_overlap_thres > 0 && nms_overlap_thres < 1
-        aboxes = aboxes(nms(aboxes, nms_overlap_thres, use_gpu), :);       
-    end
-    if after_nms_topN > 0
-        aboxes = aboxes(1:min(length(aboxes), after_nms_topN), :);
-    end
-end
-
-function forwardAnnotations(yarp_img, box, new_label, imgPort, portAnnOut)
-    b = portAnnOut.prepare();
-    b.clear();
-    
-    det_list = b.addList();
-    det_list.addString('train');
-    det_list.addDouble(box(1));       % x_min
-    det_list.addDouble(box(2));       % y_min
-    det_list.addDouble(box(3));       % x_max
-    det_list.addDouble(box(4));       % y_max
-    det_list.addString(new_label);    % string label
-        
-    stamp = yarp.Stamp();
-    imgPort.setEnvelope(stamp); 
-    portAnnOut.setEnvelope(stamp);
-    
-    imgPort.write(yarp_img);   
-    portAnnOut.write();
-end
-
-
-function sendTrainDone(portAnnOut)
-    b = portAnnOut.prepare();
-    b.clear();
-    
-    det_list = b.addList();
-    det_list.addString('done.');
-        
-    stamp = yarp.Stamp();
-    portAnnOut.setEnvelope(stamp);
- 
-    portAnnOut.write();
-end
-
-function sendDetections(detections, detPort, imgPort, image, classes, tool, img_dims)
-
-    b = detPort.prepare();
-    b.clear();
-    
-    is_dets_per_class = cell2mat(cellfun(@(x) ~isempty(x), detections, 'UniformOutput', false));
-    if sum(is_dets_per_class)
-
-        % Prepare bottle b with detections and labels
-        for i = 1:length(detections)
-            for j = 1:size(detections{i},1)
-                % Prepare list
-                det_list = b.addList();
-                % Add bounding box coordinates, score and string label of detected the object
-                det_list.addDouble(detections{i}(j,1));       % x_min
-                det_list.addDouble(detections{i}(j,2));       % y_min
-                det_list.addDouble(detections{i}(j,3));       % x_max
-                det_list.addDouble(detections{i}(j,4));       % y_max
-                det_list.addDouble(detections{i}(j,5));       % score
-                det_list.addString(classes{i});               % string label
-                tmp_cls_list = det_list.addList();
-                for c =  1:length(classes)
-                    tmp_cls_list.addString(classes{c})
-                end
-            end
-        end
-    else
-        det_list = b.addList();
-        tmp_cls_list = det_list.addList();
-        for c =  1:length(classes)
-            tmp_cls_list.addString(classes{c})
-        end
-       % disp('no detection found')
-    end
-    
-
-    
-    % Set timestamp for the two ports
-    stamp = yarp.Stamp();
-    imgPort.setEnvelope(stamp); 
-    detPort.setEnvelope(stamp);
-    
-    %Send image and list of detections
-    detPort.write();
-%     else
-% %         det_list = b.addList();
-%        disp('no detection found')
-%     end
-        % Prepare image to send
-    yarp_img = yarp.ImageRgb();                                                 % create a new yarp image to send results to ports
-    yarp_img.resize(img_dims(2),img_dims(1));                                   % resize it to the desired size
-    yarp_img.zero();                                                            % set all pixels to black
-    image = reshape(image, [img_dims(1)*img_dims(2)*img_dims(3) 1]);            % reshape the matlab image to 1D
-    tempImg = cast(image ,'int16');                                             % cast it to int16
-    yarp_img = tool.setRawImg(tempImg, img_dims(1), img_dims(2), img_dims(3));  % pass it to the setRawImg function (returns the full image)
-    imgPort.write(yarp_img);   
 
 end
