@@ -4,24 +4,42 @@ import sys
 # Initialise YARP
 yarp.Network.init()
 
+
 class WeakSupervisionModule(yarp.RFModule):
     def configure(self, rf):
+
+        self.cmd_port = yarp.Port()
+        self.cmd_port.open('/WSModule/command:i')
+        print('{:s} opened'.format('/WSModule/command:i'))
+
+        self.attach(self.cmd_port)
 
         return True
 
     def cleanup(self):
+        self.cmd_port.close()
         print('Cleanup function')
 
+    def respond(self, command, reply):
+        if command.get(0).asString() == 'refine':
+            print('Command refine received')
+            reply.addString('ack')
+        else:
+            print('Command {:s} not recognized'.format(command.get(0).asString()))
+            reply.addString('nack')
+        return True
 
     def interruptModule(self):
         print('Interrupt function')
-
+        self.cmd_port.interrupt()
         return True
 
     def getPeriod(self):
-        return 0.1
+        return 0.001
 
     def updateModule(self):
+
+
 
         return True
 
