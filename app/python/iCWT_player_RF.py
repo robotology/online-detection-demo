@@ -6,6 +6,7 @@ import os
 import xml.etree.ElementTree as ET
 import numpy as np
 import time
+import random
 
 # Initialise YARP
 yarp.Network.init()
@@ -21,6 +22,7 @@ class iCWT_player(yarp.RFModule):
         self.image_h = 480
 
         self.fake = False
+        self.sendScore = False
 
         self.output_image_port = yarp.Port()
         self.output_image_port.open('/iCWTPlayer/image:o')
@@ -74,12 +76,15 @@ class iCWT_player(yarp.RFModule):
                 if os.path.exists(self.imageset):
                     with open(self.imageset, 'r') as f:
                         self.lines = f.readlines()
-
                     self.counter = 0
             elif cmd.get(0).asString() == 'startfake':
                 self.fake = True
             elif cmd.get(0).asString() == 'stopfake':
                 self.fake = False
+            elif cmd.get(0).asString() == 'startScore':
+                self.sendScore = True
+            elif cmd.get(0).asString() == 'stopScore':
+                self.sendScore = False
 
 
         item = self.lines[self.counter]
@@ -100,6 +105,8 @@ class iCWT_player(yarp.RFModule):
             b.addInt(int(bbox.find('ymin').text))
             b.addInt(int(bbox.find('xmax').text))
             b.addInt(int(bbox.find('ymax').text))
+            if self.sendScore:
+                b.addDouble(random.randrange(0,10)/10)
             b.addString(object.find('name').text)
 
         if self.fake:
