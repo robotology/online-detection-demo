@@ -977,8 +977,8 @@ public:
             }
             cv::cvtColor(imgMat, imgMat, CV_BGR2RGB);
 
-            outImage.resize(imgMat.size().width, imgMat.size().height);
-            outImage = fromCvMat<yarp::sig::PixelRgb>(imgMat);
+            outImage.resize(img_out.size().width, img_out.size().height);
+            outImage = fromCvMat<yarp::sig::PixelRgb>(img_out);
             imageOutPort.write();
 
             if (isReadyToSend)
