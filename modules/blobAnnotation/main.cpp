@@ -163,6 +163,7 @@ public:
         yarp::sig::ImageOf<yarp::sig::PixelRgb> *inImage = imageInPort.read();
         
         imgMat = toCvMat(*inImage);
+        cv::cvtColor(imgMat, imgMat, CV_BGR2RGB);
         detections = data;
         gotNewDetection = true;
     }
@@ -239,7 +240,6 @@ public:
 
         yarp::os::Network::connect(blobPort.getName().c_str(), "/read");
         
-
         clickedPoint.x = -1;
         clickedPoint.y = -1;
         detectionIndex = -1;
@@ -371,15 +371,20 @@ public:
     /********************************************************/
     bool deleteSelection()
     {
-        int index = detectionIndex;
-        detectionRects.erase(detectionRects.begin()+index);
-        detectionLabels.erase(detectionLabels.begin()+index);
-        
-        updateScene = true;
-        detectionIndex = -1;
-        selectedDetection = false;
+        bool returnval = false;
 
-        return true;
+        if (selectedDetection)
+        { 
+            int index = detectionIndex;
+            detectionRects.erase(detectionRects.begin()+index);
+            detectionLabels.erase(detectionLabels.begin()+index);
+        
+            updateScene = true;
+            detectionIndex = -1;
+            selectedDetection = false;
+            returnval = true;
+        }
+        return returnval;
     }
 
     /********************************************************/
@@ -390,7 +395,6 @@ public:
         detectionRects[detectionIndex].y = topLeft.y;
         detectionRects[detectionIndex].width = topRight.x - topLeft.x;
         detectionRects[detectionIndex].height = bottomLeft.y - topLeft.y; 
-
 
         for (size_t i = 0; i < detectionRects.size(); i++)
         {
@@ -916,14 +920,13 @@ public:
         target.clear();
         yarp::sig::ImageOf<yarp::sig::PixelRgb> &outImage = imageOutPort.prepare();
         
-        
         if (processing->gotNewDetection) 
         {
             yarp::os::Bottle detection = processing->retreiveDetections();
 
             imgMat = processing->retreiveImage();
             img_out = imgMat.clone();
-           // cv::cvtColor(imgMat, imgMat, CV_BGR2RGB);
+            cv::cvtColor(img_out, img_out, CV_BGR2RGB);
 
             detectionSize = detection.get(0).asList()->size();
 
@@ -935,21 +938,32 @@ public:
 
             std::string label;
 
+            tl.clear();
+            br.clear();
+
+            detectionRects.clear();
+            detectionLabels.clear();
+
             for (size_t i = 0; i < detectionSize; i++)
             {
-                tl_point.x = detection.get(i).asList()->get(i).asList()->get(0).asInt();
-                tl_point.y = detection.get(i).asList()->get(i).asList()->get(1).asInt();
-                br_point.x = detection.get(i).asList()->get(i).asList()->get(2).asInt();
-                br_point.y = detection.get(i).asList()->get(i).asList()->get(3).asInt();
+                yDebug() << "first loop" << i;
+                tl_point.x = detection.get(0).asList()->get(i).asList()->get(0).asInt();
+                tl_point.y = detection.get(0).asList()->get(i).asList()->get(1).asInt();
+                br_point.x = detection.get(0).asList()->get(i).asList()->get(2).asInt();
+                br_point.y = detection.get(0).asList()->get(i).asList()->get(3).asInt();
 
-                label = detection.get(i).asList()->get(i).asList()->get(4).asString();
+                label = detection.get(0).asList()->get(i).asList()->get(4).asString();
+
+                yInfo() << "rect x " << tl_point.x ; 
+                yInfo() << "rect y " << tl_point.y ; 
+                yInfo() << "rect width " <<br_point.x ; 
+                yInfo() << "rect height " << br_point.y;
+                yInfo() << "rect label " << label.c_str();
 
                 tl.push_back(tl_point);
                 br.push_back(br_point);
-            }
 
-            for (size_t i = 0; i < detectionSize; i++)
-            {
+                yDebug() << "pushing in structure ";
                 detectionRects.push_back (cv::Rect(tl[i].x, tl[i].y, br[i].x-tl[i].x, br[i].y-tl[i].y));
                 detectionLabels.push_back(label);
             }
@@ -969,18 +983,13 @@ public:
         if (updateScene)
         {
             imgMat = img_out.clone();
-
+            
             for (size_t i = 0; i < detectionRects.size(); i++)
             {
                 cv::putText(imgMat, detectionLabels[i].c_str(), cv::Point(detectionRects[i].x , detectionRects[i].y -5 ),  cv::FONT_HERSHEY_DUPLEX, 0.5, CV_RGB(0, 0, 204), 1);
                 rectangle(imgMat, detectionRects[i], CV_RGB(0, 0, 204), 2, 8, 0);
             }
-            cv::cvtColor(imgMat, imgMat, CV_BGR2RGB);
-
-            outImage.resize(img_out.size().width, img_out.size().height);
-            outImage = fromCvMat<yarp::sig::PixelRgb>(img_out);
-            imageOutPort.write();
-
+            
             if (isReadyToSend)
             {
                 yarp::os::Bottle &list = target.addList();
@@ -997,10 +1006,15 @@ public:
                 }
                 isReadyToSend = false;
                 blobPort.write();
+
+                outImage.resize(img_out.size().width, img_out.size().height);
+                outImage = fromCvMat<yarp::sig::PixelRgb>(img_out);
+                imageOutPort.write();
+
             }
            
-            
             updateScene = false;
+            //cv::cvtColor(imgMat, imgMat, CV_BGR2RGB);
         }
 
         if (detectionIndex > -1)
