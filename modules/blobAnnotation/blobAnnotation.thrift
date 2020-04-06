@@ -29,6 +29,7 @@ service blobAnnotation_IDLServer
 
     /**
      * Stop the detection blob selection
+     * the parameter label is the class of the blob
      * @return true/false on success/failure
      **/
     bool doneSelection(1:string label);
