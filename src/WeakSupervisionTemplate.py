@@ -73,13 +73,15 @@ class WeakSupervisionTemplate(yarp.RFModule, ABC):
             reply.addString('refine state deactivated')
         else:
             print('Command {:s} not recognized'.format(command.get(0).asString()))
-            reply.addString('nack')
+            reply.addString('Command {:s} not recognized'.format(command.get(0).asString()))
         return True
 
     def cleanup(self):
         self.cmd_port.close()
         self._input_image_port.close()
         self._input_predictions_port.close()
+        self._output_image_port.close()
+        self._output_annotations_port.close()
         print('Cleanup function')
 
     def interruptModule(self):
@@ -87,6 +89,8 @@ class WeakSupervisionTemplate(yarp.RFModule, ABC):
         self.cmd_port.interrupt()
         self._input_image_port.interrupt()
         self._input_predictions_port.interrupt()
+        self._output_image_port.interrupt()
+        self._output_annotations_port.interrupt()
         return True
 
     def getPeriod(self):

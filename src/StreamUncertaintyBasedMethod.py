@@ -47,20 +47,21 @@ class StreamUncertaintyBasedMethod(wsT.WeakSupervisionTemplate):
         # Send image and doubtful predictions to the annotator
         self._ask_buf_array[:, :] = self._in_buf_array
 
-        to_send = self._output_annotations_port.prepare()
+        to_send = self._ask_annotations_port.prepare()
         to_send.clear()
+        t = to_send.addList()
 
         if self.predictions is not None:
             for p in self.predictions:
-                b = to_send.addList()
+                b = t.addList()
                 b.addDouble(p['bbox'][0])
                 b.addDouble(p['bbox'][1])
                 b.addDouble(p['bbox'][2])
                 b.addDouble(p['bbox'][3])
-                b.addDouble(p['confidence'])
+                # b.addDouble(p['confidence'])
                 b.addString(p['class'])
 
-        self._ask_image_port.write(self._out_buf_image)
+        self._ask_image_port.write(self._ask_buf_image)
         self._ask_annotations_port.write()
 
         # Wait for the annotator's reply
@@ -122,16 +123,16 @@ class StreamUncertaintyBasedMethod(wsT.WeakSupervisionTemplate):
         ask_image = False
         avg_conf = 0
         for p in self.predictions:
-            if p['consfidence'] <=0.2:
+            if p['confidence'] <= 0.2:
                 ask_image = True
                 break
-            avg_conf = avg_conf + p['consfidence']
-        avg_conf = avg_conf/len(avg_conf)
+            avg_conf = avg_conf + p['confidence']
+        avg_conf = avg_conf/len(self.predictions)
 
-        if avg_conf >= 0.8:
+        if avg_conf >= 0.8 and not ask_image:
             self.annotations = self.predictions
             self._out_buf_array[:, :] = self._in_buf_array
-        else:
+        elif avg_conf < 0.8 or ask_image:
             self.ask_for_annotations()
 
     def use_data(self) -> None:
@@ -141,14 +142,34 @@ class StreamUncertaintyBasedMethod(wsT.WeakSupervisionTemplate):
         if self.annotations is not None:
             for p in self.annotations:
                 b = to_send.addList()
+                b.addString('train')
                 b.addDouble(p['bbox'][0])
                 b.addDouble(p['bbox'][1])
                 b.addDouble(p['bbox'][2])
                 b.addDouble(p['bbox'][3])
                 b.addString(p['class'])
 
-        self._output_image_port.write(self._out_buf_image)
         self._output_annotations_port.write()
+        self._output_image_port.write(self._out_buf_image)
+
+    def cleanup(self):
+        super(StreamUncertaintyBasedMethod, self).cleanup()
+        self._ask_image_port.close()
+        self._ask_annotations_port.close()
+        self._reply_image_port.close()
+        self._reply_annotations_port.close()
+
+        print('Cleanup function')
+
+    def interruptModule(self):
+        print('Interrupt function')
+        super(StreamUncertaintyBasedMethod, self).interruptModule()
+        self._ask_image_port.interrupt()
+        self._ask_annotations_port.interrupt()
+        self._reply_image_port.interrupt()
+        self._reply_annotations_port.interrupt()
+
+        return True
 
 
 if __name__ == '__main__':
