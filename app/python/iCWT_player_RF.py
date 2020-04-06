@@ -44,6 +44,7 @@ class iCWT_player(yarp.RFModule):
 
         with open(self.imageset, 'r') as f:
             self.lines = f.readlines()
+            self.lines = sorted(self.lines)
 
         self.counter = 0
         return True
@@ -98,6 +99,7 @@ class iCWT_player(yarp.RFModule):
 
         annotations_bottle = self.output_box_port.prepare()
         annotations_bottle.clear()
+        # ann = annotations_bottle.addList()
         for object in annotations.findall('object'):
             b = annotations_bottle.addList()
             bbox = object.find('bndbox')
@@ -106,7 +108,7 @@ class iCWT_player(yarp.RFModule):
             b.addInt(int(bbox.find('xmax').text))
             b.addInt(int(bbox.find('ymax').text))
             if self.sendScore:
-                b.addDouble(random.randrange(0,10)/10)
+                b.addDouble(random.randrange(0, 10)/10)
             b.addString(object.find('name').text)
 
         if self.fake:
