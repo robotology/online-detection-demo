@@ -99,9 +99,9 @@ class iCWT_player(yarp.RFModule):
 
         annotations_bottle = self.output_box_port.prepare()
         annotations_bottle.clear()
-        # ann = annotations_bottle.addList()
+        ann = annotations_bottle.addList()
         for object in annotations.findall('object'):
-            b = annotations_bottle.addList()
+            b = ann.addList()
             bbox = object.find('bndbox')
             b.addInt(int(bbox.find('xmin').text))
             b.addInt(int(bbox.find('ymin').text))

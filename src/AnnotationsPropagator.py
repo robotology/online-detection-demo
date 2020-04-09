@@ -107,6 +107,7 @@ class AnnotationsPropagator(yarp.RFModule):
 
         self.state = 'propagate'
         self.time = time.time()
+        self.interrupt = False
 
         self.predictions = yarp.Bottle()
         self.annotations = None
@@ -120,9 +121,18 @@ class AnnotationsPropagator(yarp.RFModule):
         if command.get(0).asString() == 'propagate':
             print('Command propagate received')
             reply.addString('Propagate state activated')
+        elif command.get(0).asString() == 'interrupt':
+            self.interrupt = True
+            reply.addString('Propagation interrupted')
+        elif command.get(0).asString() == 'max_time':
+            if command.get(1).isString():
+                self.max_time = int(command.get(1).asString())
+                reply.addString('max_time value is now {:s}'.format(str(self.max_time)))
+            else:
+                reply.addString('nack')
         elif command.get(0).asString() == 'stop':
             self.state = 'do_nothing'
-            self.terminate_process()
+            # self.terminate_process()
             reply.addString('refine state deactivated')
         else:
             print('Command {:s} not recognized'.format(command.get(0).asString()))
@@ -139,14 +149,7 @@ class AnnotationsPropagator(yarp.RFModule):
         to_send.clear()
 
         to_send.copy(self.predictions)
-        # t = b.addList()
-        # t.addInt(self.predictions.get(0).asList().get(0).asList().get(0).asInt())
-        # t.addInt(self.predictions.get(0).asList().get(0).asList().get(1).asInt())
-        # t.addInt(self.predictions.get(0).asList().get(0).asList().get(2).asInt())
-        # t.addInt(self.predictions.get(0).asList().get(0).asList().get(3).asInt())
-        # t.addString(self.predictions.get(0).asList().get(0).asList().get(4).asString())
 
-        # self.predictions = self._ask_annotations_port.prepare()
         self._ask_image_port.write(self._ask_buf_image)
         self._ask_annotations_port.write()
 
@@ -246,7 +249,7 @@ class AnnotationsPropagator(yarp.RFModule):
                 self.annotations = yarp.Bottle()
                 # ann = self.annotations.addList()
                 b = self.annotations.addList()
-                # b.addString('train')
+                #b.addString('train')
                 b.addInt(int(boxes[0]))
                 b.addInt(int(boxes[1]))
                 b.addInt(int(boxes[2]))
@@ -261,7 +264,7 @@ class AnnotationsPropagator(yarp.RFModule):
                 # ann = self.annotations.addList()
                 for i, obj_name in enumerate(self.obj_names):
                     b = self.annotations.addList()
-                    # b.addString('train')
+                    #b.addString('train')
                     b.addInt(int(boxes[i, 0]))
                     b.addInt(int(boxes[i, 1]))
                     b.addInt(int(boxes[i, 2]))
@@ -288,11 +291,13 @@ class AnnotationsPropagator(yarp.RFModule):
             detections = self._input_predictions_port.read()
 
             current_time = time.time()
-            if current_time - self.time > self.max_time or self.annotations is None:
+            if current_time - self.time > self.max_time or self.annotations is None or self.interrupt:
                 self.predictions = detections
                 self.ask_for_annotations()
                 self.initialize_tracker()
                 self.time = time.time()
+                if self.interrupt:
+                    self.interrupt = False
 
             else:
                 self.propagate_annotations()

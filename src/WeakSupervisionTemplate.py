@@ -43,7 +43,7 @@ class WeakSupervisionTemplate(yarp.RFModule, ABC):
         self._out_buf_array = np.zeros((self.image_h, self.image_w, 3), dtype=np.uint8)
         self._out_buf_image.setExternal(self._out_buf_array, self._out_buf_array.shape[1], self._out_buf_array.shape[0])
 
-        self.state = 'do_nothing'
+        self.state = 'refine'
 
         return True
 

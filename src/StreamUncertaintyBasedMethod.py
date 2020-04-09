@@ -1,8 +1,11 @@
-from src import WeakSupervisionTemplate as wsT
 import sys
 import yarp
 import numpy as np
+import os
 
+basedir = os.path.dirname(__file__)
+sys.path.append(os.path.abspath(os.path.join(basedir, os.path.pardir, '..')))
+import WeakSupervisionTemplate as wsT
 # Initialise YARP
 yarp.Network.init()
 
@@ -58,7 +61,6 @@ class StreamUncertaintyBasedMethod(wsT.WeakSupervisionTemplate):
                 b.addDouble(p['bbox'][1])
                 b.addDouble(p['bbox'][2])
                 b.addDouble(p['bbox'][3])
-                # b.addDouble(p['confidence'])
                 b.addString(p['class'])
 
         self._ask_image_port.write(self._ask_buf_image)
@@ -105,7 +107,7 @@ class StreamUncertaintyBasedMethod(wsT.WeakSupervisionTemplate):
         if detections is not None:
             for i in range(0, detections.size()):
                 dets = detections.get(i).asList()
-                if dets.get(0).isInt():
+                if dets.get(0).isDouble():
                     bbox = [dets.get(0).asDouble(), dets.get(1).asDouble(), dets.get(2).asDouble(),
                             dets.get(3).asDouble()]  # bbox format: [tl_x, tl_y, br_x, br_y]
                     score = dets.get(4).asDouble()  # score of i-th detection
@@ -122,12 +124,15 @@ class StreamUncertaintyBasedMethod(wsT.WeakSupervisionTemplate):
         # Populate self.annotations
         ask_image = False
         avg_conf = 0
-        for p in self.predictions:
-            if p['confidence'] <= 0.2:
-                ask_image = True
-                break
-            avg_conf = avg_conf + p['confidence']
-        avg_conf = avg_conf/len(self.predictions)
+        if self.predictions:
+            for p in self.predictions:
+                if p['confidence'] <= 0.2:
+                    ask_image = True
+                    break
+                avg_conf = avg_conf + p['confidence']
+            avg_conf = avg_conf/len(self.predictions)
+        else:
+            ask_image = True
 
         if avg_conf >= 0.8 and not ask_image:
             self.annotations = self.predictions
@@ -142,7 +147,7 @@ class StreamUncertaintyBasedMethod(wsT.WeakSupervisionTemplate):
         if self.annotations is not None:
             for p in self.annotations:
                 b = to_send.addList()
-                b.addString('train')
+                # b.addString('train')
                 b.addDouble(p['bbox'][0])
                 b.addDouble(p['bbox'][1])
                 b.addDouble(p['bbox'][2])
