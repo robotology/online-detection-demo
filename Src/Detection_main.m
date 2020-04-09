@@ -51,37 +51,45 @@ while ~strcmp(state,'quit')
                state = 'quit';
                
            case{'refine'}
-               disp('switching to state Refine...');
-               state = 'refine';
-               % Send command to exploration and weakly supervised modules
-               portRefine.write();
-               b = portRefine.prepare();
-               b.clear();
-               b.addString('start');
-               b.addString('refine');
-               portRefine.write();
-               
-               % Initialize variables
-               disp('Initializing refinement variables...');
-               train_images_counter          = 0;
-               refine_dataset                = struct;
-               refine_dataset.classes        = dataset.classes;
-               refine_dataset.bbox_regressor = cell(size(dataset.bbox_regressor));
-               refine_dataset.reg_classifier = cell(size(dataset.reg_classifier));             
-               for i = 1:length(dataset.classes)
-                   refine_dataset.bbox_regressor{i} = struct;
-                   refine_dataset.bbox_regressor{i}.pos_bbox_regressor = struct;
-                   refine_dataset.bbox_regressor{i}.pos_bbox_regressor.box     = [];
-                   refine_dataset.bbox_regressor{i}.pos_bbox_regressor.feat    = [];
-                   refine_dataset.bbox_regressor{i}.y_bbox_regressor           = [];
-                   refine_dataset.reg_classifier{i} = struct;
-                   refine_dataset.reg_classifier{i}.pos_region_classifier.box  = [];
-                   refine_dataset.reg_classifier{i}.pos_region_classifier.feat = [];
-                   refine_dataset.reg_classifier{i}.neg_region_classifier.box  = [];
-                   refine_dataset.reg_classifier{i}.neg_region_classifier.feat = [];
+               refinemenet_type = cmd_bottle.get(1).asString().toCharArray';
+               if strcmp(refinemenet_type, 'stream')
+                   disp('switching to state Refine...');
+                   state = 'refine_stream';
+                   % Send command to exploration and weakly supervised modules
+%                    portRefine.write();
+%                    b = portRefine.prepare();
+%                    b.clear();
+%                    b.addString('start');
+%                    b.addString('refine');
+%                    portRefine.write();
+
+                   % Initialize variables
+                   disp('Initializing refinement variables...');
+                   train_images_counter          = 0;
+                   refine_dataset                = struct;
+                   refine_dataset.classes        = dataset.classes;
+                   refine_dataset.bbox_regressor = cell(size(dataset.bbox_regressor));
+                   refine_dataset.reg_classifier = cell(size(dataset.reg_classifier));             
+                   for i = 1:length(dataset.classes)
+                       refine_dataset.bbox_regressor{i} = struct;
+                       refine_dataset.bbox_regressor{i}.pos_bbox_regressor = struct;
+                       refine_dataset.bbox_regressor{i}.pos_bbox_regressor.box     = [];
+                       refine_dataset.bbox_regressor{i}.pos_bbox_regressor.feat    = [];
+                       refine_dataset.bbox_regressor{i}.y_bbox_regressor           = [];
+                       refine_dataset.reg_classifier{i} = struct;
+                       refine_dataset.reg_classifier{i}.pos_region_classifier.box  = [];
+                       refine_dataset.reg_classifier{i}.pos_region_classifier.feat = [];
+                       refine_dataset.reg_classifier{i}.neg_region_classifier.box  = [];
+                       refine_dataset.reg_classifier{i}.neg_region_classifier.feat = [];
+                   end
+                   cnn_model.opts.after_nms_topN = after_nms_topN_train;
+                   classes_to_update_idx = [];
+                   
+               elseif strcmp(refinemenet_type, 'batch')
+                   disp('Batch refinement modality still to be implemented')
+               else
+                   disp('Unknown refinement modality')
                end
-               cnn_model.opts.after_nms_topN = after_nms_topN_train;
-               classes_to_update_idx = [];
                
            case{'stop'}
                action_to_stop = cmd_bottle.get(1).asString().toCharArray';
@@ -90,6 +98,8 @@ while ~strcmp(state,'quit')
                    state = 'update_model';
                    % Update dataset with the new collected dataset
                    new_batches = 0;
+                   dataset.classes = refine_dataset.classes;
+                   region_classifier.classes = dataset.classes;
                    for j =1:length(classes_to_update_idx)
                        c = classes_to_update_idx(j);
                        dataset.bbox_regressor{c}.pos_bbox_regressor.box = cat(1, ...
@@ -407,7 +417,7 @@ while ~strcmp(state,'quit')
                 state = 'update_model';
            end
            
-         case{'refine'}
+         case{'refine_batch'}
            %% -------------------------------------------- REFINE -------------------------------------------------------
            disp('----------------------REFINE----------------------');
            
@@ -559,6 +569,154 @@ while ~strcmp(state,'quit')
                     classes_to_update_idx = unique(classes_to_update_idx);
                     train_images_counter = train_images_counter +1;
            end
+           
+         case{'refine_stream'}
+           %% -------------------------------------------- REFINE -------------------------------------------------------
+           disp('----------------------REFINE----------------------');
+           
+           yarpImage = portImage.read(true);  
+           
+           if (sum(size(yarpImage)) ~= 0)                           
+                   % Gathering mat image and gpuarray
+                   TEST = reshape(tool.getRawImg(yarpImage), [h w pixSize]); % need to reshape the matrix from 1D to h w pixelSize       
+                   im=uint8(zeros(h, w, pixSize));                           % create an empty image with the correct dimentions
+                   im(:,:,1)= cast(TEST(:,:,1),'uint8');                     % copy the image to the previoulsy create matrix
+                   im(:,:,2)= cast(TEST(:,:,2),'uint8');
+                   im(:,:,3)= cast(TEST(:,:,3),'uint8');         
+                   % im_gpu = gpuArray(im);
+                   
+                   % Performing detection
+                   if isfield(region_classifier, 'classes') && ~isempty(dataset.classes)
+                       region_classifier.training_opts = cls_opts;
+                       [cls_scores, boxes, aboxes, features] = Detect(im, dataset.classes, cnn_model, region_classifier, bbox_regressor, detect_thresh, show_regions, portRegs);
+                   else
+                       boxes      = [];
+                       cls_scores = [];
+                   end
+                   % Sending detections        
+                   boxes_cell = cell(length(dataset.classes), 1);
+                   for i = 1:length(boxes_cell)
+                     boxes_cell{i} = [boxes{i}, cls_scores{i}];
+                   end           
+                   sendDetections(boxes_cell, portRefineAnnotationOUT, portRefineImageOUT, im, dataset.classes, tool, [h,w,pixSize]);
+
+                   
+                   % Wait for annotations from the AL
+                   disp('Waiting for weakly supervised annotations...')
+                   annotations_bottle = portRefineAnnotationIN.read(true);
+%                    yarpImage          = portRefineImageIN.read(true);     
+                   
+                   if (annotations_bottle.size() ~= 0 && sum(size(yarpImage)) ~= 0)
+%                        TEST = reshape(tool.getRawImg(yarpImage), [h w pixSize]); % need to reshape the matrix from 1D to h w pixelSize       
+%                        im=uint8(zeros(h, w, pixSize));                           % create an empty image with the correct dimentions
+%                        im(:,:,1)= cast(TEST(:,:,1),'uint8');                     % copy the image to the previoulsy create matrix
+%                        im(:,:,2)= cast(TEST(:,:,2),'uint8');
+%                        im(:,:,3)= cast(TEST(:,:,3),'uint8');     
+                       
+                       % Gathering GT box and label 
+                       gt_boxes = zeros(size(annotations_bottle),4);
+                       new_labels = cell(size(annotations_bottle));
+                       for j = 1:size(annotations_bottle)
+                           ann           = annotations_bottle.pop();
+                           gt_boxes(j,:)   = [ann.asList().get(0).asDouble(), ann.asList().get(1).asDouble(), ...
+                                            ann.asList().get(2).asDouble(), ann.asList().get(3).asDouble()];  % bbox format: [tl_x, tl_y, br_x, br_y]
+                           new_labels{j} = ann.asList().get(4).asString().toCharArray';
+                           label_id = find(strcmp(refine_dataset.classes,new_labels{j}));
+                           if isempty(label_id)
+                               % A new classes has been encountered
+                               refine_dataset.classes{length(refine_dataset.classes)+1} = new_labels{j};
+                               label_id = length(refine_dataset.classes);
+
+                               refine_dataset.bbox_regressor{end+1} = struct;
+                               refine_dataset.bbox_regressor{end}.pos_bbox_regressor = struct;
+                               refine_dataset.bbox_regressor{end}.pos_bbox_regressor.box     = [];
+                               refine_dataset.bbox_regressor{end}.pos_bbox_regressor.feat    = [];
+                               refine_dataset.bbox_regressor{end}.y_bbox_regressor           = [];
+                               refine_dataset.reg_classifier{end+1} = struct;
+                               refine_dataset.reg_classifier{end}.pos_region_classifier.box  = [];
+                               refine_dataset.reg_classifier{end}.pos_region_classifier.feat = [];
+                               refine_dataset.reg_classifier{end}.neg_region_classifier.box  = [];
+                               refine_dataset.reg_classifier{end}.neg_region_classifier.feat = [];
+
+                               dataset.bbox_regressor{end+1} = struct;
+                               dataset.bbox_regressor{end}.pos_bbox_regressor = struct;
+                               dataset.bbox_regressor{end}.pos_bbox_regressor.box     = [];
+                               dataset.bbox_regressor{end}.pos_bbox_regressor.feat    = [];
+                               dataset.bbox_regressor{end}.y_bbox_regressor           = [];
+                               dataset.reg_classifier{end+1} = struct;
+                               dataset.reg_classifier{end}.pos_region_classifier.box  = [];
+                               dataset.reg_classifier{end}.pos_region_classifier.feat = [];
+                               dataset.reg_classifier{end}.neg_region_classifier.box  = [];
+                               dataset.reg_classifier{end}.neg_region_classifier.feat = [];
+                           end
+                           classes_to_update_idx = [classes_to_update_idx, label_id];
+                       end
+
+                       forwardAnnotations(yarpImage, gt_boxes, new_labels, portImg, portDets);
+
+                       for j =1:length(new_labels)
+                            overlaps = boxoverlap(aboxes, gt_boxes(j,:));
+                            [cur_bbox_pos, cur_bbox_y, cur_bbox_idx] = select_positives_for_bbox(aboxes(:,1:4), gt_boxes(j,:), ...
+                                                                                   overlaps, bbox_opts.min_overlap); 
+                            cls_id = find(strcmp(refine_dataset.classes,new_labels{j}));
+                            
+
+                            % Positive regions and features for bbox regressor
+                            refine_dataset.bbox_regressor{cls_id}.pos_bbox_regressor.box = cat(1, ...
+                                                                                           refine_dataset.bbox_regressor{cls_id}.pos_bbox_regressor.box, ...
+                                                                                           cur_bbox_pos);
+                            refine_dataset.bbox_regressor{cls_id}.y_bbox_regressor = cat(1, refine_dataset.bbox_regressor{cls_id}.y_bbox_regressor, ...
+                                                                                           cur_bbox_y);
+                                                                                       
+                            refine_dataset.bbox_regressor{cls_id}.pos_bbox_regressor.feat = cat(1, ...
+                                                                                           refine_dataset.bbox_regressor{cls_id}.pos_bbox_regressor.feat, ...
+                                                                                           features(1:size(cur_bbox_idx,1),:)); % Da aggiungere le feature dei ground truth
+
+                            % Positive regions for region classifier
+                            curr_cls_pos = gt_boxes(j,:);
+                            refine_dataset.reg_classifier{cls_id}.pos_region_classifier.box = cat(1, ... 
+                                                                                           refine_dataset.reg_classifier{cls_id}.pos_region_classifier.box, ...
+                                                                                           curr_cls_pos);
+
+                            % Negative regions and features for region classifier
+                            [curr_cls_neg, curr_cls_neg_idx] = select_negatives_for_cls(aboxes(:,1:4), overlaps, negatives_selection); 
+                            refine_dataset.reg_classifier{cls_id}.neg_region_classifier.box = cat(1, ...
+                                                                                           refine_dataset.reg_classifier{cls_id}.neg_region_classifier.box, ...
+                                                                                           curr_cls_neg);
+                            refine_dataset.reg_classifier{cls_id}.neg_region_classifier.feat = cat(1, ...
+                                                                                           refine_dataset.reg_classifier{cls_id}.neg_region_classifier.feat, ...
+                                                                                           features(curr_cls_neg_idx,:));
+
+                        end
+                        % Extract features from new ground trith regions 
+                        % -- Select regions to extract features from
+                        regions_for_features           = gt_boxes;  
+
+                        % -- Network forward
+                        if cnn_model.proposal_detection_model.is_share_feature
+                               features             = cnn_features_shared_conv(cnn_model.proposal_detection_model.conf_detection, im, regions_for_features(:, 1:4), cnn_model.fast_rcnn_net, region_classifier.training_opts.feat_layer, ...
+                                                                               cnn_model.rpn_net.blobs(cnn_model.proposal_detection_model.last_shared_output_blob_name));
+                        else
+                               features             = cnn_features_demo(cnn_model.proposal_detection_model.conf_detection, im, regions_for_features(:, 1:4), ...
+                                                                        cnn_model.fast_rcnn_net, [], region_classifier.training_opts.feat_layer);                                                
+                        end
+
+                        % Update total features datasets
+                        for j =1:length(new_labels)
+                            cls_id = find(strcmp(refine_dataset.classes,new_labels{j}));
+                          
+                            refine_dataset.bbox_regressor{cls_id}.pos_bbox_regressor.feat = cat(1, ...
+                                                                    refine_dataset.bbox_regressor{cls_id}.pos_bbox_regressor.feat, ...
+                                                                    features(j,:)); % Adding ground truth features
+                            refine_dataset.reg_classifier{cls_id}.pos_region_classifier.feat = cat(1, ...
+                                                                    refine_dataset.reg_classifier{cls_id}.pos_region_classifier.feat, ...
+                                                                    features(j, :)); % Adding ground truth features
+
+                        end
+                        classes_to_update_idx = unique(classes_to_update_idx);
+                        train_images_counter = train_images_counter +1;
+                   end
+           end
              
          case{'test'}
            %% ------------------------------------------- DETECT ----------------------------------------------------
@@ -575,7 +733,7 @@ while ~strcmp(state,'quit')
            % Performing detection
            if isfield(region_classifier, 'classes') && ~isempty(dataset.classes)
                region_classifier.training_opts = cls_opts;
-               [cls_scores boxes] = Detect(im, dataset.classes, cnn_model, region_classifier, bbox_regressor, detect_thresh, show_regions, portRegs);
+               [cls_scores, boxes, ~, ~] = Detect(im, dataset.classes, cnn_model, region_classifier, bbox_regressor, detect_thresh, show_regions, portRegs);
            else
                boxes      = [];
                cls_scores = [];
@@ -687,7 +845,10 @@ portImage.close;
 portAnnotation.close;
 portDets.close;
 portImg.close;
-portRefine.close;
+% portRefine.close;
+portRefineAnnotationIN.close;
+portRefineImageOUT.close;
+portRefineAnnotationOUT.close;
 
 disp('Bye bye!');
 

@@ -1,4 +1,4 @@
-function [cls_scores  pred_boxes] = Detect(im, classes, cnn_model, cls_model, bbox_model, detect_thresh, show_regions, portRegs)
+function [cls_scores, pred_boxes, aboxes, features] = Detect(im, classes, cnn_model, cls_model, bbox_model, detect_thresh, show_regions, portRegs)
 %INFERENCE Summary of this function goes here
 %   Detailed explanation goes here
 
