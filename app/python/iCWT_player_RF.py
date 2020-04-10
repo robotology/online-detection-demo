@@ -47,6 +47,7 @@ class iCWT_player(yarp.RFModule):
             self.lines = sorted(self.lines)
 
         self.counter = 0
+        self.state = 'stream'
         return True
 
     def cleanup(self):
@@ -77,9 +78,14 @@ class iCWT_player(yarp.RFModule):
                 if os.path.exists(self.imageset):
                     with open(self.imageset, 'r') as f:
                         self.lines = f.readlines()
+                        self.lines = sorted(self.lines)
                     self.counter = 0
             elif cmd.get(0).asString() == 'startfake':
                 self.fake = True
+            elif cmd.get(0).asString() == 'pause':
+                self.state = 'do_nothing'
+            elif cmd.get(0).asString() == 'resume':
+                self.state = 'stream'
             elif cmd.get(0).asString() == 'stopfake':
                 self.fake = False
             elif cmd.get(0).asString() == 'startScore':
@@ -87,46 +93,53 @@ class iCWT_player(yarp.RFModule):
             elif cmd.get(0).asString() == 'stopScore':
                 self.sendScore = False
 
+        if self.state == 'stream':
+            item = self.lines[self.counter]
+            item = item.rstrip()
+            print(item)
 
-        item = self.lines[self.counter]
-        item = item.rstrip()
-        print(item)
+            if os.path.exists(os.path.join(self.images_folder, item + '.jpg')):
+                image = np.array(Image.open(os.path.join(self.images_folder, item + '.jpg')))
+            elif os.path.exists(os.path.join(self.images_folder, item + '.ppm')):
+                image = np.array(Image.open(os.path.join(self.images_folder, item + '.ppm')))
 
-        image = np.array(Image.open(os.path.join(self.images_folder, item + '.jpg')))
-        self.out_buf_array[:, :] = image
+            self.out_buf_array[:, :] = image
 
-        annotations = ET.parse(os.path.join(self.annotations_folder, item + '.xml')).getroot()
+            if os.path.exists(os.path.join(self.annotations_folder, item + '.xml')):
+                annotations = ET.parse(os.path.join(self.annotations_folder, item + '.xml')).getroot()
 
-        annotations_bottle = self.output_box_port.prepare()
-        annotations_bottle.clear()
-        ann = annotations_bottle.addList()
-        for object in annotations.findall('object'):
-            b = ann.addList()
-            bbox = object.find('bndbox')
-            b.addInt(int(bbox.find('xmin').text))
-            b.addInt(int(bbox.find('ymin').text))
-            b.addInt(int(bbox.find('xmax').text))
-            b.addInt(int(bbox.find('ymax').text))
-            if self.sendScore:
-                b.addDouble(random.randrange(0, 10)/10)
-            b.addString(object.find('name').text)
+                annotations_bottle = self.output_box_port.prepare()
+                annotations_bottle.clear()
+                # ann = annotations_bottle.addList()
+                for object in annotations.findall('object'):
+                    b = annotations_bottle.addList()
+                    bbox = object.find('bndbox')
+                    b.addInt(int(bbox.find('xmin').text))
+                    b.addInt(int(bbox.find('ymin').text))
+                    b.addInt(int(bbox.find('xmax').text))
+                    b.addInt(int(bbox.find('ymax').text))
+                    if self.sendScore:
+                        b.addDouble(random.randrange(0, 10)/10)
+                    b.addString(object.find('name').text)
 
-        if self.fake:
-            c = annotations_bottle.addList()
-            c.addInt(100)
-            c.addInt(100)
-            c.addInt(250)
-            c.addInt(250)
-            c.addString('fake')
+                if self.fake:
+                    c = annotations_bottle.addList()
+                    c.addInt(100)
+                    c.addInt(100)
+                    c.addInt(250)
+                    c.addInt(250)
+                    c.addString('fake')
 
-        self.output_image_port.write(self.out_buf_image)
-        self.output_box_port.write()
+                self.output_box_port.write()
+            self.output_image_port.write(self.out_buf_image)
 
-        if self.counter >= len(self.lines)-1:
-            self.counter = 0
+            if self.counter >= len(self.lines)-1:
+                self.counter = 0
+            else:
+                self.counter = self.counter + 1
+
         else:
-            self.counter = self.counter + 1
-
+            pass
         return True
 
 
