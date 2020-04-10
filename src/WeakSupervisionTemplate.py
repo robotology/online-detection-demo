@@ -15,6 +15,10 @@ class WeakSupervisionTemplate(yarp.RFModule, ABC):
         print('{:s} opened'.format('/' + self.module_name + '/command:i'))
         self.attach(self.cmd_port)
 
+        self.cmd_exploration_port = yarp.BufferedPortBottle()
+        self.cmd_exploration_port.open('/' + self.module_name + '/exploration/command:o')
+        print('{:s} opened'.format('/' + self.module_name + '/exploration/command:o'))
+
         self._input_image_port = yarp.BufferedPortImageRgb()
         self._input_image_port.open('/' + self.module_name + '/image:i')
         print('{:s} opened'.format('/' + self.module_name + '/image:i'))

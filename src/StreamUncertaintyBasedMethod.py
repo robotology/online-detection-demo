@@ -44,6 +44,8 @@ class StreamUncertaintyBasedMethod(wsT.WeakSupervisionTemplate):
         self._reply_buf_image.resize(self.image_w, self.image_h)
         self._reply_buf_image.setExternal(self._reply_buf_array, self._reply_buf_array.shape[1], self._reply_buf_array.shape[0])
 
+        self.skip = False
+
         return True
 
     def ask_for_annotations(self):
@@ -63,8 +65,8 @@ class StreamUncertaintyBasedMethod(wsT.WeakSupervisionTemplate):
                 b.addDouble(p['bbox'][3])
                 b.addString(p['class'])
 
-        self._ask_image_port.write(self._ask_buf_image)
         self._ask_annotations_port.write()
+        self._ask_image_port.write(self._ask_buf_image)
 
         # Wait for the annotator's reply
         received_image = self._reply_image_port.read()
@@ -93,15 +95,14 @@ class StreamUncertaintyBasedMethod(wsT.WeakSupervisionTemplate):
                     self.annotations.append(detection_dict)
 
     def receive_data(self) -> None:
-        received_image = self._input_image_port.read()
-        print('Image received...')
-        self._in_buf_image.copy(received_image)
-        assert self._in_buf_array.__array_interface__['data'][0] == self._in_buf_image.getRawImage().__int__()
-
         print('Waiting for detections or annotations...')
         detections = yarp.Bottle()
         detections.clear()
         detections = self._input_predictions_port.read()
+        received_image = self._input_image_port.read()
+        print('Image received...')
+        self._in_buf_image.copy(received_image)
+        assert self._in_buf_array.__array_interface__['data'][0] == self._in_buf_image.getRawImage().__int__()
 
         self.predictions = []
         if detections is not None:
@@ -137,14 +138,20 @@ class StreamUncertaintyBasedMethod(wsT.WeakSupervisionTemplate):
         if avg_conf >= 0.8 and not ask_image:
             self.annotations = self.predictions
             self._out_buf_array[:, :] = self._in_buf_array
-        elif avg_conf < 0.8 or ask_image:
+        elif avg_conf < 0.4 or ask_image:
+            to_send = self.cmd_exploration_port.prepare()
+            to_send.clear()
+            to_send.addString("pause")
+            self.cmd_exploration_port.write()
             self.ask_for_annotations()
+        else:
+            self.skip = True
 
     def use_data(self) -> None:
         to_send = self._output_annotations_port.prepare()
         to_send.clear()
 
-        if self.annotations is not None:
+        if self.annotations is not None and not self.skip:
             for p in self.annotations:
                 b = to_send.addList()
                 # b.addString('train')
@@ -153,9 +160,17 @@ class StreamUncertaintyBasedMethod(wsT.WeakSupervisionTemplate):
                 b.addDouble(p['bbox'][2])
                 b.addDouble(p['bbox'][3])
                 b.addString(p['class'])
+        elif self.skip:
+            self.skip = False
+            to_send.addString('skip')
 
         self._output_annotations_port.write()
         self._output_image_port.write(self._out_buf_image)
+
+        to_send = self.cmd_exploration_port.prepare()
+        to_send.clear()
+        to_send.addString('resume')
+        self.cmd_exploration_port.write()
 
     def cleanup(self):
         super(StreamUncertaintyBasedMethod, self).cleanup()

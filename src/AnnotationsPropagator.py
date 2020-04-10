@@ -172,8 +172,9 @@ class AnnotationsPropagator(yarp.RFModule):
         to_send = self._output_annotations_port.prepare()
         to_send.clear()
         to_send.copy(self.annotations)
-        self._output_image_port.write(self._out_buf_image)
         self._output_annotations_port.write()
+        self._output_image_port.write(self._out_buf_image)
+
 
     def cleanup(self):
         print('Cleanup function')
@@ -315,7 +316,7 @@ if __name__ == '__main__':
     conffile = rf.find("from").asString()
     if not conffile:
         print('Using default conf file')
-        rf.setDefaultConfigFile('../app/config/ws_module_conf.ini')
+        rf.setDefaultConfigFile('../app/config/annotations_propagator_conf.ini')
     else:
         rf.setDefaultConfigFile(rf.find("from").asString())
 
