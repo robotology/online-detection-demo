@@ -1,3 +1,6 @@
 build/*
 .idea/
 external/*
+*/__pycache__/
+CMakeCache.txt
+CMakeFiles/
