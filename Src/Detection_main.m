@@ -605,7 +605,7 @@ while ~strcmp(state,'quit')
                    disp('Waiting for weakly supervised annotations...')
                    annotations_bottle = portRefineAnnotationIN.read(true);
 %                    yarpImage          = portRefineImageIN.read(true);     
-                   
+
                    if (annotations_bottle.size() ~= 0 && sum(size(yarpImage)) ~= 0)
 %                        TEST = reshape(tool.getRawImg(yarpImage), [h w pixSize]); % need to reshape the matrix from 1D to h w pixelSize       
 %                        im=uint8(zeros(h, w, pixSize));                           % create an empty image with the correct dimentions
@@ -613,108 +613,112 @@ while ~strcmp(state,'quit')
 %                        im(:,:,2)= cast(TEST(:,:,2),'uint8');
 %                        im(:,:,3)= cast(TEST(:,:,3),'uint8');     
                        
-                       % Gathering GT box and label 
-                       gt_boxes = zeros(size(annotations_bottle),4);
-                       new_labels = cell(size(annotations_bottle));
-                       for j = 1:size(annotations_bottle)
-                           ann           = annotations_bottle.pop();
-                           gt_boxes(j,:)   = [ann.asList().get(0).asDouble(), ann.asList().get(1).asDouble(), ...
-                                            ann.asList().get(2).asDouble(), ann.asList().get(3).asDouble()];  % bbox format: [tl_x, tl_y, br_x, br_y]
-                           new_labels{j} = ann.asList().get(4).asString().toCharArray';
-                           label_id = find(strcmp(refine_dataset.classes,new_labels{j}));
-                           if isempty(label_id)
-                               % A new classes has been encountered
-                               refine_dataset.classes{length(refine_dataset.classes)+1} = new_labels{j};
-                               label_id = length(refine_dataset.classes);
+                       if annotations_bottle.get(0).isString() && strcmp(annotations_bottle.get(0).asString(), 'skip')
+                           disp('Skip command received')
+                       else
+                           % Gathering GT box and label 
+                           gt_boxes = zeros(size(annotations_bottle),4);
+                           new_labels = cell(size(annotations_bottle));
+                           for j = 1:size(annotations_bottle)
+                               ann           = annotations_bottle.pop();
+                               gt_boxes(j,:)   = [ann.asList().get(0).asDouble(), ann.asList().get(1).asDouble(), ...
+                                                ann.asList().get(2).asDouble(), ann.asList().get(3).asDouble()];  % bbox format: [tl_x, tl_y, br_x, br_y]
+                               new_labels{j} = ann.asList().get(4).asString().toCharArray';
+                               label_id = find(strcmp(refine_dataset.classes,new_labels{j}));
+                               if isempty(label_id)
+                                   % A new classes has been encountered
+                                   refine_dataset.classes{length(refine_dataset.classes)+1} = new_labels{j};
+                                   label_id = length(refine_dataset.classes);
 
-                               refine_dataset.bbox_regressor{end+1} = struct;
-                               refine_dataset.bbox_regressor{end}.pos_bbox_regressor = struct;
-                               refine_dataset.bbox_regressor{end}.pos_bbox_regressor.box     = [];
-                               refine_dataset.bbox_regressor{end}.pos_bbox_regressor.feat    = [];
-                               refine_dataset.bbox_regressor{end}.y_bbox_regressor           = [];
-                               refine_dataset.reg_classifier{end+1} = struct;
-                               refine_dataset.reg_classifier{end}.pos_region_classifier.box  = [];
-                               refine_dataset.reg_classifier{end}.pos_region_classifier.feat = [];
-                               refine_dataset.reg_classifier{end}.neg_region_classifier.box  = [];
-                               refine_dataset.reg_classifier{end}.neg_region_classifier.feat = [];
+                                   refine_dataset.bbox_regressor{end+1} = struct;
+                                   refine_dataset.bbox_regressor{end}.pos_bbox_regressor = struct;
+                                   refine_dataset.bbox_regressor{end}.pos_bbox_regressor.box     = [];
+                                   refine_dataset.bbox_regressor{end}.pos_bbox_regressor.feat    = [];
+                                   refine_dataset.bbox_regressor{end}.y_bbox_regressor           = [];
+                                   refine_dataset.reg_classifier{end+1} = struct;
+                                   refine_dataset.reg_classifier{end}.pos_region_classifier.box  = [];
+                                   refine_dataset.reg_classifier{end}.pos_region_classifier.feat = [];
+                                   refine_dataset.reg_classifier{end}.neg_region_classifier.box  = [];
+                                   refine_dataset.reg_classifier{end}.neg_region_classifier.feat = [];
 
-                               dataset.bbox_regressor{end+1} = struct;
-                               dataset.bbox_regressor{end}.pos_bbox_regressor = struct;
-                               dataset.bbox_regressor{end}.pos_bbox_regressor.box     = [];
-                               dataset.bbox_regressor{end}.pos_bbox_regressor.feat    = [];
-                               dataset.bbox_regressor{end}.y_bbox_regressor           = [];
-                               dataset.reg_classifier{end+1} = struct;
-                               dataset.reg_classifier{end}.pos_region_classifier.box  = [];
-                               dataset.reg_classifier{end}.pos_region_classifier.feat = [];
-                               dataset.reg_classifier{end}.neg_region_classifier.box  = [];
-                               dataset.reg_classifier{end}.neg_region_classifier.feat = [];
+                                   dataset.bbox_regressor{end+1} = struct;
+                                   dataset.bbox_regressor{end}.pos_bbox_regressor = struct;
+                                   dataset.bbox_regressor{end}.pos_bbox_regressor.box     = [];
+                                   dataset.bbox_regressor{end}.pos_bbox_regressor.feat    = [];
+                                   dataset.bbox_regressor{end}.y_bbox_regressor           = [];
+                                   dataset.reg_classifier{end+1} = struct;
+                                   dataset.reg_classifier{end}.pos_region_classifier.box  = [];
+                                   dataset.reg_classifier{end}.pos_region_classifier.feat = [];
+                                   dataset.reg_classifier{end}.neg_region_classifier.box  = [];
+                                   dataset.reg_classifier{end}.neg_region_classifier.feat = [];
+                               end
+                               classes_to_update_idx = [classes_to_update_idx, label_id];
                            end
-                           classes_to_update_idx = [classes_to_update_idx, label_id];
+
+                           forwardAnnotations(yarpImage, gt_boxes, new_labels, portImg, portDets);
+
+                           for j =1:length(new_labels)
+                                overlaps = boxoverlap(aboxes, gt_boxes(j,:));
+                                [cur_bbox_pos, cur_bbox_y, cur_bbox_idx] = select_positives_for_bbox(aboxes(:,1:4), gt_boxes(j,:), ...
+                                                                                       overlaps, bbox_opts.min_overlap); 
+                                cls_id = find(strcmp(refine_dataset.classes,new_labels{j}));
+
+
+                                % Positive regions and features for bbox regressor
+                                refine_dataset.bbox_regressor{cls_id}.pos_bbox_regressor.box = cat(1, ...
+                                                                                               refine_dataset.bbox_regressor{cls_id}.pos_bbox_regressor.box, ...
+                                                                                               cur_bbox_pos);
+                                refine_dataset.bbox_regressor{cls_id}.y_bbox_regressor = cat(1, refine_dataset.bbox_regressor{cls_id}.y_bbox_regressor, ...
+                                                                                               cur_bbox_y);
+
+                                refine_dataset.bbox_regressor{cls_id}.pos_bbox_regressor.feat = cat(1, ...
+                                                                                               refine_dataset.bbox_regressor{cls_id}.pos_bbox_regressor.feat, ...
+                                                                                               features(1:size(cur_bbox_idx,1),:)); % Da aggiungere le feature dei ground truth
+
+                                % Positive regions for region classifier
+                                curr_cls_pos = gt_boxes(j,:);
+                                refine_dataset.reg_classifier{cls_id}.pos_region_classifier.box = cat(1, ... 
+                                                                                               refine_dataset.reg_classifier{cls_id}.pos_region_classifier.box, ...
+                                                                                               curr_cls_pos);
+
+                                % Negative regions and features for region classifier
+                                [curr_cls_neg, curr_cls_neg_idx] = select_negatives_for_cls(aboxes(:,1:4), overlaps, negatives_selection); 
+                                refine_dataset.reg_classifier{cls_id}.neg_region_classifier.box = cat(1, ...
+                                                                                               refine_dataset.reg_classifier{cls_id}.neg_region_classifier.box, ...
+                                                                                               curr_cls_neg);
+                                refine_dataset.reg_classifier{cls_id}.neg_region_classifier.feat = cat(1, ...
+                                                                                               refine_dataset.reg_classifier{cls_id}.neg_region_classifier.feat, ...
+                                                                                               features(curr_cls_neg_idx,:));
+
+                            end
+                            % Extract features from new ground trith regions 
+                            % -- Select regions to extract features from
+                            regions_for_features           = gt_boxes;  
+
+                            % -- Network forward
+                            if cnn_model.proposal_detection_model.is_share_feature
+                                   features             = cnn_features_shared_conv(cnn_model.proposal_detection_model.conf_detection, im, regions_for_features(:, 1:4), cnn_model.fast_rcnn_net, region_classifier.training_opts.feat_layer, ...
+                                                                                   cnn_model.rpn_net.blobs(cnn_model.proposal_detection_model.last_shared_output_blob_name));
+                            else
+                                   features             = cnn_features_demo(cnn_model.proposal_detection_model.conf_detection, im, regions_for_features(:, 1:4), ...
+                                                                            cnn_model.fast_rcnn_net, [], region_classifier.training_opts.feat_layer);                                                
+                            end
+
+                            % Update total features datasets
+                            for j =1:length(new_labels)
+                                cls_id = find(strcmp(refine_dataset.classes,new_labels{j}));
+
+                                refine_dataset.bbox_regressor{cls_id}.pos_bbox_regressor.feat = cat(1, ...
+                                                                        refine_dataset.bbox_regressor{cls_id}.pos_bbox_regressor.feat, ...
+                                                                        features(j,:)); % Adding ground truth features
+                                refine_dataset.reg_classifier{cls_id}.pos_region_classifier.feat = cat(1, ...
+                                                                        refine_dataset.reg_classifier{cls_id}.pos_region_classifier.feat, ...
+                                                                        features(j, :)); % Adding ground truth features
+
+                            end
+                            classes_to_update_idx = unique(classes_to_update_idx);
+                            train_images_counter = train_images_counter +1;
                        end
-
-                       forwardAnnotations(yarpImage, gt_boxes, new_labels, portImg, portDets);
-
-                       for j =1:length(new_labels)
-                            overlaps = boxoverlap(aboxes, gt_boxes(j,:));
-                            [cur_bbox_pos, cur_bbox_y, cur_bbox_idx] = select_positives_for_bbox(aboxes(:,1:4), gt_boxes(j,:), ...
-                                                                                   overlaps, bbox_opts.min_overlap); 
-                            cls_id = find(strcmp(refine_dataset.classes,new_labels{j}));
-                            
-
-                            % Positive regions and features for bbox regressor
-                            refine_dataset.bbox_regressor{cls_id}.pos_bbox_regressor.box = cat(1, ...
-                                                                                           refine_dataset.bbox_regressor{cls_id}.pos_bbox_regressor.box, ...
-                                                                                           cur_bbox_pos);
-                            refine_dataset.bbox_regressor{cls_id}.y_bbox_regressor = cat(1, refine_dataset.bbox_regressor{cls_id}.y_bbox_regressor, ...
-                                                                                           cur_bbox_y);
-                                                                                       
-                            refine_dataset.bbox_regressor{cls_id}.pos_bbox_regressor.feat = cat(1, ...
-                                                                                           refine_dataset.bbox_regressor{cls_id}.pos_bbox_regressor.feat, ...
-                                                                                           features(1:size(cur_bbox_idx,1),:)); % Da aggiungere le feature dei ground truth
-
-                            % Positive regions for region classifier
-                            curr_cls_pos = gt_boxes(j,:);
-                            refine_dataset.reg_classifier{cls_id}.pos_region_classifier.box = cat(1, ... 
-                                                                                           refine_dataset.reg_classifier{cls_id}.pos_region_classifier.box, ...
-                                                                                           curr_cls_pos);
-
-                            % Negative regions and features for region classifier
-                            [curr_cls_neg, curr_cls_neg_idx] = select_negatives_for_cls(aboxes(:,1:4), overlaps, negatives_selection); 
-                            refine_dataset.reg_classifier{cls_id}.neg_region_classifier.box = cat(1, ...
-                                                                                           refine_dataset.reg_classifier{cls_id}.neg_region_classifier.box, ...
-                                                                                           curr_cls_neg);
-                            refine_dataset.reg_classifier{cls_id}.neg_region_classifier.feat = cat(1, ...
-                                                                                           refine_dataset.reg_classifier{cls_id}.neg_region_classifier.feat, ...
-                                                                                           features(curr_cls_neg_idx,:));
-
-                        end
-                        % Extract features from new ground trith regions 
-                        % -- Select regions to extract features from
-                        regions_for_features           = gt_boxes;  
-
-                        % -- Network forward
-                        if cnn_model.proposal_detection_model.is_share_feature
-                               features             = cnn_features_shared_conv(cnn_model.proposal_detection_model.conf_detection, im, regions_for_features(:, 1:4), cnn_model.fast_rcnn_net, region_classifier.training_opts.feat_layer, ...
-                                                                               cnn_model.rpn_net.blobs(cnn_model.proposal_detection_model.last_shared_output_blob_name));
-                        else
-                               features             = cnn_features_demo(cnn_model.proposal_detection_model.conf_detection, im, regions_for_features(:, 1:4), ...
-                                                                        cnn_model.fast_rcnn_net, [], region_classifier.training_opts.feat_layer);                                                
-                        end
-
-                        % Update total features datasets
-                        for j =1:length(new_labels)
-                            cls_id = find(strcmp(refine_dataset.classes,new_labels{j}));
-                          
-                            refine_dataset.bbox_regressor{cls_id}.pos_bbox_regressor.feat = cat(1, ...
-                                                                    refine_dataset.bbox_regressor{cls_id}.pos_bbox_regressor.feat, ...
-                                                                    features(j,:)); % Adding ground truth features
-                            refine_dataset.reg_classifier{cls_id}.pos_region_classifier.feat = cat(1, ...
-                                                                    refine_dataset.reg_classifier{cls_id}.pos_region_classifier.feat, ...
-                                                                    features(j, :)); % Adding ground truth features
-
-                        end
-                        classes_to_update_idx = unique(classes_to_update_idx);
-                        train_images_counter = train_images_counter +1;
                    end
            end
              

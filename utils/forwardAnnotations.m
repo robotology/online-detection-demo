@@ -15,7 +15,7 @@ function forwardAnnotations(yarp_img, boxes, new_labels, imgPort, portAnnOut)
     stamp = yarp.Stamp();
     imgPort.setEnvelope(stamp); 
     portAnnOut.setEnvelope(stamp);
-    
-    imgPort.write(yarp_img);   
+   
     portAnnOut.write();
+    imgPort.write(yarp_img);   
 end
