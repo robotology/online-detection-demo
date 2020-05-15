@@ -34,6 +34,12 @@
         <node>laptop</node>
     </module>
     <module>
+        <name>Manager.py</name>
+        <parameters>--from contexts/WS-demo/manager_conf.ini</parameters>
+        <deployer>python3.5</deployer>
+        <node>laptop</node>
+    </module>
+    <module>
         <name>BoxesVisualizer.py</name>
         <parameters>--from contexts/WS-demo/ws_module_conf.ini</parameters>
         <deployer>python3.5</deployer>
@@ -157,6 +163,23 @@
    <connection>
         <from>/blobAnnotation/blobs:o</from>
         <to>/AnnotationsPropagator/reply/annotations:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <!--connections for Management -->
+    <connection>
+        <from>/Manager/blobAnnotation/command:o</from>
+        <to>/blobAnnotation/rpc:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+    <connection>
+        <from>/Manager/detection/command:o</from>
+        <to>/detection/command:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+    <connection>
+        <from>/Manager/dataset/command:o</from>
+        <to>/iCWTPlayer/cmd:i</to>
         <protocol>tcp</protocol>
     </connection>
 

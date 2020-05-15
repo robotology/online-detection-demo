@@ -16,7 +16,7 @@ class iCWT_player(yarp.RFModule):
         self.dataset_folder = '/home/elisa/Data/Datasets/iCubWorld-Transformations'
         self.images_folder = self.dataset_folder + '/Images'
         self.annotations_folder = self.dataset_folder + '/Annotations'
-        self.imageset = self.dataset_folder + '/ImageSets/sprayers.txt'
+        self.imageset = self.dataset_folder + '/ImageSets/flower7.txt'
 
         self.image_w = 640
         self.image_h = 480
@@ -64,7 +64,7 @@ class iCWT_player(yarp.RFModule):
         return True
 
     def getPeriod(self):
-        return 0.1
+        return 0.15
 
     def updateModule(self):
 
@@ -102,6 +102,8 @@ class iCWT_player(yarp.RFModule):
                 image = np.array(Image.open(os.path.join(self.images_folder, item + '.jpg')))
             elif os.path.exists(os.path.join(self.images_folder, item + '.ppm')):
                 image = np.array(Image.open(os.path.join(self.images_folder, item + '.ppm')))
+            elif os.path.exists(os.path.join(self.images_folder, item + '.png')):
+                image = np.array(Image.open(os.path.join(self.images_folder, item + '.png')))
 
             self.out_buf_array[:, :] = image
 

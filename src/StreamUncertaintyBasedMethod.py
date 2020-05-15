@@ -45,6 +45,7 @@ class StreamUncertaintyBasedMethod(wsT.WeakSupervisionTemplate):
         self._reply_buf_image.setExternal(self._reply_buf_array, self._reply_buf_array.shape[1], self._reply_buf_array.shape[0])
 
         self.skip = False
+        self.performed_action = 'self'
 
         return True
 
@@ -94,6 +95,15 @@ class StreamUncertaintyBasedMethod(wsT.WeakSupervisionTemplate):
                     }
                     self.annotations.append(detection_dict)
 
+    def propagate_image(self):
+        self._ask_buf_array[:, :] = self._in_buf_array
+        self._ask_image_port.write(self._ask_buf_image)
+
+        to_send = self._ask_annotations_port.prepare()
+        to_send.clear()
+        to_send.addString('skip')
+        self._ask_annotations_port.write()
+
     def receive_data(self) -> None:
         print('Waiting for detections or annotations...')
         detections = yarp.Bottle()
@@ -135,17 +145,21 @@ class StreamUncertaintyBasedMethod(wsT.WeakSupervisionTemplate):
         else:
             ask_image = True
 
-        if avg_conf >= 0.8 and not ask_image:
+        if avg_conf >= 0.2 and not ask_image:
             self.annotations = self.predictions
             self._out_buf_array[:, :] = self._in_buf_array
-        elif avg_conf < 0.4 or ask_image:
+            self.performed_action = 'self'
+            self.propagate_image()
+        elif avg_conf < 0.1 or ask_image:
             to_send = self.cmd_exploration_port.prepare()
             to_send.clear()
             to_send.addString("pause")
             self.cmd_exploration_port.write()
             self.ask_for_annotations()
+            self.performed_action = 'active'
         else:
             self.skip = True
+            self.propagate_image()
 
     def use_data(self) -> None:
         to_send = self._output_annotations_port.prepare()
@@ -160,6 +174,7 @@ class StreamUncertaintyBasedMethod(wsT.WeakSupervisionTemplate):
                 b.addDouble(p['bbox'][2])
                 b.addDouble(p['bbox'][3])
                 b.addString(p['class'])
+                b.addString(self.performed_action)
         elif self.skip:
             self.skip = False
             to_send.addString('skip')

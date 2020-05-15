@@ -77,16 +77,20 @@ class BoxesVisualizer(yarp.RFModule):
                 if all_dets.get(i).isList():
                     dets = all_dets.get(i).asList()
                 else:
-                    dets = all_dets
+                    dets = all_dets.get(i)
                 if dets.get(0).isDouble() or dets.get(0).isInt():
                     bbox = [dets.get(0).asDouble(), dets.get(1).asDouble(), dets.get(2).asDouble(),
                             dets.get(3).asDouble()]  # bbox format: [tl_x, tl_y, br_x, br_y]
+                    performed_action = ''
                     if dets.get(4).isDouble():
                         score = dets.get(4).asDouble()
                         cls = dets.get(5).asString()
                     elif dets.get(4).isString():
                         score = -2
                         cls = dets.get(4).asString()
+                        if dets.get(5).isString():
+                            performed_action = dets.get(5).asString()
+                            print('performed action found: {:s}'.format(performed_action))
 
                     if cls not in self._cls2colors:
                         new_color = (randint(0, 255), randint(0, 255), randint(0, 255))
@@ -107,6 +111,19 @@ class BoxesVisualizer(yarp.RFModule):
                         text = '{:s} {:.3f}'.format(cls, score)
                     self.set_label(im, text, font, color, bbox)
 
+                    # print performed action if necessary
+                    if not performed_action == '':
+                        print('performed action is not empty')
+                        scale = 1.5
+                        thickness = 5
+                        size = cv2.getTextSize(performed_action, font, scale, thickness)[0]
+                        print(performed_action)
+                        label_origin = (self.image_w - size[0] - 14, self.image_h - size[1] - 14)
+                        label_bottom = (self.image_w-1, self.image_h-1)
+
+                        cv2.rectangle(im, label_origin, label_bottom, (1, 250, 1), -2)
+                        cv2.putText(im, performed_action, (self.image_w - size[0] - 10, self.image_h - 10), font, scale, (100, 100, 100), thickness)
+
                 elif dets.get(0).isString() and dets.get(0).asString() == 'train':
                     for j in range(0, all_dets.size()):
                         ann = all_dets.get(j).asList()
@@ -123,6 +140,19 @@ class BoxesVisualizer(yarp.RFModule):
                         font = cv2.FONT_HERSHEY_SIMPLEX
                         text = 'Train: {:s}'.format(cls)
                         self.set_label(im, text, font, color, bbox)
+
+                elif dets.get(0).isString() and dets.get(0).asString() == 'skip':
+                    print('skip action found')
+                    scale = 0.8
+                    thickness = 4
+                    size = cv2.getTextSize("skipped", font, scale, thickness)[0]
+                    print('skipped')
+                    label_origin = (self.image_w - size[0] - 5, self.image_h - size[1] - 5)
+                    label_bottom = (self.image_w - 1, self.image_h - 1)
+
+                    cv2.rectangle(im, label_origin, label_bottom, (1, 1, 1), -2)
+                    cv2.putText(im, performed_action, (self.image_w - size[0] + 1, self.image_h - 2), font, scale,
+                                (255, 255, 255))
 
         # Return an RGB image with drawn detections
         im = cv2.cvtColor(im, cv2.COLOR_RGB2BGR)

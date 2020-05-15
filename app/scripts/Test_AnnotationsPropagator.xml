@@ -8,37 +8,32 @@
         <node>laptop</node>
     </module>
 
-	<module>
-        <name>AnnotationsPropagator.py</name>
-        <parameters> </parameters>
-        <deployer>python3.5</deployer>
-        <node>laptop</node>
-    </module>
-    
-    <module>
-        <name>detections_handler.py</name>
-        <parameters>--image_w 640 --image_h 480</parameters>
-        <deployer>python3.5</deployer>
-        <node>laptop</node>
-    </module>
-
     <module>
         <name>blobAnnotation</name>
         <node>laptop</node>
         <parameters></parameters>
     </module>
+
+    <module>
+        <name>BoxesVisualizer.py</name>
+        <parameters>--from contexts/WS-demo/annotations_propagator_conf.ini</parameters>
+        <deployer>python3.5</deployer>
+        <node>laptop</node>
+    </module>
+
     <module>
         <name>yarpview</name>
         <node>laptop</node>
         <parameters>--name /viewer/detection --x 0 --y 0 --w 500 --h 480 --RefreshTime 33</parameters>
     </module>
+ <!--
     <module>
         <name>yarpview</name>
         <node>laptop</node>
         <parameters>--name /viewer/dataset --x 501 --y 0 --w 500 --h 480 --RefreshTime 33</parameters>
     </module>
-  
-    <!--connections for detection -->
+--> 
+    <!-- Connections for Annotations Propagator -->
 
      <connection>
         <from>/iCWTPlayer/image:o</from>
@@ -49,18 +44,6 @@
     <connection>
         <from>/iCWTPlayer/box:o</from>
         <to>/AnnotationsPropagator/predictions:i</to>
-        <protocol>tcp</protocol>
-    </connection>
-
-    <connection>
-        <from>/AnnotationsPropagator/image:o</from>
-        <to>/detHandler/image:i</to>
-        <protocol>mjpeg</protocol>
-    </connection>
-
-    <connection>
-        <from>/AnnotationsPropagator/annotations:o</from>
-        <to>/detHandler/detections:i</to>
         <protocol>tcp</protocol>
     </connection>
 
@@ -87,10 +70,22 @@
     </connection>
 
     <!--connections for visualization -->
+    <connection>
+        <from>/AnnotationsPropagator/image:o</from>
+        <to>/AnnotationsPropagator/visualization/image:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/AnnotationsPropagator/annotations:o</from>
+        <to>/AnnotationsPropagator/visualization/boxes:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+
      <connection>
-        <from>/detHandler/image:o</from>
-        <to>/viewer/detection</to>
-        <protocol> mjpeg </protocol>
+        <from>/AnnotationsPropagator/visualization/image:o</from>
+        <to>/viewer/AnnotationsPropagator</to>
+        <protocol> tcp </protocol>
     </connection>
 
 </application>

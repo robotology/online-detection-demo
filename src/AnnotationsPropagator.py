@@ -41,7 +41,7 @@ class AnnotationsPropagator(yarp.RFModule):
         self.image_w = 640
         self.image_h = 480
         # self.max_time = rf.find("max_propagation").asInt()
-        self.max_time = 30
+        self.max_time = 20
         self.module_name = 'AnnotationsPropagator'
 
         self.cmd_port = yarp.Port()
@@ -115,6 +115,12 @@ class AnnotationsPropagator(yarp.RFModule):
         self.tracker = re3_tracker.Re3Tracker()
         self.obj_names = []
 
+        # ## Temporary
+        # self.cmd_exploration_port = yarp.BufferedPortBottle()
+        # self.cmd_exploration_port.open('/' + self.module_name + '/exploration/command:o')
+        # print('{:s} opened'.format('/' + self.module_name + '/exploration/command:o'))
+        # ## End Temporary
+
         return True
 
     def respond(self, command, reply):
@@ -166,6 +172,13 @@ class AnnotationsPropagator(yarp.RFModule):
         self._out_buf_array[:, :] = self._reply_buf_array
 
         self.annotations = annotations.get(0).asList()
+
+        # ## Temporary
+        # to_send = self.cmd_exploration_port.prepare()
+        # to_send.clear()
+        # to_send.addString("resume")
+        # self.cmd_exploration_port.write()
+        # ## End Temporary
 
     def send_annotations(self):
         print('Sending annotations')
@@ -291,19 +304,38 @@ class AnnotationsPropagator(yarp.RFModule):
             detections.clear()
             detections = self._input_predictions_port.read()
 
-            current_time = time.time()
-            if current_time - self.time > self.max_time or self.annotations is None or self.interrupt:
+            if detections.get(0).isString() and detections.get(0).asString() == "skip":
+                self.propagate_annotations()
+            elif time.time() - self.time > self.max_time or self.annotations is None or self.interrupt:
+                # ## Temporary
+                # if detections is None or detections.get(0).size() == 0 and self.annotations is None:
+                #     self.annotations = yarp.Bottle()
+                #     ann = self.annotations.addList()
+                #     b = ann.addList()
+                #     b.addInt(100)
+                #     b.addInt(100)
+                #     b.addInt(250)
+                #     b.addInt(250)
+                #     b.addString('fake')
+                #     detections = self.annotations
+                # to_send = self.cmd_exploration_port.prepare()
+                # to_send.clear()
+                # to_send.addString("pause")
+                # self.cmd_exploration_port.write()
+                # ## End Temporary
+
                 self.predictions = detections
+
                 self.ask_for_annotations()
                 self.initialize_tracker()
                 self.time = time.time()
                 if self.interrupt:
                     self.interrupt = False
+                self.send_annotations()
 
             else:
                 self.propagate_annotations()
-
-        self.send_annotations()
+                self.send_annotations()
 
         return True
 
