@@ -170,10 +170,18 @@ class iCWT_player(yarp.RFModule):
             self.out_buf_array = self._in_buf_image
             self.output_image_port.write(self.out_buf_image)
 
-            annotations_bottle = self.output_box_port.prepare()
-            annotations_bottle.clear()
-            annotations_bottle.copy(boxes)
-            self.output_box_port.write()
+            if boxes is not None:
+                annotations_bottle = self.output_box_port.prepare()
+                annotations_bottle.clear()
+
+                t = annotations_bottle.addList()
+                b = t.addList()
+                b.addInt(int(boxes.get(0).asInt()))
+                b.addInt(int(boxes.get(1).asInt()))
+                b.addInt(int(boxes.get(2).asInt()))
+                b.addInt(int(boxes.get(3).asInt()))
+                b.addString('class')
+                self.output_box_port.write()
         else:
             pass
         return True

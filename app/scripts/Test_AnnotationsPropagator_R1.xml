@@ -27,13 +27,13 @@
 
     <!-- Connections for Annotations Propagator -->
     <connection>
-        <from>/detection/refine/image:o</from>
+        <from>/depthCamera/rgbImage:o</from>
         <to>/iCWTPlayer/image:i</to>
         <protocol> mjpeg </protocol>
     </connection>
 
     <connection>
-        <from>/detection/refine/predictions:o</from>
+        <from>/dispBlobber/roi/left:o</from>
         <to>/iCWTPlayer/box:i</to>
         <protocol>tcp</protocol>
     </connection>
