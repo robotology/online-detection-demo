@@ -1,1 +1,10 @@
 # WS_demo
+
+## Dependencies
+
+### Python packages
+
+#### For the tracker
+- numpy==1.13.1
+- opencv-python==3.3.0.10
+- tensorflow-gpu==1.5.0

@@ -18,11 +18,21 @@ class iCWT_player(yarp.RFModule):
         self.annotations_folder = self.dataset_folder + '/Annotations'
         self.imageset = self.dataset_folder + '/ImageSets/flower7.txt'
 
-        self.image_w = 640
-        self.image_h = 480
+        self.image_w = 320
+        self.image_h = 240
 
         self.fake = False
         self.sendScore = False
+
+        self.module_name = ''
+
+        self._input_image_port = yarp.BufferedPortImageRgb()
+        self._input_image_port.open('/iCWTPlayer/image:i')
+        print('{:s} opened'.format('/iCWTPlayer/image:i'))
+
+        self._input_boxes_port = yarp.BufferedPortBottle()
+        self._input_boxes_port.open('/iCWTPlayer/box:i')
+        print('{:s} opened'.format('/iCWTPlayer/box:i'))
 
         self.output_image_port = yarp.Port()
         self.output_image_port.open('/iCWTPlayer/image:o')
@@ -36,18 +46,24 @@ class iCWT_player(yarp.RFModule):
         self.cmd_port.open('/iCWTPlayer/cmd:i')
         print('{:s} opened'.format('/iCWTPlayer/cmd:i'))
 
+        print('Preparing input image...')
+        self._in_buf_array = np.ones((self.image_h, self.image_w, 3), dtype=np.uint8)
+        self._in_buf_image = yarp.ImageRgb()
+        self._in_buf_image.resize(self.image_w, self.image_h)
+        self._in_buf_image.setExternal(self._in_buf_array, self._in_buf_array.shape[1], self._in_buf_array.shape[0])
+
         print('Preparing output image...')
         self.out_buf_image = yarp.ImageRgb()
         self.out_buf_image.resize(self.image_w, self.image_h)
         self.out_buf_array = np.zeros((self.image_h, self.image_w, 3), dtype=np.uint8)
         self.out_buf_image.setExternal(self.out_buf_array, self.out_buf_array.shape[1], self.out_buf_array.shape[0])
 
-        with open(self.imageset, 'r') as f:
-            self.lines = f.readlines()
-            self.lines = sorted(self.lines)
+        #with open(self.imageset, 'r') as f:
+        #    self.lines = f.readlines()
+        #    self.lines = sorted(self.lines)
 
         self.counter = 0
-        self.state = 'stream'
+        self.state = 'stream_from_port'
         return True
 
     def cleanup(self):
@@ -92,6 +108,8 @@ class iCWT_player(yarp.RFModule):
                 self.sendScore = True
             elif cmd.get(0).asString() == 'stopScore':
                 self.sendScore = False
+            elif cmd.get(0).asString() == 'fromPort':
+                self.state = 'stream_from_port'
 
         if self.state == 'stream':
             item = self.lines[self.counter]
@@ -140,6 +158,22 @@ class iCWT_player(yarp.RFModule):
             else:
                 self.counter = self.counter + 1
 
+        elif self.state == 'stream_from_port':
+            boxes = yarp.Bottle()
+            boxes.clear()
+
+            received_image = self._input_image_port.read()
+            boxes = self._input_boxes_port.read()
+
+            self._in_buf_image.copy(received_image)
+            assert self._in_buf_array.__array_interface__['data'][0] == self._in_buf_image.getRawImage().__int__()
+            self.out_buf_array = self._in_buf_image
+            self.output_image_port.write(self.out_buf_image)
+
+            annotations_bottle = self.output_box_port.prepare()
+            annotations_bottle.clear()
+            annotations_bottle.copy(boxes)
+            self.output_box_port.write()
         else:
             pass
         return True

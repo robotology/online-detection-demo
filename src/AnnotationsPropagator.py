@@ -38,8 +38,8 @@ class AnnotationsPropagator(yarp.RFModule):
 
         # self.image_w = rf.find("image_w").asInt()
         # self.image_h = rf.find("image_h").asInt()
-        self.image_w = 640
-        self.image_h = 480
+        self.image_w = 320
+        self.image_h = 240
         # self.max_time = rf.find("max_propagation").asInt()
         self.max_time = 20
         self.module_name = 'AnnotationsPropagator'
