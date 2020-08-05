@@ -98,6 +98,9 @@ else
     port_gaze_tx = yarp.BufferedPortProperty()
     port_gaze_rx = yarp.BufferedPortProperty()
 end
+if isAL then
+    port_cmd_exploration = yarp.BufferedPortBottle()
+end
 
 port_cmd:open("/manager/cmd:i")
 port_detection:open("/manager/targets:i")
@@ -116,6 +119,9 @@ port_augmented_rpc:open("/manager/augmented:o")
 if whichRobot == "icub" then
     port_sfm_rpc:open("/detection/sfm/rpc")
     port_are_rpc:open("/detection/are/rpc")
+end
+if isAL then
+    port_cmd_exploration:open("/manager/exploration/cmd:o")
 end
 
 ret = true
@@ -145,6 +151,10 @@ else
     ret = ret and yarp.NetworkBase_connect("/cer_gaze-controller/state:o", port_gaze_rx:getName() )
     ret = ret and yarp.NetworkBase_connect(port_cmd_gaze:getName(), "/onTheFlyRec/gaze" )
 --    ret = ret and yarp.NetworkBase_connect("/yarpOpenFace/target:o", port_gaze_direction:getName()) GAZE_REMOVED
+end
+if isAL then
+    ret = ret and yarp.NetworkBase_connect("/WSModule/exploration/command:o", port_cmd:getName())
+-- Add connection between manager and exploration module
 end
 
 if ret == false then
@@ -686,6 +696,17 @@ end
 
 ---------------------------------------------------------------------------------------------------------------
 
+function sendExplore(action)
+    local cmd = port_cmd_exploration:prepare()
+    cmd:clear()
+    cmd:addString(action)
+    cmd:addString("exploration")
+
+    port_cmd_exploration:write()
+end
+
+---------------------------------------------------------------------------------------------------------------
+
 function sendForget(objName)
     local cmd = port_cmd_detection:prepare()
     cmd:clear()
@@ -756,7 +777,7 @@ while state ~= "quit" and not interrupting do
               cmd_rx == "train" or cmd_rx == "forget" or
                cmd_rx == "hello" or cmd_rx == "listen" or 
                 cmd_rx == "track" or cmd_rx == "what-is" or
-                 cmd_rx == 'refine' then
+                 cmd_rx == "refine" or cmd_rx == "explore" then
 
             clearDraw()
             multipleDraw:clear()
@@ -838,10 +859,12 @@ while state ~= "quit" and not interrupting do
                     if action == 'start' then
                         speak(port_ispeak, "ok, I will start exploration ")
                         sendRefine(action)
+                        sendExplore(action)
                         state = "refine"
                     elseif action == 'stop' then
                         speak(port_ispeak, "ok, I will stop exploration ")
                         sendRefine(action)
+                        sendExplore(action)
                         state = "home"
                     else
                         speak(port_ispeak, "refine: unknown action " .. action)
@@ -850,6 +873,24 @@ while state ~= "quit" and not interrupting do
                     print("cannot start refinement, please restart the demo with al option")
                 end
 
+            elseif state == "explore" then
+                if isAL then
+                    action = cmd:get(1):asString()
+
+                    if action == 'pause' then
+                        print("Pausing exploration")
+                        sendExplore(action)
+                        state = "refine"
+                    elseif action == 'resume' then
+                        print("Resuming exploration")
+                        sendExplore(action)
+                        state = "refine"
+                    else
+                        speak(port_ispeak, "refine: unknown action " .. action)
+                    end
+                else
+                    print("cannot pause refinement, please restart the demo with al option")
+                end
 
             elseif state == "forget" then
                 local object = cmd:get(1):asString()

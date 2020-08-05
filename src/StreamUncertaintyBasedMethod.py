@@ -153,6 +153,7 @@ class StreamUncertaintyBasedMethod(wsT.WeakSupervisionTemplate):
         elif avg_conf < 0.1 or ask_image:
             to_send = self.cmd_exploration_port.prepare()
             to_send.clear()
+            to_send.addString("explore")
             to_send.addString("pause")
             self.cmd_exploration_port.write()
             self.ask_for_annotations()
@@ -184,6 +185,7 @@ class StreamUncertaintyBasedMethod(wsT.WeakSupervisionTemplate):
 
         to_send = self.cmd_exploration_port.prepare()
         to_send.clear()
+        to_send.addString('explore')
         to_send.addString('resume')
         self.cmd_exploration_port.write()
 
