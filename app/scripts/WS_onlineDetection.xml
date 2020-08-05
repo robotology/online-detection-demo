@@ -1,0 +1,468 @@
+<application>
+<name>Weakly Supervised Online Detection</name>
+
+    <!--MODULES -->
+
+    <module>
+        <name>yarpdev</name>
+        <parameters>--from sensors/RealSense_conf.ini</parameters>
+        <node>r1-torso1</node>
+    </module>
+
+    <module>
+        <name>yarpdev</name>
+        <parameters>--device speech --lingware-context speech --default-language en-GB --robot r1 --pitch 80 --speed 100</parameters>
+        <node>r1-face</node>
+    </module>
+
+    <module>
+        <name>yarpdev</name>
+        <parameters>--device faceDisplayServer</parameters>
+        <node>r1-face</node>
+    </module>
+
+     <module>
+        <name>faceExpressionImage</name>
+        <node>r1-base</node>
+    </module>
+
+    <module>
+        <name>iSpeak</name>
+        <parameters>--package speech-dev</parameters>
+        <node>r1-face</node>
+    </module>
+    
+    <module>
+        <name>yarp-blob</name>
+        <node>r1-console-linux</node>
+    </module>
+
+    <module>
+        <name>yarp-multi-viewer</name>
+        <node>r1-console-linux</node>
+    </module>
+
+    <module>
+        <name>dispBlobber</name>
+        <parameters>--imW 320 --imH 240 --bufferSize 1 --minBlobSize 300 --maxBlobSize 5000 --backgroundThresh 100 --imageThreshRatioLow 10 --imageThreshRatioHigh 100 --margin 1</parameters>
+        <node>r1-console-linux</node>
+    </module>
+
+    <module>
+        <name>speechRecognizer</name>
+        <parameters></parameters>
+        <node>r1-vm-windows</node>
+    </module>
+
+    <module>
+        <name>cer_gaze-controller</name>
+        <parameters>--cameras::context cameraCalibration --cameras::file cerEyes_320x240.ini --joints-limits::pitch "(-10.0 35.0)" --joints-limits::yaw "(-40.0 40.0)"</parameters>
+        <node>r1-base</node>
+    </module>
+    
+    <module>
+        <name>onTheFlyRec_gaze.lua</name>
+        <parameters> --w 320 --h 240</parameters>
+        <deployer>lua</deployer>
+        <node>r1-base</node>
+        <dependencies>
+            <port timeout="10">/cer_gaze-controller/state:o</port>
+            <port timeout="10">/cer_gaze-controller/target:i</port>
+            <port timeout="10">/cer_gaze-controller/rpc</port>
+        </dependencies>
+    </module>
+
+     <module>
+        <name>detection_image.lua</name>
+        <parameters>r1</parameters>
+        <deployer>lua</deployer>
+        <node>r1-console-linux</node>
+    </module>
+    <module>
+        <name>detection_speech_helper.lua</name>
+        <parameters></parameters>
+        <deployer>lua</deployer>
+        <node>r1-console-linux</node>
+        <dependencies>
+            <port timeout="10">/detection-image/image:i</port>
+            <port timeout="10">/detection-image/image:o</port>
+            <port timeout="10">/detection-image/cmd:i</port>
+            <port timeout="10">/cer_gaze-controller/state:o</port>
+            <port timeout="10">/cer_gaze-controller/target:i</port>
+            <port timeout="10">/cer_gaze-controller/rpc</port>
+        </dependencies>
+    </module>
+
+    <module>
+        <name>detection_demo.lua</name>
+        <parameters>r1 al</parameters>
+        <deployer>lua</deployer>
+        <node>r1-console-linux</node>
+        <dependencies>
+            <port timeout="10">/speechRecognizer/rpc</port>
+        </dependencies>
+    </module>
+    
+    <module>
+        <name>detections_handler.py</name>
+        <parameters>--image_w 320 --image_h 240</parameters>
+        <deployer>python</deployer>
+        <node>r1-console-cuda</node>
+    </module>
+
+    <module>
+        <name>blobAnnotation</name>
+        <node>r1-console-linux</node>
+        <parameters></parameters>
+    </module>
+
+    <module>
+        <name>BoxesVisualizer.py</name>
+        <parameters>--from contexts/WS-demo/annotations_propagator_conf.ini</parameters>
+        <deployer>python3.5</deployer>
+        <node>r1-console-cuda</node>
+    </module>
+
+    <module>
+        <name>BoxesVisualizer.py</name>
+        <parameters>--from contexts/WS-demo/ws_module_conf.ini</parameters>
+        <deployer>python3.5</deployer>
+        <node>r1-console-cuda</node>
+    </module> 
+
+    <!-- Yarpview for visualization -->
+
+    <module>
+        <name>yarpview</name>
+        <node>r1-console-linux</node>
+        <parameters>--name /viewer/manager --x 0 --y 0 --w 500 --h 480 --RefreshTime 33 --compact</parameters>
+    </module>
+
+    <module>
+        <name>yarpview</name>
+        <node>r1-console-linux</node>
+        <parameters>--name /viewer/detection --x 600 --y 0 --w 500 --h 480 --RefreshTime 33 --compact</parameters>
+    </module>
+
+    <module>
+        <name>yarpview</name>
+        <node>r1-console-linux</node>
+        <parameters>--name /viewer/objects --x 1135 --y 0 --w 500 --h 480 --RefreshTime 33 --compact</parameters>
+    </module>
+
+    <module>
+        <name>yarpview</name>
+        <parameters>--name /viewer/crop --x 10 --y 550 --p 50 --compact</parameters>
+        <node>r1-console-linux</node>
+    </module>
+
+    <module>
+        <name>yarpview</name>
+        <parameters>--name /viewer/depth --x 400 --y 550 --p 50 --compact</parameters>
+        <node>r1-console-linux</node>
+    </module>
+
+    <module>
+        <name>yarpview</name>
+        <node>r1-console-linux</node>
+        <parameters>--name /viewer/AnnotationsPropagator --x 0 --y 0 --w 500 --h 480 --RefreshTime 33</parameters>
+    </module>
+
+    <module>
+        <name>yarpview</name>
+        <node>r1-console-linux</node>
+        <parameters>--name /viewer/WSModule --x 0 --y 0 --w 500 --h 480 --RefreshTime 33</parameters>
+    </module>
+
+    <!--CONNECTIONS -->
+
+    <!--connections for face display -->
+
+    <connection>
+        <from>/faceExpressionImage/image:o</from> 
+        <to>/robot/faceDisplay/image:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/iSpeak/r1:rpc</from>
+        <to>/faceExpressionImage/rpc</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <!--connections for speech -->
+
+     <connection>
+        <from>/iSpeak/speech-dev/rpc</from>
+        <to>/r1/speech:rpc</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <!--connections for detection -->
+
+    <connection>
+        <from> /detection/dets:o </from>
+        <to>/manager/targets:i</to>
+        <protocol> tcp </protocol>
+    </connection>
+
+    <connection>
+        <from>/detection/speech:o</from>
+        <to>/manager/cmd:i</to>
+        <protocol> tcp </protocol>
+    </connection>
+
+    <connection>
+        <from>/depthCamera/rgbImage:o</from>
+        <to>/detection/img:i</to>
+        <protocol> mjpeg </protocol>
+    </connection>
+
+    <connection>
+        <from>/dispBlobber/roi/left:o</from>
+        <to>/detection/annotations:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <!--connections for closest blob -->
+
+    <connection>
+        <from>/depthCamera/depthImage:o</from>
+        <to>/yarp-blob/float:i</to>
+        <protocol>fast_tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/yarp-blob/depth:o</from>
+        <to>/dispBlobber/img:i</to>
+        <protocol>mjpeg</protocol>
+    </connection>
+
+    <!--connections for multiviewer -->
+
+    <connection>
+        <from> /detection/dets:o </from>
+        <to>/yarp-multi-viewer/detections:i</to>
+        <protocol> tcp </protocol>
+    </connection>
+
+    <connection>
+        <from>/depthCamera/rgbImage:o</from>
+        <to>/yarp-multi-viewer/image:i</to>
+        <protocol> mjpeg </protocol>
+    </connection>
+    
+    <!--connections for robot control -->
+
+    <connection>
+        <from>/onTheFlyRec/gaze/tx</from>
+        <to>/cer_gaze-controller/target:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/onTheFlyRec/gaze/rpc</from>
+        <to>/cer_gaze-controller/rpc</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/cer_gaze-controller/state:o</from>
+        <to>/onTheFlyRec/gaze/rx</to>
+        <protocol>udp</protocol>
+    </connection>
+
+    <connection>
+        <from>/dispBlobber/roi/left:o</from>
+        <to>/onTheFlyRec/gaze/blob</to>
+        <protocol>udp</protocol>
+    </connection>
+   
+    <!--connections for the manager -->
+
+	<connection>
+        <from>/detection/dets:o</from>
+        <to>/manager/targets:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+    
+	<connection>
+        <from>/manager/ispeak:o</from>
+        <to>/iSpeak</to>
+        <protocol>tcp</protocol>
+    </connection>
+    
+    <connection>
+        <from>/manager/draw:o</from>
+        <to>/detection-image/cmd:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+    
+    <connection>
+        <from>/manager/detection/cmd:o</from>
+        <to>/detection/command:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <!--connections for WeaklySupervised Module -->
+
+    <connection>
+        <from>/detection/refine/image:o</from>
+        <to>/WSModule/image:i</to>
+        <protocol> tcp </protocol>
+    </connection>
+
+    <connection>
+        <from>/detection/refine/predictions:o</from>
+        <to>/WSModule/predictions:i</to>
+        <protocol>tcp</protocol>
+    </connection>  
+
+    <connection>
+        <from>/WSModule/annotations:o</from>
+        <to>/detection/refine/annotations:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/WSModule/exploration/command:o</from>
+        <to>/iCWTPlayer/cmd:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <!--connections for AnnotationsPropagator -->
+
+     <connection>
+        <from>/WSModule/ask/image:o</from>
+        <to>/AnnotationsPropagator/image:i</to>
+        <protocol> tcp </protocol>
+    </connection>
+
+    <connection>
+        <from>/WSModule/ask/annotations:o</from>
+        <to>/AnnotationsPropagator/predictions:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/AnnotationsPropagator/image:o</from>
+        <to>/WSModule/reply/image:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/AnnotationsPropagator/annotations:o</from>
+        <to>/WSModule/reply/annotations:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <!--connections for HRI annotation -->
+   <connection>
+        <from>/AnnotationsPropagator/ask/image:o</from>
+        <to>/blobAnnotation/image:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+   <connection>
+        <from>/AnnotationsPropagator/ask/annotations:o</from>
+        <to>/blobAnnotation/detections:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+   <connection>
+        <from>/blobAnnotation/image:o</from>
+        <to>/AnnotationsPropagator/reply/image:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+   <connection>
+        <from>/blobAnnotation/blobs:o</from>
+        <to>/AnnotationsPropagator/reply/annotations:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <!--connections for visualization -->
+
+    <connection>
+        <from>/detection/img:o </from>
+        <to>/detection-image/image:i</to>
+        <protocol> mjpeg </protocol>
+    </connection>
+
+    <connection>
+        <from>/detection-image/image:o</from>
+        <to>/viewer/manager</to>
+        <protocol> mjpeg </protocol>
+    </connection>
+
+    <connection>
+        <from>/depthCamera/rgbImage:o</from>
+        <to>/detHandler/image:i</to>
+        <protocol>mjpeg</protocol>
+    </connection>
+
+    <connection>
+        <from>/detection/dets:o</from>
+        <to>/detHandler/detections:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/detHandler/image:o</from>
+        <to>/viewer/detection</to>
+        <protocol> mjpeg </protocol>
+    </connection>
+
+    <connection>
+        <from>/yarp-multi-viewer/image:o</from>
+        <to>/viewer/objects</to>
+        <protocol> tcp </protocol>
+    </connection>
+
+    <connection>
+        <from>/dispBlobber/opt:o</from>
+        <to>/viewer/crop</to>
+        <protocol>mjpeg</protocol>
+    </connection>
+
+    <connection>
+        <from>/yarp-blob/depth:o</from>
+        <to>/viewer/depth</to>
+        <protocol>fast_tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/WSModule/image:o</from>
+        <to>/WSModule/visualization/image:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/WSModule/annotations:o</from>
+        <to>/WSModule/visualization/boxes:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+     <connection>
+        <from>/WSModule/visualization/image:o</from>
+        <to>/viewer/WSModule</to>
+        <protocol> tcp </protocol>
+    </connection>
+
+    <connection>
+        <from>/AnnotationsPropagator/image:o</from>
+        <to>/AnnotationsPropagator/visualization/image:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/AnnotationsPropagator/annotations:o</from>
+        <to>/AnnotationsPropagator/visualization/boxes:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+     <connection>
+        <from>/AnnotationsPropagator/visualization/image:o</from>
+        <to>/viewer/AnnotationsPropagator</to>
+        <protocol> tcp </protocol>
+    </connection>
+
+</application>
+
