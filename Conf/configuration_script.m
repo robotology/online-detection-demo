@@ -55,6 +55,12 @@ negatives_selection.iterations         = 10; %----------------------------------
 negatives_selection.neg_ovr_thresh     = 0.3;
 negatives_selection.evict_easy_thresh  = -0.9;
 negatives_selection.select_hard_thresh = -0.7;
+total_negatives = negatives_selection.batch_size*negatives_selection.iterations;
+if total_negatives > max_img_for_new_class
+   negatives_selection.neg_per_image = round(total_negatives/max_img_for_new_class);
+else
+   negatives_selection.neg_per_image = 1;
+end
 cls_opts.negatives_selection           = negatives_selection;
 cls_opts.feat_layer                    = 'fc7'; %------------------------------------------------------------------------------------------------------------
 detect_thresh                          = 0.15; %---------------------------------------------------------------------------------------------------------------

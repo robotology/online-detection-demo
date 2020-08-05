@@ -50,9 +50,9 @@ while ~strcmp(state,'quit')
                disp('switching to state Quit...');
                state = 'quit';
                
-           case{'refine'}
+           case{'start'}
                refinemenet_type = cmd_bottle.get(1).asString().toCharArray';
-               if strcmp(refinemenet_type, 'stream')
+               if strcmp(refinemenet_type, 'refinement')
                    disp('switching to state Refine...');
                    state = 'refine_stream';
                    % Send command to exploration and weakly supervised modules
@@ -313,7 +313,7 @@ while ~strcmp(state,'quit')
            bbox_regressor                         = Train_bbox_regressor(bbox_regressor, dataset.bbox_regressor, classes_to_update_idx);
 
            fprintf('Train region classifier and bbox regressor required %f seconds\n', toc(actual_train_tic));
-           fprintf('Train process required %f seconds\n', toc(train_tic));
+           %fprintf('Train process required %f seconds\n', toc(train_tic));
 
            disp('Train done.');
            disp('Restoring Test state...');
