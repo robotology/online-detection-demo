@@ -10,7 +10,7 @@
         <name>BoxesVisualizer.py</name>
         <parameters>--from contexts/WS-demo/annotations_propagator_conf.ini</parameters>
         <deployer>python3.5</deployer>
-        <node>laptop</node>
+        <node>r1-console-cuda</node>
     </module>
     <module>
         <name>Manager.py</name>
@@ -22,43 +22,33 @@
         <name>BoxesVisualizer.py</name>
         <parameters>--from contexts/WS-demo/ws_module_conf.ini</parameters>
         <deployer>python3.5</deployer>
-        <node>laptop</node>
-    </module>
-    <module>
-        <name>BoxesVisualizer.py</name>
-        <parameters>--from contexts/WS-demo/detection_conf.ini</parameters>
-        <deployer>python3.5</deployer>
-        <node>laptop</node>
-    </module>    
-    <module>
-        <name>BoxesVisualizer.py</name>
-        <parameters>--from contexts/WS-demo/iCWT_player_conf.ini</parameters>
-        <deployer>python3.5</deployer>
-        <node>laptop</node>
-    </module>  
+        <node>r1-console-cuda</node>
+    </module> 
     <module>
         <name>yarpview</name>
-        <node>laptop</node>
+        <node>r1-console-linux</node>
         <parameters>--name /viewer/dataset --x 0 --y 0 --w 500 --h 480 --RefreshTime 33</parameters>
     </module>
+<!--
     <module>
         <name>yarpview</name>
-        <node>laptop</node>
+        <node>r1-console-linux</node>
         <parameters>--name /viewer/detection --x 0 --y 0 --w 500 --h 480 --RefreshTime 33</parameters>
     </module>
+-->
     <module>
         <name>yarpview</name>
-        <node>laptop</node>
+        <node>r1-console-linux</node>
         <parameters>--name /viewer/AnnotationsPropagator --x 0 --y 0 --w 500 --h 480 --RefreshTime 33</parameters>
     </module>
     <module>
         <name>yarpview</name>
-        <node>laptop</node>
+        <node>r1-console-linux</node>
         <parameters>--name /viewer/WSModule --x 0 --y 0 --w 500 --h 480 --RefreshTime 33</parameters>
     </module>
   
     <!--connections for detection -->
-
+<!--
      <connection>
         <from>/iCWTPlayer/image:o</from>
         <to>/detection/img:i</to>
@@ -70,7 +60,7 @@
         <to>/detection/annotations:i</to>
         <protocol>tcp</protocol>
     </connection>
-
+-->
     <!--connections for WeaklySupervised Module -->
 
     <connection>
@@ -163,7 +153,7 @@
     </connection>
 
     <!--connections for visualization -->
-
+<!--
     <connection>
         <from>/detection/img:o</from>
         <to>/detection/visualization/image:i</to>
@@ -181,7 +171,7 @@
         <to>/viewer/detection</to>
         <protocol> tcp </protocol>
     </connection>
-
+-->
     <connection>
         <from>/WSModule/image:o</from>
         <to>/WSModule/visualization/image:i</to>
@@ -215,24 +205,6 @@
      <connection>
         <from>/AnnotationsPropagator/visualization/image:o</from>
         <to>/viewer/AnnotationsPropagator</to>
-        <protocol> tcp </protocol>
-    </connection>
-
-    <connection>
-        <from>/iCWTPlayer/image:o</from>
-        <to>/iCWTPlayer/visualization/image:i</to>
-        <protocol>tcp</protocol>
-    </connection>
-
-    <connection>
-        <from>/iCWTPlayer/box:o</from>
-        <to>/iCWTPlayer/visualization/boxes:i</to>
-        <protocol>tcp</protocol>
-    </connection>
-
-     <connection>
-        <from>/iCWTPlayer/visualization/image:o</from>
-        <to>/viewer/iCWTPlayer</to>
         <protocol> tcp </protocol>
     </connection>
 

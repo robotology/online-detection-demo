@@ -80,7 +80,7 @@ class iCWT_player(yarp.RFModule):
         return True
 
     def getPeriod(self):
-        return 0.15
+        return 0.005
 
     def updateModule(self):
 
@@ -159,6 +159,7 @@ class iCWT_player(yarp.RFModule):
                 self.counter = self.counter + 1
 
         elif self.state == 'stream_from_port':
+            print('stream from port')
             boxes = yarp.Bottle()
             boxes.clear()
 
@@ -167,7 +168,7 @@ class iCWT_player(yarp.RFModule):
 
             self._in_buf_image.copy(received_image)
             assert self._in_buf_array.__array_interface__['data'][0] == self._in_buf_image.getRawImage().__int__()
-            self.out_buf_array = self._in_buf_image
+            self.out_buf_array[:,:] = self._in_buf_array
             self.output_image_port.write(self.out_buf_image)
 
             if boxes is not None:
@@ -176,10 +177,10 @@ class iCWT_player(yarp.RFModule):
 
                 t = annotations_bottle.addList()
                 b = t.addList()
-                b.addInt(int(boxes.get(0).asInt()))
-                b.addInt(int(boxes.get(1).asInt()))
-                b.addInt(int(boxes.get(2).asInt()))
-                b.addInt(int(boxes.get(3).asInt()))
+                b.addInt(int(boxes.get(0).asList().get(0).asInt()))
+                b.addInt(int(boxes.get(0).asList().get(1).asInt()))
+                b.addInt(int(boxes.get(0).asList().get(2).asInt()))
+                b.addInt(int(boxes.get(0).asList().get(3).asInt()))
                 b.addString('class')
                 self.output_box_port.write()
         else:
