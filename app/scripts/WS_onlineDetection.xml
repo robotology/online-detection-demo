@@ -324,12 +324,6 @@
         <protocol>tcp</protocol>
     </connection>
 
-    <connection>
-        <from>/WSModule/exploration/command:o</from>
-        <to>/iCWTPlayer/cmd:i</to>
-        <protocol>tcp</protocol>
-    </connection>
-
     <!--connections for AnnotationsPropagator -->
 
      <connection>
