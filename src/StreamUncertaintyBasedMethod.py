@@ -151,11 +151,6 @@ class StreamUncertaintyBasedMethod(wsT.WeakSupervisionTemplate):
             self.performed_action = 'self'
             self.propagate_image()
         elif avg_conf < self.conf_thresh_low or ask_image:
-            to_send = self.cmd_exploration_port.prepare()
-            to_send.clear()
-            to_send.addString("explore")
-            to_send.addString("pause")
-            self.cmd_exploration_port.write()
             self.ask_for_annotations()
             self.performed_action = 'active'
         else:
@@ -182,12 +177,6 @@ class StreamUncertaintyBasedMethod(wsT.WeakSupervisionTemplate):
 
         self._output_annotations_port.write()
         self._output_image_port.write(self._out_buf_image)
-
-        to_send = self.cmd_exploration_port.prepare()
-        to_send.clear()
-        to_send.addString('explore')
-        to_send.addString('resume')
-        self.cmd_exploration_port.write()
 
     def cleanup(self):
         super(StreamUncertaintyBasedMethod, self).cleanup()

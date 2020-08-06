@@ -81,6 +81,10 @@ class AnnotationsPropagator(yarp.RFModule):
         self._reply_annotations_port.open('/' + self.module_name + '/reply/annotations:i')
         print('{:s} opened'.format('/' + self.module_name + '/reply/annotations:i'))
 
+        self.cmd_exploration_port = yarp.BufferedPortBottle()
+        self.cmd_exploration_port.open('/' + self.module_name + '/exploration/command:o')
+        print('{:s} opened'.format('/' + self.module_name + '/exploration/command:o'))
+
         print('Preparing input image...')
         self._in_buf_array = np.ones((self.image_h, self.image_w, 3), dtype=np.uint8)
         self._in_buf_image = yarp.ImageRgb()
@@ -108,18 +112,13 @@ class AnnotationsPropagator(yarp.RFModule):
         self.state = 'propagate'
         self.time = time.time()
         self.interrupt = False
+        self.isExploring = True
 
         self.predictions = yarp.Bottle()
         self.annotations = None
 
         self.tracker = re3_tracker.Re3Tracker()
         self.obj_names = []
-
-        # ## Temporary
-        # self.cmd_exploration_port = yarp.BufferedPortBottle()
-        # self.cmd_exploration_port.open('/' + self.module_name + '/exploration/command:o')
-        # print('{:s} opened'.format('/' + self.module_name + '/exploration/command:o'))
-        # ## End Temporary
 
         return True
 
@@ -149,6 +148,7 @@ class AnnotationsPropagator(yarp.RFModule):
     def ask_for_annotations(self):
         print('Asking for annotations')
         # Send image and doubtful predictions to the annotator
+
         self._ask_buf_array[:, :] = self._in_buf_array
 
         to_send = self._ask_annotations_port.prepare()
@@ -288,6 +288,13 @@ class AnnotationsPropagator(yarp.RFModule):
                 print('annotations_list is empty')
                 self.annotations.addList()
 
+    def sendExplorationCommand(self, action):
+                to_send = self.cmd_exploration_port.prepare()
+                to_send.clear()
+                to_send.addString('explore')
+                to_send.addString(action)
+                self.cmd_exploration_port.write()
+
     def updateModule(self):
         if self.state == 'do_nothing':
             pass
@@ -307,31 +314,15 @@ class AnnotationsPropagator(yarp.RFModule):
             if detections.get(0).isString() and detections.get(0).asString() == "skip":
                 self.propagate_annotations()
             elif time.time() - self.time > self.max_time or self.annotations is None or self.interrupt:
-                # ## Temporary
-                # if detections is None or detections.get(0).size() == 0 and self.annotations is None:
-                #     self.annotations = yarp.Bottle()
-                #     ann = self.annotations.addList()
-                #     b = ann.addList()
-                #     b.addInt(100)
-                #     b.addInt(100)
-                #     b.addInt(250)
-                #     b.addInt(250)
-                #     b.addString('fake')
-                #     detections = self.annotations
-                # to_send = self.cmd_exploration_port.prepare()
-                # to_send.clear()
-                # to_send.addString("pause")
-                # self.cmd_exploration_port.write()
-                # ## End Temporary
-
+                self.sendExplorationCommand('pause')
                 self.predictions = detections
-
                 self.ask_for_annotations()
                 self.initialize_tracker()
                 self.time = time.time()
                 if self.interrupt:
                     self.interrupt = False
                 self.send_annotations()
+                self.sendExplorationCommand('resume')
 
             else:
                 self.propagate_annotations()

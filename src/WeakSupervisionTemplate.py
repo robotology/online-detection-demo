@@ -15,10 +15,6 @@ class WeakSupervisionTemplate(yarp.RFModule, ABC):
         print('{:s} opened'.format('/' + self.module_name + '/command:i'))
         self.attach(self.cmd_port)
 
-        self.cmd_exploration_port = yarp.BufferedPortBottle()
-        self.cmd_exploration_port.open('/' + self.module_name + '/exploration/command:o')
-        print('{:s} opened'.format('/' + self.module_name + '/exploration/command:o'))
-
         self._input_image_port = yarp.BufferedPortImageRgb()
         self._input_image_port.open('/' + self.module_name + '/image:i')
         print('{:s} opened'.format('/' + self.module_name + '/image:i'))
@@ -79,10 +75,10 @@ class WeakSupervisionTemplate(yarp.RFModule, ABC):
             reply.addString('refine state deactivated')
         elif command.get(0).asString() == 'thresh_high':
             self.conf_thresh_high = command.get(1).asDouble()
-            reply.addString('Confidence threshold high set to {:d}'.format(self.conf_thresh_high))
+            reply.addString('Confidence threshold high set to {:f}'.format(self.conf_thresh_high))
         elif command.get(0).asString() == 'thresh_low':
-            self.conf_thresh_low = command.get(1).asDouble()
-            reply.addString('Confidence threshold low set to {:d}'.format(self.conf_thresh_low))
+            self.conf_thresh_low = float(command.get(1).asDouble())
+            reply.addString('Confidence threshold low set to {:f}'.format(self.conf_thresh_low))
         else:
             print('Command {:s} not recognized'.format(command.get(0).asString()))
             reply.addString('Command {:s} not recognized'.format(command.get(0).asString()))
