@@ -145,12 +145,12 @@ class StreamUncertaintyBasedMethod(wsT.WeakSupervisionTemplate):
         else:
             ask_image = True
 
-        if avg_conf >= 0.2 and not ask_image:
+        if avg_conf >= self.conf_thresh_high and not ask_image:
             self.annotations = self.predictions
             self._out_buf_array[:, :] = self._in_buf_array
             self.performed_action = 'self'
             self.propagate_image()
-        elif avg_conf < 0.1 or ask_image:
+        elif avg_conf < self.conf_thresh_low or ask_image:
             to_send = self.cmd_exploration_port.prepare()
             to_send.clear()
             to_send.addString("explore")

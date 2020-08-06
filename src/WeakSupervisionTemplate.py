@@ -48,6 +48,8 @@ class WeakSupervisionTemplate(yarp.RFModule, ABC):
         self._out_buf_image.setExternal(self._out_buf_array, self._out_buf_array.shape[1], self._out_buf_array.shape[0])
 
         self.state = 'refine'
+        self.conf_thresh_high = 0.2
+        self.conf_thresh_low = 0.1
 
         return True
 
@@ -75,6 +77,12 @@ class WeakSupervisionTemplate(yarp.RFModule, ABC):
             self.state = 'do_nothing'
             self.terminate_process()
             reply.addString('refine state deactivated')
+        elif command.get(0).asString() == 'thresh_high':
+            self.conf_thresh_high = command.get(1).asDouble()
+            reply.addString('Confidence threshold high set to {:d}'.format(self.conf_thresh_high))
+        elif command.get(0).asString() == 'thresh_low':
+            self.conf_thresh_low = command.get(1).asDouble()
+            reply.addString('Confidence threshold low set to {:d}'.format(self.conf_thresh_low))
         else:
             print('Command {:s} not recognized'.format(command.get(0).asString()))
             reply.addString('Command {:s} not recognized'.format(command.get(0).asString()))
