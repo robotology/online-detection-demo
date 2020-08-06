@@ -59,7 +59,7 @@ end
 objects = {"robot", "table", "sprayer", "mug", "cup" ,"flower", "sunflower", "bottle", "book", "wallet", "toy", "badge", "phone", "soda", "hand"}
 
 -- defining speech grammar in order to expand the speech recognition
-grammar="Listen | Track faces | Return to home position | Look around | Look at the #Object | Where is the #Object | See you soon | What is this | What is close to the #Object | Have a look at this #Object | Have a look at this #Object and augment it | Forget the #Object | Forget all objects | Hey R1"
+grammar="Listen | Track faces | Return to home position | Look around | Look at the #Object | Where is the #Object | See you soon | What is this | What is close to the #Object | Have a look at this #Object | Have a look at this #Object and augment it | Forget the #Object | Forget all objects | Hey R1 | Start refinement | Stop refinement"
 
 function SM_RGM_Expand(port, vocab, word)
     local wb = yarp.Bottle()
@@ -150,11 +150,16 @@ while state ~= "quit" and not interrupting do
         local object = result:get(11):asString()
         instruction:addString(object)
         
-        print("risotto size is ", risotto:size() )
-        if risotto:size() > 11 then
+        print("risotto size is ", risotto )
+        if risotto > 11 then
             instruction:addString("augment")
         end
-
+    elseif speechcmd == "Start" then
+        instruction:addString("refine")
+        instruction:addString("start")
+    elseif speechcmd == "Stop" then
+        instruction:addString("refine")
+        instruction:addString("stop")
     elseif speechcmd == "Listen" then
         instruction:addString("listen")
     elseif speechcmd == "Track" then

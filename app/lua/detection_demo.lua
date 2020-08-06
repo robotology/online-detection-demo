@@ -21,6 +21,7 @@ rf:setVerbose(false)
 rf:configure(arg)
 
 whichRobot = arg[1]
+ALmodality = arg[2]
 
 ---------------------------------------
 -- setting up demo with arguments    --
@@ -42,6 +43,18 @@ else
 end
 
 print ("using:", whichRobot)
+
+if ALmodality ~= nil then
+    ALmodality = ALmodality:lower()
+end
+
+if ALmodality ~= nil and ALmodality == "al" then
+    isAL = true
+    print("Active Learning modality")
+else
+    isAL = false
+    print("Supervised modality")
+end
 
 ---------------------------------------
 -- setting up ctrl-c signal handling --
@@ -85,6 +98,9 @@ else
     port_gaze_tx = yarp.BufferedPortProperty()
     port_gaze_rx = yarp.BufferedPortProperty()
 end
+if isAL then
+    port_cmd_exploration = yarp.BufferedPortBottle()
+end
 
 port_cmd:open("/manager/cmd:i")
 port_detection:open("/manager/targets:i")
@@ -104,10 +120,14 @@ if whichRobot == "icub" then
     port_sfm_rpc:open("/detection/sfm/rpc")
     port_are_rpc:open("/detection/are/rpc")
 end
+if isAL then
+    port_cmd_exploration:open("/manager/exploration/cmd:o")
+end
 
 ret = true
 --ret = ret and yarp.NetworkBase_connect("/detection/detrs:o", port_detection:getName(), "fast_tcp" )
 ret = ret and yarp.NetworkBase_connect(port_ispeak:getName(), "/iSpeak")
+--ret = ret and yarp.NetworkBase_connect(port_augmented_rpc:getName(), "/yarp-augmented/rpc")
 --ret = ret and yarp.NetworkBase_connect(port_draw_image:getName(), "/detection-image/cmd:i")
 --ret = ret and yarp.NetworkBase_connect(port_cmd_detection:getName(), "/detection/command:i")
 --ret = ret and yarp.NetworkBase_connect("/dispBlobber/roi/left:o", "/onTheFlyRec/gaze/blob" )
@@ -131,6 +151,10 @@ else
     ret = ret and yarp.NetworkBase_connect("/cer_gaze-controller/state:o", port_gaze_rx:getName() )
     ret = ret and yarp.NetworkBase_connect(port_cmd_gaze:getName(), "/onTheFlyRec/gaze" )
 --    ret = ret and yarp.NetworkBase_connect("/yarpOpenFace/target:o", port_gaze_direction:getName()) GAZE_REMOVED
+end
+if isAL then
+    ret = ret and yarp.NetworkBase_connect("/AnnotationsPropagator/exploration/command:o", port_cmd:getName())
+-- Add connection between manager and exploration module
 end
 
 if ret == false then
@@ -622,21 +646,30 @@ end
 ---------------------------------------------------------------------------------------------------------------
 
 function startAugmentation()
-    local cmd = port_augmented_rpc:prepare()
+    local cmd = yarp.Bottle()
+    local reply = yarp.Bottle()
+    yarp.NetworkBase_connect("/yarpOpenPose/propag:o", "/data/original" )
+    yarp.NetworkBase_connect("/yarp-augmented/image:o", "/data/augmented" )
+    yarp.NetworkBase_connect("/yarp-augmented/target:o", "/data/blobs" )
     cmd:clear()
     cmd:addString("startAugmentation")
 
-    port_cmd_detection:write()
+    port_augmented_rpc:write(cmd,reply)
+
 end
 
 ---------------------------------------------------------------------------------------------------------------
 
 function stopAugmentation()
-    local cmd = port_augmented_rpc:prepare()
+    local cmd = yarp.Bottle()
+    local reply = yarp.Bottle()
+    yarp.NetworkBase_disconnect("/yarpOpenPose/propag:o", "/data/original" )
+    yarp.NetworkBase_disconnect("/yarp-augmented/image:o", "/data/augmented" )
+    yarp.NetworkBase_disconnect("/yarp-augmented/target:o", "/data/blobs" )
     cmd:clear()
     cmd:addString("stopAugmentation")
 
-    port_augmented_rpc:write()
+    port_augmented_rpc:write(cmd,reply)
 end
 
 ---------------------------------------------------------------------------------------------------------------
@@ -648,6 +681,28 @@ function sendTrain(objName)
     cmd:addString(objName)
 
     port_cmd_detection:write()
+end
+
+---------------------------------------------------------------------------------------------------------------
+
+function sendRefine(action)
+    local cmd = port_cmd_detection:prepare()
+    cmd:clear()
+    cmd:addString(action)
+    cmd:addString("refinement")
+
+    port_cmd_detection:write()
+end
+
+---------------------------------------------------------------------------------------------------------------
+
+function sendExplore(action)
+    local cmd = port_cmd_exploration:prepare()
+    cmd:clear()
+    cmd:addString(action)
+    cmd:addString("exploration")
+
+    port_cmd_exploration:write()
 end
 
 ---------------------------------------------------------------------------------------------------------------
@@ -721,7 +776,8 @@ while state ~= "quit" and not interrupting do
              cmd_rx == "closest-to" or cmd_rx == "where-is" or
               cmd_rx == "train" or cmd_rx == "forget" or
                cmd_rx == "hello" or cmd_rx == "listen" or 
-                cmd_rx == "track" or cmd_rx == "what-is" then
+                cmd_rx == "track" or cmd_rx == "what-is" or
+                 cmd_rx == "refine" or cmd_rx == "explore" then
 
             clearDraw()
             multipleDraw:clear()
@@ -784,12 +840,57 @@ while state ~= "quit" and not interrupting do
                 startGaze()
                 object = cmd:get(1):asString()
                 sendTrain(object)
+
+                print( "********************************************************************************cmd:size()", cmd:size() )
+                print( "********************************************************************************cmd", cmd:get(0):asString(), cmd:get(1):asString(), cmd:get(2):asString(), cmd:get(3):asString() )
                 if cmd:size() > 3 then
                     startAugmentation()
                     isAugmenting = true
+                    print( "actvated augmented")
                 end
-                
+                print( "will speak")
                 speak(port_ispeak, "Let me have a look at the " .. object)
+                print( "training")
+
+            elseif state == "refine" then
+                if isAL then
+                    action = cmd:get(1):asString()
+
+                    if action == 'start' then
+                        speak(port_ispeak, "ok, I will start exploration ")
+                        sendRefine(action)
+                        sendExplore(action)
+                        state = "refine"
+                    elseif action == 'stop' then
+                        speak(port_ispeak, "ok, I will stop exploration ")
+                        sendRefine(action)
+                        sendExplore(action)
+                        state = "home"
+                    else
+                        speak(port_ispeak, "refine: unknown action " .. action)
+                    end
+                else
+                    print("cannot start refinement, please restart the demo with al option")
+                end
+
+            elseif state == "explore" then
+                if isAL then
+                    action = cmd:get(1):asString()
+
+                    if action == 'pause' then
+                        print("Pausing exploration")
+                        sendExplore(action)
+                        state = "refine"
+                    elseif action == 'resume' then
+                        print("Resuming exploration")
+                        sendExplore(action)
+                        state = "refine"
+                    else
+                        speak(port_ispeak, "refine: unknown action " .. action)
+                    end
+                else
+                    print("cannot pause refinement, please restart the demo with al option")
+                end
 
             elseif state == "forget" then
                 local object = cmd:get(1):asString()
@@ -980,13 +1081,14 @@ while state ~= "quit" and not interrupting do
                 speak(port_ispeak, "How can I help you")
                 isInteracting = true
                 
-                if isAugmenting
+                if isAugmenting then
                     stopAugmentation()
                     isAugmenting = false
                 end
             end
         end
-
+    elseif state == "refine" then
+        yarp.delay(0.1)
     elseif state == "forget" then
         yarp.delay(0.1)
     elseif state == "home" then
