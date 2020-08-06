@@ -1,5 +1,10 @@
 # WS_demo
 
+This repository contains the code for the **Active Learning part** of the work described in the paper ["A Weakly Supervised Strategy for Learning Object Detection on a Humanoid Robot"](https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=9035067). 
+
+The diagram of the final application is as follows:
+![image](https://user-images.githubusercontent.com/3706242/79279154-afacc980-7ead-11ea-8086-66aed1ed2691.jpg)
+
 ## Dependencies
 - Tested Cuda versions: 9.0, 10.0
 - Yarp
