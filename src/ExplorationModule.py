@@ -2,6 +2,7 @@
 
 import yarp
 import sys
+import time
 
 # Initialise YARP
 yarp.Network.init()
@@ -10,6 +11,7 @@ class ExplorationModule (yarp.RFModule):
     def configure(self, rf):
 
         self.module_name = 'exploration'
+        self.state = 'exploration'
 
         self.cmd_port = yarp.Port()
         self.cmd_port.open('/' + self.module_name + '/command:i')
@@ -26,18 +28,18 @@ class ExplorationModule (yarp.RFModule):
         print('{:s} opened'.format('/' + self.module_name + '/right_arm:o'))
         print(yarp.NetworkBase.connect('/' + self.module_name + '/right_arm:o', '/ctpservice/right_arm/rpc'))
 
-        #self.right_arm_target = [-21.742, 20.0391, -9.93166, 35.0684, 0.977786, 0.0298225, -0.0565045, 0.163115]
+        self.right_arm_target = [-21.742, 20.0391, -9.93166, 35.0684, 0.977786, 0.0298225, -0.0565045, 0.163115]
+        self.right_arm_second_target = [45.7581683549032, 19.8633297444574, -10.0195557118059, 35.0684449913208, 0.0878908395772451, 0.0298284026456716, -0.0376695839922819, 0.195737309062505]
+
+        self.right_arm_third_target = [67.203533211751, 19.8633297444574, -9.93166487222869, 34.9805541517435, -0.335083825888247, 0.0298402369665474, -0.0565044665613339, -0.163114618112221]
 
         self.right_arm_state = [None] *8
 
         return True
 
-    def start_right_arm(self):
-        #to_send = self.right_arm_out.prepare()
-        #to_send.clear()
+    def move_to(self, position):
         to_send = yarp.Bottle()
-
-        #to_send.addString('ctpn time 4.0 off 0 pos (-21.742 20.0391 -9.93166 35.0684 0.977786 0.0298225 -0.0565045 0.163115)')
+        to_send.clear()
 
         to_send.addString('ctpn')
         to_send.addString('time')
@@ -46,27 +48,34 @@ class ExplorationModule (yarp.RFModule):
         to_send.addInt(0)
         to_send.addString('pos')
         t = to_send.addList()
-        t.addDouble(-21.742)
-        t.addDouble(20.0391)
-        t.addDouble(-9.93166)
-        t.addDouble(35.0684)
-        t.addDouble(0.977786)
-        t.addDouble(0.0298225)
-        t.addDouble(-0.0565045)
-        t.addDouble(0.163115)
+        for i in range(0, len(position)):
+            t.addDouble(position[i])
+        return to_send
+
+    def send_command(self, to_send):
         self.right_arm_out.write(to_send)
 
     def respond(self, command, reply):
         if command.get(0).asString() == 'start':
             print('Starting exploration')
             self.state = 'exploration'
-            self.start_right_arm()
+            to_send = self.move_to(self.right_arm_target)
+            self.send_command(to_send)
             reply.addString('Exploration started')
         elif command.get(0).asString() == 'pause':
             print('Pausing exploration')
-            self.state = 'exploration'
+            self.state = 'pause'
+            print(self.right_arm_state)
+            time.sleep(0.08)
+            to_send2 = self.move_to(self.right_arm_state)
+            self.send_command(to_send2)
             reply.addString('Exploration paused')
-            #self.start_right_arm()
+        elif command.get(0).asString() == 'resume':
+            print('Resuming exploration')
+            self.state = 'exploration'
+            to_send = self.move_to(self.right_arm_target)
+            self.send_command(to_send)
+            reply.addString('Exploration resumed')
         else:
             print('Command {:s} not recognized'.format(command.get(0).asString()))
             reply.addString('Command {:s} not recognized'.format(command.get(0).asString()))
@@ -92,11 +101,11 @@ class ExplorationModule (yarp.RFModule):
         right_arm_bottle = yarp.Bottle()
         right_arm_bottle.clear()
         right_arm_bottle = self.right_arm_in.read()
-
-        if right_arm_bottle.size() == 8:
-             for i in range(0, right_arm_bottle.size()):
-                 self.right_arm_state[i] = right_arm_bottle.get(i).asDouble()
-             #print(self.right_arm_state)
+        if self.state == 'exploration':
+            if right_arm_bottle.size() == 8:
+                 for i in range(0, right_arm_bottle.size()):
+                     self.right_arm_state[i] = right_arm_bottle.get(i).asDouble()
+                 #print(self.right_arm_state)
         return True
 
 if __name__ == '__main__':
