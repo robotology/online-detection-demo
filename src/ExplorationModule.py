@@ -52,11 +52,13 @@ class ExplorationModule (yarp.RFModule):
 
         print(self.steps)
             
-        self.state = 'exploration'
+        self.state = 'do_nothing'
         self.parts_state = {}
+        self.parts_state_previous = {}
         rf_group = rf.findGroup('parts')
         for part in self.parts:
             self.parts_state[part] = [None] * rf_group.find(part).asInt()
+            self.parts_state_previous[part] = [None] * rf_group.find(part).asInt()
 
         self.current_step = 0
         self.out_ports = {}
@@ -66,6 +68,7 @@ class ExplorationModule (yarp.RFModule):
         self.cmd_port.open('/' + self.module_name + '/command:i')
         print('{:s} opened'.format('/' + self.module_name + '/command:i'))
         self.attach(self.cmd_port)
+        self.is_same_counter = 100
 
         for i in range(0, len(self.parts)):
             self.in_port = yarp.BufferedPortBottle()
@@ -177,6 +180,36 @@ class ExplorationModule (yarp.RFModule):
                 state_bottle = self.in_ports[part].read()
                 for i in range(0, state_bottle.size()):
                     self.parts_state[part][i] = state_bottle.get(i).asDouble()
+            is_same = True
+            for part in self.parts_state:
+                if is_same:
+                    for i in range(0, len(self.parts_state[part])):
+                        if not self.parts_state_previous[part][i] is None and abs(self.parts_state[part][i] - self.parts_state_previous[part][i]) > 0.1:
+                           is_same = False
+                           break
+                else:
+                    break
+            
+            if is_same:
+                self.is_same_counter = self.is_same_counter + 1
+            else:
+                self.is_same_counter = 0
+
+            if self.is_same_counter > 500:
+                for part in self.parts_state:
+                    self.parts_state_previous[part] = self.parts_state[part].copy()
+                print('is the same')
+                self.state == 'start'
+                self.current_step = self.current_step + 1
+                if self.current_step > len(self.steps):
+                    self.current_step = 0
+                    self.state = 'do_nothing'
+                #print('is the same')
+            else:
+
+                for part in self.parts_state:
+                    self.parts_state_previous[part] = self.parts_state[part].copy()
+                print('is not the same')
 
         elif self.state == 'start':
             step = self.steps[str(self.current_step)]
