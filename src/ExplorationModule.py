@@ -25,20 +25,21 @@ class ExplorationModule (yarp.RFModule):
         print('{:s} opened'.format('/' + self.module_name + '/command:i'))
         self.attach(self.cmd_port)
 
-        self.right_arm_in = yarp.BufferedPortBottle()
-        self.right_arm_in.open('/' + self.module_name + '/right_arm:i')
-        print('{:s} opened'.format('/' + self.module_name + '/right_arm:i'))
-        print(yarp.NetworkBase.connect('/cer/right_arm/state:o', '/' + self.module_name + '/right_arm:i'))
-        self.in_ports['right_arm'] = self.right_arm_in
+        for i in range(0, len(self.parts)):
+            self.in_port = yarp.BufferedPortBottle()
+            self.in_port.open('/' + self.module_name + '/' + self.parts[i] + ':i')
+            print('{:s} opened'.format('/' + self.module_name + '/' + self.parts[i] + ':i'))
+            print(yarp.NetworkBase.connect('/cer/' + self.parts[i] + '/state:o', '/' + self.module_name + '/' + self.parts[i] + ':i'))
+            self.in_ports['right_arm'] = self.in_port
 
-        self.right_arm_out = yarp.Port()
-        self.right_arm_out.open('/' + self.module_name + '/right_arm:o')
-        print('{:s} opened'.format('/' + self.module_name + '/right_arm:o'))
-        print(yarp.NetworkBase.connect('/' + self.module_name + '/right_arm:o', '/ctpservice/right_arm/rpc'))
-        self.out_ports['right_arm'] = self.right_arm_out
+            self.out_port = yarp.Port()
+            self.out_port.open('/' + self.module_name + '/' + self.parts[i] + ':o')
+            print('{:s} opened'.format('/' + self.module_name + '/' + self.parts[i] + ':o'))
+            print(yarp.NetworkBase.connect('/' + self.module_name + '/' + self.parts[i] + ':o', '/ctpservice/' + self.parts[i] + '/rpc'))
+            self.out_ports[self.parts[i]] = self.out_port
 
-        part = {'position': [-21.742, 20.0391, -9.93166, 35.0684, 0.977786, 0.0298225, -0.0565045, 0.163115], 'time': 4.0}
-        step1 = {'right_arm': part}
+        target = {'position': [-21.742, 20.0391, -9.93166, 35.0684, 0.977786, 0.0298225, -0.0565045, 0.163115], 'time': 4.0}
+        step1 = {'right_arm': target}
         self.steps = {'1': step1}
 
         return True
@@ -81,15 +82,21 @@ class ExplorationModule (yarp.RFModule):
         return True
 
     def cleanup(self):
-        self.right_arm_in.close()
-        self.right_arm_out.close()
-        self.cmd_port.close()
         print('Cleanup function')
+        for part in self.out_ports:
+            self.out_ports[part].close()
+        for part in self.in_ports:
+            self.in_ports[part].close()
+
+        self.cmd_port.close()
 
     def interruptModule(self):
         print('Interrupt function')
-        self.right_arm_in.interrupt()
-        self.right_arm_out.interrupt()
+        for part in self.out_ports:
+            self.out_ports[part].interrupt()
+        for part in self.in_ports:
+            self.in_ports[part].interrupt()
+
         self.cmd_port.interrupt()
         return True
 
@@ -117,7 +124,13 @@ class ExplorationModule (yarp.RFModule):
             self.state = 'exploration'
 
         elif self.state == 'pause':
-            time.sleep(0.09)
+            time.sleep(0.1)
+            for part in self.parts_state:
+                state_bottle = yarp.Bottle()
+                state_bottle.clear()
+                state_bottle = self.in_ports[part].read()
+                for i in range(0, state_bottle.size()):
+                    self.parts_state[part][i] = state_bottle.get(i).asDouble()
             print(self.current_step)
             step = self.steps[str(self.current_step)]
             commands = {}
@@ -125,9 +138,10 @@ class ExplorationModule (yarp.RFModule):
                 print(part)
                 target_p = self.parts_state[part]
                 target_t = step[part]['time']
-                commands[part] = self.move_to(target_p, target_t)
+                commands[part] = self.move_to(target_p, 1.0)
             self.send_commands(commands)
             self.state = 'do_nothing'
+
         elif self.state == 'do_nothing':
             pass
         else:
