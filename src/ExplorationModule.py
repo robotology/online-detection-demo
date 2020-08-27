@@ -10,13 +10,55 @@ yarp.Network.init()
 class ExplorationModule (yarp.RFModule):
     def configure(self, rf):
 
-        self.module_name = 'exploration'
-        self.state = 'exploration'
-        # self.parts = ['right_arm', 'left_arm', 'torso', 'head']
-        self.parts = ['right_arm']
-        self.parts_state = {'right_arm': [None] *8}
+        self.module_name = rf.find("module_name").asString()
+        num_steps = rf.find("steps").asInt()
+        print(num_steps)
 
-        self.current_step = 1
+        self.parts = ['right_arm', 'left_arm', 'torso', 'head']
+        #self.parts = ['right_arm']
+
+        # Example of steps structure
+        # t = {'position': [-21.742, 20.0391, -9.93166, 35.0684, 0.977786, 0.0298225, -0.0565045, 0.163115], 'time': 4.0}
+        # s = {'right_arm': t}
+        # self.steps = {'1': s}
+
+        self.steps = {}
+        for i in range(0, num_steps):
+            s = {}
+            for part in self.parts:
+                part_name = str(i) + '_' +  part
+                if rf.check(part_name):
+                    print('Found {}'.format(part_name))
+                    rf_group = rf.findGroup(part_name)
+                    if part is not 'torso':
+                        pos_list = rf_group.find('position').asList()
+                        p = [None] * pos_list.size()
+                        for j in range(0, pos_list.size()):
+                            p[j] = pos_list.get(j).asDouble()
+                        t = {'position': p, 'time': rf_group.find('time').asDouble()}
+                    else:
+                        poss_list = rf_group.find('poss').asList()
+                        p = [None] * poss_list.size()
+                        for j in range(0, poss_list.size()):
+                            p[j] = poss_list.get(j).asDouble()
+
+                        vels_list = rf_group.find('vels').asList()
+                        v = [None] * vels_list.size()
+                        for j in range(0, vels_list.size()):
+                            v[j] = vels_list.get(j).asDouble()
+                        t = {'vels': v, 'poss': p}
+                s[part] = t
+            self.steps[str(i)] = s
+
+        print(self.steps)
+            
+        self.state = 'exploration'
+        self.parts_state = {}
+        rf_group = rf.findGroup('parts')
+        for part in self.parts:
+            self.parts_state[part] = [None] * rf_group.find(part).asInt()
+
+        self.current_step = 0
         self.out_ports = {}
         self.in_ports = {}
 
@@ -30,21 +72,20 @@ class ExplorationModule (yarp.RFModule):
             self.in_port.open('/' + self.module_name + '/' + self.parts[i] + ':i')
             print('{:s} opened'.format('/' + self.module_name + '/' + self.parts[i] + ':i'))
             print(yarp.NetworkBase.connect('/cer/' + self.parts[i] + '/state:o', '/' + self.module_name + '/' + self.parts[i] + ':i'))
-            self.in_ports['right_arm'] = self.in_port
+            self.in_ports[self.parts[i]] = self.in_port
 
             self.out_port = yarp.Port()
             self.out_port.open('/' + self.module_name + '/' + self.parts[i] + ':o')
             print('{:s} opened'.format('/' + self.module_name + '/' + self.parts[i] + ':o'))
-            print(yarp.NetworkBase.connect('/' + self.module_name + '/' + self.parts[i] + ':o', '/ctpservice/' + self.parts[i] + '/rpc'))
+            if self.parts[i] is not 'torso':
+                print(yarp.NetworkBase.connect('/' + self.module_name + '/' + self.parts[i] + ':o', '/ctpservice/' + self.parts[i] + '/rpc'))
+            else:
+                print(yarp.NetworkBase.connect('/' + self.module_name + '/' + self.parts[i] + ':o', '/cer/' + self.parts[i] + '/rpc:i'))
             self.out_ports[self.parts[i]] = self.out_port
-
-        target = {'position': [-21.742, 20.0391, -9.93166, 35.0684, 0.977786, 0.0298225, -0.0565045, 0.163115], 'time': 4.0}
-        step1 = {'right_arm': target}
-        self.steps = {'1': step1}
 
         return True
 
-    def move_to(self, position, secs):
+    def move_all_to(self, position, secs):
         to_send = yarp.Bottle()
         to_send.clear()
 
@@ -59,9 +100,34 @@ class ExplorationModule (yarp.RFModule):
             t.addDouble(position[i])
         return to_send
 
+    def move_torso_to(self, target_v, target_p):
+        to_send_v = yarp.Bottle()
+        to_send_v.clear()
+
+        to_send_v.addString('set')
+        to_send_v.addString('vels')
+        t = to_send_v.addList()
+        for i in range(0, len(target_v)):
+            t.addDouble(target_v[i])
+
+        to_send_p = yarp.Bottle()
+        to_send_p.clear()
+
+        to_send_p.addString('set')
+        to_send_p.addString('poss')
+        t = to_send_p.addList()
+        for i in range(0, len(target_p)):
+            t.addDouble(target_p[i])
+
+        return [to_send_v, to_send_p]
+
     def send_commands(self, commands):
         for part in commands:
-            self.out_ports[part].write(commands[part])
+            if part is not 'torso':
+                self.out_ports[part].write(commands[part])
+            else:
+                self.out_ports[part].write(commands[part][0])
+                self.out_ports[part].write(commands[part][1])
 
     def respond(self, command, reply):
         if command.get(0).asString() == 'start':
@@ -117,14 +183,19 @@ class ExplorationModule (yarp.RFModule):
             commands = {}
             for part in step:
                 print(part)
-                target_p = step[part]['position']
-                target_t = step[part]['time']
-                commands[part] = self.move_to(target_p, target_t)
+                if part is not 'torso':
+                    target_p = step[part]['position']
+                    target_t = step[part]['time']
+                    commands[part] = self.move_all_to(target_p, target_t)
+                else:
+                    target_p = step[part]['poss']
+                    target_v = step[part]['vels']
+                    commands[part] = self.move_torso_to(target_v, target_p)
             self.send_commands(commands)
             self.state = 'exploration'
 
         elif self.state == 'pause':
-            time.sleep(0.1)
+            #time.sleep(0.1)
             for part in self.parts_state:
                 state_bottle = yarp.Bottle()
                 state_bottle.clear()
@@ -136,9 +207,15 @@ class ExplorationModule (yarp.RFModule):
             commands = {}
             for part in step:
                 print(part)
-                target_p = self.parts_state[part]
-                target_t = step[part]['time']
-                commands[part] = self.move_to(target_p, 1.0)
+                if part is not 'torso':
+                    target_p = self.parts_state[part]
+                    target_t = step[part]['time']
+                    commands[part] = self.move_all_to(target_p, 1.0)
+                else:
+                    target_p = self.parts_state[part]
+                    target_v = step[part]['vels']
+                    commands[part] = self.move_torso_to(target_v, target_p)
+            self.send_commands(commands)
             self.send_commands(commands)
             self.state = 'do_nothing'
 
@@ -156,7 +233,7 @@ if __name__ == '__main__':
     conffile = rf.find("from").asString()
     if not conffile:
         print('Using default conf file')
-        rf.setDefaultConfigFile('../app/config/ws_module_conf.ini')
+        rf.setDefaultConfigFile('../app/config/exploration_conf.ini')
     else:
         rf.setDefaultConfigFile(rf.find("from").asString())
 
