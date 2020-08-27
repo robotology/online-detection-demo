@@ -85,8 +85,9 @@ class ExplorationModule (yarp.RFModule):
         elif command.get(0).asString() == 'pause':
             print('Pausing exploration')
             self.state = 'pause'
-            print(self.right_arm_state)
+            #print(self.right_arm_state)
             time.sleep(0.09)
+            print(self.current_step)
             step = self.steps[str(self.current_step)]
             commands = {}
             for part in step:
@@ -145,7 +146,6 @@ class ExplorationModule (yarp.RFModule):
                 state_bottle = self.in_ports[part].read()
                 for i in range(0, state_bottle.size()):
                     self.parts_state[part][i] = state_bottle.get(i).asDouble()
-
         return True
 
 if __name__ == '__main__':
