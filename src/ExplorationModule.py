@@ -14,6 +14,7 @@ class ExplorationModule (yarp.RFModule):
         self.state = 'exploration'
         # self.parts = ['right_arm', 'left_arm', 'torso', 'head']
         self.parts = ['right_arm']
+        self.parts_state = {'right_arm': [None] *8}
 
         self.current_step = 1
         self.out_ports = {}
@@ -36,17 +37,9 @@ class ExplorationModule (yarp.RFModule):
         print(yarp.NetworkBase.connect('/' + self.module_name + '/right_arm:o', '/ctpservice/right_arm/rpc'))
         self.out_ports['right_arm'] = self.right_arm_out
 
-        #self.right_arm_target = [-21.742, 20.0391, -9.93166, 35.0684, 0.977786, 0.0298225, -0.0565045, 0.163115]
         part = {'position': [-21.742, 20.0391, -9.93166, 35.0684, 0.977786, 0.0298225, -0.0565045, 0.163115], 'time': 4.0}
         step1 = {'right_arm': part}
         self.steps = {'1': step1}
-
-        #self.right_arm_second_target = [45.7581683549032, 19.8633297444574, -10.0195557118059, 35.0684449913208, 0.0878908395772451, 0.0298284026456716, -0.0376695839922819, 0.195737309062505]
-
-        #self.right_arm_third_target = [67.203533211751, 19.8633297444574, -9.93166487222869, 34.9805541517435, -0.335083825888247, 0.0298402369665474, -0.0565044665613339, -0.163114618112221]
-
-        self.parts_state = {'right_arm': [None] *8}
-        #self.right_arm_state = [None] *8
 
         return True
 
@@ -72,7 +65,47 @@ class ExplorationModule (yarp.RFModule):
     def respond(self, command, reply):
         if command.get(0).asString() == 'start':
             print('Starting exploration')
-            self.state = 'exploration'
+            self.state = 'start'           
+            reply.addString('Exploration started')
+        elif command.get(0).asString() == 'pause':
+            print('Pausing exploration')
+            self.state = 'pause'            
+            reply.addString('Exploration paused')
+        elif command.get(0).asString() == 'resume':
+            print('Resuming exploration')
+            self.state = 'start'
+            reply.addString('Exploration resumed')
+        else:
+            print('Command {:s} not recognized'.format(command.get(0).asString()))
+            reply.addString('Command {:s} not recognized'.format(command.get(0).asString()))
+        return True
+
+    def cleanup(self):
+        self.right_arm_in.close()
+        self.right_arm_out.close()
+        self.cmd_port.close()
+        print('Cleanup function')
+
+    def interruptModule(self):
+        print('Interrupt function')
+        self.right_arm_in.interrupt()
+        self.right_arm_out.interrupt()
+        self.cmd_port.interrupt()
+        return True
+
+    def getPeriod(self):
+        return 0.001
+
+    def updateModule(self):
+        if self.state == 'exploration':
+            for part in self.parts_state:
+                state_bottle = yarp.Bottle()
+                state_bottle.clear()
+                state_bottle = self.in_ports[part].read()
+                for i in range(0, state_bottle.size()):
+                    self.parts_state[part][i] = state_bottle.get(i).asDouble()
+
+        elif self.state == 'start':
             step = self.steps[str(self.current_step)]
             commands = {}
             for part in step:
@@ -81,11 +114,9 @@ class ExplorationModule (yarp.RFModule):
                 target_t = step[part]['time']
                 commands[part] = self.move_to(target_p, target_t)
             self.send_commands(commands)
-            reply.addString('Exploration started')
-        elif command.get(0).asString() == 'pause':
-            print('Pausing exploration')
-            self.state = 'pause'
-            #print(self.right_arm_state)
+            self.state = 'exploration'
+
+        elif self.state == 'pause':
             time.sleep(0.09)
             print(self.current_step)
             step = self.steps[str(self.current_step)]
@@ -96,56 +127,11 @@ class ExplorationModule (yarp.RFModule):
                 target_t = step[part]['time']
                 commands[part] = self.move_to(target_p, target_t)
             self.send_commands(commands)
-            reply.addString('Exploration paused')
-        elif command.get(0).asString() == 'resume':
-            print('Resuming exploration')
-            self.state = 'exploration'
-            step = self.steps[str(self.current_step)]
-            commands = {}
-            for part in step:
-                print(part)
-                target_p = step[part]['position']
-                target_t = step[part]['time']
-                commands[part] = self.move_to(target_p, target_t)
-            self.send_commands(commands)
-            reply.addString('Exploration resumed')
+            self.state = 'do_nothing'
+        elif self.state == 'do_nothing':
+            pass
         else:
-            print('Command {:s} not recognized'.format(command.get(0).asString()))
-            reply.addString('Command {:s} not recognized'.format(command.get(0).asString()))
-        return True
-
-    def cleanup(self):
-        self.right_arm_in.close()
-        self.right_arm_out.close()
-        print('Cleanup function')
-
-    def interruptModule(self):
-        print('Interrupt function')
-        self.right_arm_in.interrupt()
-        self.right_arm_out.interrupt()
-        return True
-
-    def getPeriod(self):
-        return 0.001
-
-    def updateModule(self):
-        #print('Reading right arm position')
-
-        # right_arm_bottle = yarp.Bottle()
-        # right_arm_bottle.clear()
-        # right_arm_bottle = self.right_arm_in.read()
-        # if self.state == 'exploration':
-        #     if right_arm_bottle.size() == 8:
-        #          for i in range(0, right_arm_bottle.size()):
-        #              self.right_arm_state[i] = right_arm_bottle.get(i).asDouble()
-        #          #print(self.right_arm_state)
-        if self.state == 'exploration':
-            for part in self.parts_state:
-                state_bottle = yarp.Bottle()
-                state_bottle.clear()
-                state_bottle = self.in_ports[part].read()
-                for i in range(0, state_bottle.size()):
-                    self.parts_state[part][i] = state_bottle.get(i).asDouble()
+            print('state {:s} unknown'.format(self.state))
         return True
 
 if __name__ == '__main__':
