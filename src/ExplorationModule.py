@@ -12,8 +12,12 @@ class ExplorationModule (yarp.RFModule):
 
         self.module_name = 'exploration'
         self.state = 'exploration'
-        self.parts = ['right_arm', 'left_arm', 'torso', 'head']
+        # self.parts = ['right_arm', 'left_arm', 'torso', 'head']
+        self.parts = ['right_arm']
+
         self.current_step = 1
+        self.out_ports = {}
+        self.in_ports = {}
 
         self.cmd_port = yarp.Port()
         self.cmd_port.open('/' + self.module_name + '/command:i')
@@ -24,31 +28,35 @@ class ExplorationModule (yarp.RFModule):
         self.right_arm_in.open('/' + self.module_name + '/right_arm:i')
         print('{:s} opened'.format('/' + self.module_name + '/right_arm:i'))
         print(yarp.NetworkBase.connect('/cer/right_arm/state:o', '/' + self.module_name + '/right_arm:i'))
+        self.in_ports['right_arm'] = self.right_arm_in
 
         self.right_arm_out = yarp.Port()
         self.right_arm_out.open('/' + self.module_name + '/right_arm:o')
         print('{:s} opened'.format('/' + self.module_name + '/right_arm:o'))
         print(yarp.NetworkBase.connect('/' + self.module_name + '/right_arm:o', '/ctpservice/right_arm/rpc'))
+        self.out_ports['right_arm'] = self.right_arm_out
 
         #self.right_arm_target = [-21.742, 20.0391, -9.93166, 35.0684, 0.977786, 0.0298225, -0.0565045, 0.163115]
         part = {'position': [-21.742, 20.0391, -9.93166, 35.0684, 0.977786, 0.0298225, -0.0565045, 0.163115], 'time': 4.0}
         step1 = {'right_arm': part}
         self.steps = {'1': step1}
+
         #self.right_arm_second_target = [45.7581683549032, 19.8633297444574, -10.0195557118059, 35.0684449913208, 0.0878908395772451, 0.0298284026456716, -0.0376695839922819, 0.195737309062505]
 
         #self.right_arm_third_target = [67.203533211751, 19.8633297444574, -9.93166487222869, 34.9805541517435, -0.335083825888247, 0.0298402369665474, -0.0565044665613339, -0.163114618112221]
 
-        self.right_arm_state = [None] *8
+        self.parts_state = {'right_arm': [None] *8}
+        #self.right_arm_state = [None] *8
 
         return True
 
-    def move_to(self, position):
+    def move_to(self, position, secs):
         to_send = yarp.Bottle()
         to_send.clear()
 
         to_send.addString('ctpn')
         to_send.addString('time')
-        to_send.addDouble(4.0)
+        to_send.addDouble(secs)
         to_send.addString('off')
         to_send.addInt(0)
         to_send.addString('pos')
@@ -57,30 +65,48 @@ class ExplorationModule (yarp.RFModule):
             t.addDouble(position[i])
         return to_send
 
-    def send_command(self, to_send):
-        self.right_arm_out.write(to_send)
+    def send_commands(self, commands):
+        for part in commands:
+            self.out_ports[part].write(commands[part])
 
     def respond(self, command, reply):
         if command.get(0).asString() == 'start':
             print('Starting exploration')
             self.state = 'exploration'
-            targets = self.steps{str(self.current_step)}
-            to_send = self.move_to(self.right_arm_target)
-            self.send_command(to_send)
+            step = self.steps[str(self.current_step)]
+            commands = {}
+            for part in step:
+                print(part)
+                target_p = step[part]['position']
+                target_t = step[part]['time']
+                commands[part] = self.move_to(target_p, target_t)
+            self.send_commands(commands)
             reply.addString('Exploration started')
         elif command.get(0).asString() == 'pause':
             print('Pausing exploration')
             self.state = 'pause'
             print(self.right_arm_state)
             time.sleep(0.09)
-            to_send2 = self.move_to(self.right_arm_state)
-            self.send_command(to_send2)
+            step = self.steps[str(self.current_step)]
+            commands = {}
+            for part in step:
+                print(part)
+                target_p = self.parts_state[part]
+                target_t = step[part]['time']
+                commands[part] = self.move_to(target_p, target_t)
+            self.send_commands(commands)
             reply.addString('Exploration paused')
         elif command.get(0).asString() == 'resume':
             print('Resuming exploration')
             self.state = 'exploration'
-            to_send = self.move_to(self.right_arm_target)
-            self.send_command(to_send)
+            step = self.steps[str(self.current_step)]
+            commands = {}
+            for part in step:
+                print(part)
+                target_p = step[part]['position']
+                target_t = step[part]['time']
+                commands[part] = self.move_to(target_p, target_t)
+            self.send_commands(commands)
             reply.addString('Exploration resumed')
         else:
             print('Command {:s} not recognized'.format(command.get(0).asString()))
@@ -104,14 +130,22 @@ class ExplorationModule (yarp.RFModule):
     def updateModule(self):
         #print('Reading right arm position')
 
-        right_arm_bottle = yarp.Bottle()
-        right_arm_bottle.clear()
-        right_arm_bottle = self.right_arm_in.read()
+        # right_arm_bottle = yarp.Bottle()
+        # right_arm_bottle.clear()
+        # right_arm_bottle = self.right_arm_in.read()
+        # if self.state == 'exploration':
+        #     if right_arm_bottle.size() == 8:
+        #          for i in range(0, right_arm_bottle.size()):
+        #              self.right_arm_state[i] = right_arm_bottle.get(i).asDouble()
+        #          #print(self.right_arm_state)
         if self.state == 'exploration':
-            if right_arm_bottle.size() == 8:
-                 for i in range(0, right_arm_bottle.size()):
-                     self.right_arm_state[i] = right_arm_bottle.get(i).asDouble()
-                 #print(self.right_arm_state)
+            for part in self.parts_state:
+                state_bottle = yarp.Bottle()
+                state_bottle.clear()
+                state_bottle = self.in_ports[part].read()
+                for i in range(0, state_bottle.size()):
+                    self.parts_state[part][i] = state_bottle.get(i).asDouble()
+
         return True
 
 if __name__ == '__main__':
