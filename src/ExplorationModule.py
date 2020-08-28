@@ -199,19 +199,25 @@ class ExplorationModule (yarp.RFModule):
                 for part in self.parts_state:
                     self.parts_state_previous[part] = self.parts_state[part].copy()
                 print('is the same')
-                self.state == 'start'
+                self.state = 'start'
                 self.current_step = self.current_step + 1
-                if self.current_step > len(self.steps):
+                self.is_same_counter = 0
+                print(self.current_step)
+                if self.current_step >= len(self.steps):
                     self.current_step = 0
                     self.state = 'do_nothing'
-                #print('is the same')
+                    print('switch to do nothing')
+                else:
+                    print(self.steps[str(self.current_step)])
             else:
 
                 for part in self.parts_state:
                     self.parts_state_previous[part] = self.parts_state[part].copy()
-                print('is not the same')
+                #print('is not the same')
 
         elif self.state == 'start':
+            print('state start')
+            print(self.current_step)
             step = self.steps[str(self.current_step)]
             commands = {}
             for part in step:
@@ -229,6 +235,7 @@ class ExplorationModule (yarp.RFModule):
 
         elif self.state == 'pause':
             #time.sleep(0.1)
+            print('pause state')
             for part in self.parts_state:
                 state_bottle = yarp.Bottle()
                 state_bottle.clear()
@@ -243,7 +250,7 @@ class ExplorationModule (yarp.RFModule):
                 if part is not 'torso':
                     target_p = self.parts_state[part]
                     target_t = step[part]['time']
-                    commands[part] = self.move_all_to(target_p, 1.0)
+                    commands[part] = self.move_all_to(target_p, 3.0)
                 else:
                     target_p = self.parts_state[part]
                     target_v = step[part]['vels']
