@@ -154,6 +154,7 @@ else
 end
 if isAL then
     ret = ret and yarp.NetworkBase_connect("/AnnotationsPropagator/exploration/command:o", port_cmd:getName())
+    ret = ret and yarp.NetworkBase_connect(port_cmd_exploration:getName(), '/exploration/command:i')
 -- Add connection between manager and exploration module
 end
 
@@ -864,7 +865,7 @@ while state ~= "quit" and not interrupting do
                     elseif action == 'stop' then
                         speak(port_ispeak, "ok, I will stop exploration ")
                         sendRefine(action)
-                        sendExplore(action)
+                        --sendExplore(action)
                         state = "home"
                     else
                         speak(port_ispeak, "refine: unknown action " .. action)
