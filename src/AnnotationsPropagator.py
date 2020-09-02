@@ -84,6 +84,7 @@ class AnnotationsPropagator(yarp.RFModule):
         self.cmd_exploration_port = yarp.BufferedPortBottle()
         self.cmd_exploration_port.open('/' + self.module_name + '/exploration/command:o')
         print('{:s} opened'.format('/' + self.module_name + '/exploration/command:o'))
+        #print(yarp.NetworkBase.connect('/' + self.module_name + '/exploration/command:o', '/exploration/command:i'))
 
         print('Preparing input image...')
         self._in_buf_array = np.ones((self.image_h, self.image_w, 3), dtype=np.uint8)

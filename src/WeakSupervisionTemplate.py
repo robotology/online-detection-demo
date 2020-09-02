@@ -43,6 +43,11 @@ class WeakSupervisionTemplate(yarp.RFModule, ABC):
         self._out_buf_array = np.zeros((self.image_h, self.image_w, 3), dtype=np.uint8)
         self._out_buf_image.setExternal(self._out_buf_array, self._out_buf_array.shape[1], self._out_buf_array.shape[0])
 
+        #self.cmd_exploration_port = yarp.BufferedPortBottle()
+        #self.cmd_exploration_port.open('/' + self.module_name + '/exploration/command:o')
+        #print('{:s} opened'.format('/' + self.module_name + '/exploration/command:o'))
+        #print(yarp.NetworkBase.connect('/' + self.module_name + '/exploration/command:o', '/exploration/command:i'))
+
         self.state = 'refine'
         self.conf_thresh_high = 0.2
         self.conf_thresh_low = 0.1
