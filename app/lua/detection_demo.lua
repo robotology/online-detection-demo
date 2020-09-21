@@ -100,6 +100,7 @@ else
 end
 if isAL then
     port_cmd_exploration = yarp.BufferedPortBottle()
+    port_cmd_annotation = yarp.BufferedPortBottle()
 end
 
 port_cmd:open("/manager/cmd:i")
@@ -122,6 +123,7 @@ if whichRobot == "icub" then
 end
 if isAL then
     port_cmd_exploration:open("/manager/exploration/cmd:o")
+    port_cmd_annotation:open("/manager/blobAnnotation/cmd:o")
 end
 
 ret = true
@@ -155,6 +157,7 @@ end
 if isAL then
     ret = ret and yarp.NetworkBase_connect("/AnnotationsPropagator/exploration/command:o", port_cmd:getName())
     ret = ret and yarp.NetworkBase_connect(port_cmd_exploration:getName(), '/exploration/command:i')
+    ret = ret and yarp.NetworkBase_connect(port_cmd_annotation:getName(), '/blobAnnotation/rpc:i')
 -- Add connection between manager and exploration module
 end
 
@@ -708,6 +711,21 @@ end
 
 ---------------------------------------------------------------------------------------------------------------
 
+function sendAnnotationCommand(action, object)
+    local cmd = port_cmd_annotation:prepare()
+    cmd:clear()
+    cmd:addString(action)
+    if object ~= nil and action == "doneSelection" then
+        cmd:addString(object)
+    end
+
+    port_cmd_annotation:write()
+end
+
+---------------------------------------------------------------------------------------------------------------
+
+
+
 function sendForget(objName)
     local cmd = port_cmd_detection:prepare()
     cmd:clear()
@@ -778,7 +796,8 @@ while state ~= "quit" and not interrupting do
               cmd_rx == "train" or cmd_rx == "forget" or
                cmd_rx == "hello" or cmd_rx == "listen" or 
                 cmd_rx == "track" or cmd_rx == "what-is" or
-                 cmd_rx == "refine" or cmd_rx == "explore" then
+                 cmd_rx == "refine" or cmd_rx == "explore" or 
+                  cmd_rx == "annotation" then
 
             clearDraw()
             multipleDraw:clear()
@@ -880,10 +899,12 @@ while state ~= "quit" and not interrupting do
 
                     if action == 'pause' then
                         print("Pausing exploration")
+                        speak(port_ispeak, "I am not sure about what I see, can you help me?")
                         sendExplore(action)
                         state = "refine"
                     elseif action == 'resume' then
                         print("Resuming exploration")
+                        speak(port_ispeak, "ok, thank you!")
                         sendExplore(action)
                         state = "refine"
                     else
@@ -891,6 +912,34 @@ while state ~= "quit" and not interrupting do
                     end
                 else
                     print("cannot pause refinement, please restart the demo with al option")
+                end
+
+
+            elseif state == "annotation" then
+                if isAL then
+                    object = nil
+                    action = cmd:get(1):asString()
+
+                    if action == 'select' then
+                        sendAnnotationCommand('selectDetection', object)
+                    elseif action == 'done' then
+                        if cmd:get(2):isString() then
+                            object = cmd:get(2):asString()
+                            sendAnnotationCommand('doneSelection', object)
+                        else
+                            speak(port_ispeak, "empty object name")
+                        end
+                    elseif action == 'add' then
+                        sendAnnotationCommand('addDetection', object)
+                    elseif action == 'delete' then
+                        sendAnnotationCommand('deleteSelection', object)
+                    elseif action == 'finish' then
+                        sendAnnotationCommand('finishAnnotation', object)
+                    else
+                        speak(port_ispeak, "annotation: unknown action " .. action)
+                    end
+                else
+                    print("cannot start refinement, please restart the demo with al option")
                 end
 
             elseif state == "forget" then
