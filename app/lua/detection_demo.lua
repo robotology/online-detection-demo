@@ -878,8 +878,9 @@ while state ~= "quit" and not interrupting do
 
                     if action == 'start' then
                         speak(port_ispeak, "ok, I will start exploration ")
-                        sendRefine(action)
                         sendExplore(action)
+                        yarp.delay(1.8)
+                        sendRefine(action)
                         state = "refine"
                     elseif action == 'stop' then
                         speak(port_ispeak, "ok, I will stop exploration ")
