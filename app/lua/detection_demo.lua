@@ -885,7 +885,7 @@ while state ~= "quit" and not interrupting do
                     elseif action == 'stop' then
                         speak(port_ispeak, "ok, I will stop exploration ")
                         sendRefine(action)
-                        --sendExplore(action)
+                        sendExplore(action)
                         state = "home"
                     else
                         speak(port_ispeak, "refine: unknown action " .. action)
