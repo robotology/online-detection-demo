@@ -22,6 +22,32 @@ class ExplorationModule (yarp.RFModule):
         # s = {'right_arm': t}
         # self.steps = {'1': s}
 
+        print('Gathering home position')
+        self.home = {}
+        for part in self.parts:
+            part_name = 'home_' +  part
+            if rf.check(part_name):
+                print('Found {}'.format(part_name))
+                rf_group = rf.findGroup(part_name)
+                if part is not 'torso':
+                    pos_list = rf_group.find('position').asList()
+                    p = [None] * pos_list.size()
+                    for j in range(0, pos_list.size()):
+                        p[j] = pos_list.get(j).asDouble()
+                    t = {'position': p, 'time': rf_group.find('time').asDouble()}
+                else:
+                    poss_list = rf_group.find('poss').asList()
+                    p = [None] * poss_list.size()
+                    for j in range(0, poss_list.size()):
+                        p[j] = poss_list.get(j).asDouble()
+
+                    vels_list = rf_group.find('vels').asList()
+                    v = [None] * vels_list.size()
+                    for j in range(0, vels_list.size()):
+                        v[j] = vels_list.get(j).asDouble()
+                    t = {'vels': v, 'poss': p}
+            self.home[part] = t
+
         self.steps = {}
         for i in range(0, num_steps):
             s = {}
@@ -145,6 +171,15 @@ class ExplorationModule (yarp.RFModule):
             print('Resuming exploration')
             self.state = 'start'
             reply.addString('Exploration resumed')
+        elif command.get(0).asString() == 'stop':
+            if self.state == 'exploration':
+                print('Stopping exploration. Going home.')
+                self.state = 'home'
+                reply.addString('Exploration stopped')
+            else:
+                print('The robot is not exploring. Going home.')
+                self.state = 'home'
+                reply.addString('The robot is not exploring. Going home.')
         else:
             print('Command {:s} not recognized'.format(command.get(0).asString()))
             reply.addString('Command {:s} not recognized'.format(command.get(0).asString()))
@@ -259,6 +294,22 @@ class ExplorationModule (yarp.RFModule):
             self.send_commands(commands)
             self.state = 'do_nothing'
 
+        elif self.state == 'home':
+            print('state home')
+            step = self.home
+            commands = {}
+            for part in step:
+                print(part)
+                if part is not 'torso':
+                    target_p = step[part]['position']
+                    target_t = step[part]['time']
+                    commands[part] = self.move_all_to(target_p, target_t)
+                else:
+                    target_p = step[part]['poss']
+                    target_v = step[part]['vels']
+                    commands[part] = self.move_torso_to(target_v, target_p)
+            self.send_commands(commands)
+            self.state = 'do_nothing'
         elif self.state == 'do_nothing':
             pass
         else:
