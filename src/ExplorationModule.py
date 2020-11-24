@@ -239,7 +239,7 @@ class ExplorationModule (yarp.RFModule):
             else:
                 self.is_same_counter = 0
 
-            if self.is_same_counter > 500:
+            if self.is_same_counter > 250:
                 for part in self.parts_state:
                     self.parts_state_previous[part] = self.parts_state[part].copy()
                 print('is the same')
@@ -294,7 +294,7 @@ class ExplorationModule (yarp.RFModule):
                 if part is not 'torso':
                     target_p = self.parts_state[part]
                     target_t = step[part]['time']
-                    commands[part] = self.move_all_to(target_p, 3.0)
+                    commands[part] = self.move_all_to(target_p, target_t)
                 else:
                     target_p = self.parts_state[part]
                     target_v = step[part]['vels']
@@ -318,6 +318,7 @@ class ExplorationModule (yarp.RFModule):
                     target_v = step[part]['vels']
                     commands[part] = self.move_torso_to(target_v, target_p)
             self.send_commands(commands)
+            self.current_step = 0
             self.state = 'do_nothing'
         elif self.state == 'do_nothing':
             pass
