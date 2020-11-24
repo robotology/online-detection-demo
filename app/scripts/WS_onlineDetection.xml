@@ -111,6 +111,27 @@
     </module>
 
     <module>
+        <name>AnnotationsPropagator.py</name>
+        <parameters>--from contexts/WS-demo/annotations_propagator_conf.ini</parameters>
+        <deployer>python3.5</deployer>
+        <node>r1-console-cuda</node>
+    </module>
+
+    <module>
+        <name>ExplorationModule.py</name>
+        <parameters>--from contexts/WS-demo/exploration_conf.ini</parameters>
+        <deployer>python3.5</deployer>
+        <node>r1-console-cuda</node>
+    </module>
+
+    <module>
+        <name>StreamUncertaintyBasedMethod.py</name>
+        <parameters>--from contexts/WS-demo/ws_module_conf.ini</parameters>
+        <deployer>python3.5</deployer>
+        <node>r1-console-cuda</node>
+    </module>
+
+    <module>
         <name>blobAnnotation</name>
         <node>r1-console-linux</node>
         <parameters></parameters>

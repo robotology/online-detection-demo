@@ -96,6 +96,7 @@ class ExplorationModule (yarp.RFModule):
         self.attach(self.cmd_port)
         self.is_same_counter = 100
 
+        time.sleep(3)
         for i in range(0, len(self.parts)):
             self.in_port = yarp.BufferedPortBottle()
             self.in_port.open('/' + self.module_name + '/' + self.parts[i] + ':i')
@@ -106,10 +107,18 @@ class ExplorationModule (yarp.RFModule):
             self.out_port = yarp.Port()
             self.out_port.open('/' + self.module_name + '/' + self.parts[i] + ':o')
             print('{:s} opened'.format('/' + self.module_name + '/' + self.parts[i] + ':o'))
+            connected = False
             if self.parts[i] is not 'torso':
-                print(yarp.NetworkBase.connect('/' + self.module_name + '/' + self.parts[i] + ':o', '/ctpservice/' + self.parts[i] + '/rpc'))
+                connected = yarp.NetworkBase.connect('/' + self.module_name + '/' + self.parts[i] + ':o', '/ctpservice/' + self.parts[i] + '/rpc')
+                print(connected)
             else:
-                print(yarp.NetworkBase.connect('/' + self.module_name + '/' + self.parts[i] + ':o', '/cer/' + self.parts[i] + '/rpc:i'))
+                connected = yarp.NetworkBase.connect('/' + self.module_name + '/' + self.parts[i] + ':o', '/cer/' + self.parts[i] + '/rpc:i')
+                print(connected)
+            if not connected:
+                print('Error: missing connections')
+                self.cleanup()
+                sys.exit()
+            
             self.out_ports[self.parts[i]] = self.out_port
 
         return True

@@ -3,9 +3,9 @@ import yarp
 import numpy as np
 import os
 
-basedir = os.path.dirname(__file__)
-sys.path.append(os.path.abspath(os.path.join(basedir, os.path.pardir, '..')))
-import WeakSupervisionTemplate as wsT
+#basedir = os.path.dirname(__file__)
+#sys.path.append(os.path.abspath(os.path.join(basedir, os.path.pardir, '..')))
+from src import WeakSupervisionTemplate as wsT
 # Initialise YARP
 yarp.Network.init()
 

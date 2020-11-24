@@ -24,8 +24,8 @@ icubcontrib_set_default_prefix()
 yarp_install(FILES ${scripts} DESTINATION ${ICUBCONTRIB_APPLICATIONS_INSTALL_DIR})
 yarp_install(FILES ${config}    DESTINATION ${ICUBCONTRIB_CONTEXTS_INSTALL_DIR}/${PROJECT_NAME})
                
-add_custom_target(copy_python_in_build ALL)
-add_custom_command(TARGET copy_python_in_build POST_BUILD
+add_custom_target(copy_python_app_in_build ALL)
+add_custom_command(TARGET copy_python_app_in_build POST_BUILD
                    COMMAND ${CMAKE_COMMAND} -E copy ${python_bin} ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}
                    COMMENT "Copying ${python_bin} to ${CMAKE_BINARY_DIR}/${CMAKE_CFG_INTDIR}/")
 
