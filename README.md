@@ -87,6 +87,7 @@ And then please, follow instructions of the [official repository](https://github
 
 
 Finally, please, type:
+
 ```
 cd $DETECTION_DIR/
 matlab online_detection_build
@@ -101,6 +102,7 @@ You can use your own Faster R-CNN pretrained weights as feature extraction modul
 ```
 cd $DETECTION_DIR
 ./Scripts/fetch_model.sh
+
 ```
 
 The inputs of the module are listed below:

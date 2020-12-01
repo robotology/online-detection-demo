@@ -24,7 +24,8 @@ for i =1:num_classes
         first_time    = true;
         first_neg_idx = 1;
         last_neg_idx  = opts.negatives_selection.batch_size;
-        for b = 1:opts.negatives_selection.iterations
+        last_iter = ceil(size(X_neg,1)/opts.negatives_selection.batch_size);
+        for b = 1:last_iter
             if first_time     
                 if last_neg_idx > size(X_neg,1)
                     last_neg_idx = size(X_neg,1);
@@ -40,7 +41,8 @@ for i =1:num_classes
                     disp('last_neg_idx lower than X_neg size*******************');
                 end
                 X_neg_batch = X_neg(first_neg_idx:last_neg_idx,:);
-                X_neg_GPU = gpuArray(X_neg_batch);  % TO-CHECK-----------------------------------------------------------------------------------------
+%                 X_neg_GPU = gpuArray(X_neg_batch);  % TO-CHECK-----------------------------------------------------------------------------------------
+                X_neg_GPU = X_neg_batch;
                 z_neg = KtsProd_onGPU(X_neg_GPU,  rcnn_model.detectors.models{i}.opts.C, ...
                                       rcnn_model.detectors.models{i}.alpha, 1, rcnn_model.detectors.models{i}.opts.kernel);
 
@@ -60,7 +62,8 @@ for i =1:num_classes
 
             if b ~= opts.negatives_selection.iterations % Don't do it after last update (or maybe yes......???)
                 fprintf('  Pruning easy negatives\n');           
-                new_X_neg_GPU = gpuArray(cache.X_neg);
+%                 new_X_neg_GPU = gpuArray(cache.X_neg);
+                new_X_neg_GPU = cache.X_neg;
                 new_z_neg = KtsProd_onGPU(new_X_neg_GPU,  rcnn_model.detectors.models{i}.opts.C, ...
                                 rcnn_model.detectors.models{i}.alpha, 1, rcnn_model.detectors.models{i}.opts.kernel);
 

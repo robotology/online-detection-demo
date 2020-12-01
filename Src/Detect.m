@@ -1,4 +1,4 @@
-function [cls_scores  pred_boxes] = Detect(im, classes, cnn_model, cls_model, bbox_model, detect_thresh, show_regions, portRegs)
+function [cls_scores, pred_boxes, aboxes, features] = Detect(im, classes, cnn_model, cls_model, bbox_model, detect_thresh, show_regions, portRegs)
 %INFERENCE Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -39,6 +39,7 @@ function [cls_scores  pred_boxes] = Detect(im, classes, cnn_model, cls_model, bb
     
     %% Regions classification and scores thresholding
 %     cls_tic = tic;
+    features = gather(features);
     [cls_boxes, cls_scores, inds] = predict_FALKON(features, cls_model, 0.0, aboxes(:, 1:4));
 %     fprintf('--Region classification required %f seconds\n', toc(cls_tic));
 

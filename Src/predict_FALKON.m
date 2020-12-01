@@ -4,7 +4,8 @@ function [ new_boxes, thresholded_scores, inds ] = predict_FALKON( feat, cls_mod
 num_classes = length(cls_model.classes);
 feat = zscores_standardization(feat, cls_model.training_opts.statistics.standard_deviation, cls_model.training_opts.statistics.mean_feat, cls_model.training_opts.statistics.mean_norm);
 
-X_test = gpuArray(feat);
+% X_test = gpuArray(feat);
+X_test = feat;
 thresholded_scores = cell(num_classes, 1);
 new_boxes = cell(num_classes, 1);
 inds = cell(num_classes, 1);
