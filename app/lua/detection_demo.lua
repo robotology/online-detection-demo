@@ -22,6 +22,7 @@ rf:configure(arg)
 
 whichRobot = arg[1]
 ALmodality = arg[2]
+secondDetection = arg[3]
 
 ---------------------------------------
 -- setting up demo with arguments    --
@@ -54,6 +55,18 @@ if ALmodality ~= nil and ALmodality == "al" then
 else
     isAL = false
     print("Supervised modality")
+end
+
+if secondDetection ~= nil then
+    secondDetection = secondDetection:lower()
+end
+
+if secondDetection ~= nil and secondDetection == "showsup" then
+    isShow = true
+    print("Second detection ON")
+else
+    isShow = false
+    print("Second detection OFF")
 end
 
 ---------------------------------------
@@ -102,6 +115,9 @@ if isAL then
     port_cmd_exploration = yarp.BufferedPortBottle()
     port_cmd_annotation = yarp.BufferedPortBottle()
 end
+if isShow then
+    port_cmd_detection_show = yarp.BufferedPortBottle()
+end
 
 port_cmd:open("/manager/cmd:i")
 port_detection:open("/manager/targets:i")
@@ -124,6 +140,9 @@ end
 if isAL then
     port_cmd_exploration:open("/manager/exploration/cmd:o")
     port_cmd_annotation:open("/manager/blobAnnotation/cmd:o")
+end
+if isShow then
+    port_cmd_detection_show:open("/manager/detection/showSup/cmd:o")
 end
 
 ret = true
@@ -158,7 +177,9 @@ if isAL then
     ret = ret and yarp.NetworkBase_connect("/AnnotationsPropagator/exploration/command:o", port_cmd:getName())
     ret = ret and yarp.NetworkBase_connect(port_cmd_exploration:getName(), '/exploration/command:i')
     ret = ret and yarp.NetworkBase_connect(port_cmd_annotation:getName(), '/blobAnnotation/rpc:i')
--- Add connection between manager and exploration module
+end
+if isShow then
+    ret = ret and yarp.NetworkBase_connect(port_cmd_detection_show:getName(), "/detection/showSup/command:i")
 end
 
 if ret == false then
@@ -685,6 +706,15 @@ function sendTrain(objName)
     cmd:addString(objName)
 
     port_cmd_detection:write()
+
+    if isShow then
+        local cmd_show = port_cmd_detection_show:prepare()
+        cmd_show:clear()
+        cmd_show:addString("train")
+        cmd_show:addString(objName)
+
+        port_cmd_detection_show:write()
+    end
 end
 
 ---------------------------------------------------------------------------------------------------------------
