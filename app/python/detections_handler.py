@@ -336,15 +336,17 @@ def parse_args():
 
     # Port names
     parser.add_argument('--inputImagePort', dest='input_image_port_name', help='input image port',
-                        default='/detHandler/image:i')
+                        default='/detHandler{}/image:i')
     parser.add_argument('--outputDetImgPort', dest='out_det_img_port_name', help='output port for detected images',
-                        default='/detHandler/image:o')
+                        default='/detHandler{}/image:o')
     parser.add_argument('--inputDetectionsPort', dest='input_detections_port_name', help='input port for detections',
-                        default='/detHandler/detections:i')
+                        default='/detHandler{}/detections:i')
     parser.add_argument('--thresh_port', dest='rpc_thresh_port_name', help='rpc port name where to set detection threshold',
-                        default='/detHandler:thresh')
+                        default='/detHandler{}:thresh')
     parser.add_argument('--output_detection_port', dest='out_det_port_name', help='output port for detections',
-                        default='/detHandler:dets:o')
+                        default='/detHandler{}:dets:o')
+    parser.add_argument('--name', dest='module_name', help='module_name',
+                        default='')
 
     # Image dimensions
     parser.add_argument('--image_w', type=int, dest='image_width', help='width of the images',
@@ -359,6 +361,12 @@ def parse_args():
 if __name__ == '__main__':
     # Read input parametres
     args = parse_args()
+
+    args.input_image_port_name = args.input_image_port_name.format(args.module_name)
+    args.out_det_img_port_name = args.out_det_img_port_name.format(args.module_name)
+    args.input_detections_port_name = args.input_detections_port_name.format(args.module_name)
+    args.rpc_thresh_port_name = args.rpc_thresh_port_name.format(args.module_name)
+    args.out_det_port_name = args.out_det_port_name.format(args.module_name)
 
     detHandler = DetectionsHandler(args.input_image_port_name, args.out_det_img_port_name, args.input_detections_port_name, args.rpc_thresh_port_name, args.out_det_port_name, args.image_width, args.image_height)
 
