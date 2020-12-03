@@ -59,7 +59,7 @@ end
 objects = {"robot", "sprayer", "mug", "cup" ,"flower", "sunflower", "bottle", "book", "wallet", "toy", "badge", "phone", "soda"}
 
 -- defining speech grammar in order to expand the speech recognition
-grammar="Listen | Track faces | Return to home position | Look around | Look at the #Object | Where is the #Object | See you soon | What is this | What is close to the #Object | Have a look at this #Object | Have a look at this #Object and augment it | Forget the #Object | Forget all objects | Hey R1 | Explore the table | Stop refinement"
+grammar="Listen | Track faces | Return to home position | Look around | Look at the #Object | Where is the #Object | See you soon | What is this | What is close to the #Object | Have a look at this #Object | Have a look at this #Object and augment it | Forget the #Object | Forget all objects | Hey R1 | Explore the table | Stop refinement | Add one object | Let me select one object | Delete it | Annotation completed | It is a #Object"
 
 function SM_RGM_Expand(port, vocab, word)
     local wb = yarp.Bottle()
@@ -160,6 +160,23 @@ while state ~= "quit" and not interrupting do
     elseif speechcmd == "Stop" then
         instruction:addString("refine")
         instruction:addString("stop")
+    elseif speechcmd == "Let" then
+        instruction:addString("annotation")
+        instruction:addString("select")
+    elseif speechcmd == "It" then
+        instruction:addString("annotation")
+        instruction:addString("done")
+        local object = result:get(7):asString()
+        instruction:addString(object)
+    elseif speechcmd == "Add" then
+        instruction:addString("annotation")
+        instruction:addString("add")
+    elseif speechcmd == "Delete" then
+        instruction:addString("annotation")
+        instruction:addString("delete")
+    elseif speechcmd == "Annotation" then
+        instruction:addString("annotation")
+        instruction:addString("finish")
     elseif speechcmd == "Listen" then
         instruction:addString("listen")
     elseif speechcmd == "Track" then

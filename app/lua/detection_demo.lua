@@ -763,6 +763,15 @@ function sendForget(objName)
     cmd:addString(objName)
     print ("COMMAND", cmd:toString() )
     port_cmd_detection:write()
+
+    if isShow then
+        local cmd_show = port_cmd_detection_show:prepare()
+        cmd_show:clear()
+        cmd_show:addString("forget")
+        cmd_show:addString(objName)
+
+        port_cmd_detection_show:write()
+    end
 end
 
 --might not be useful anymore. Fixed a recent bug on the gaze controller
@@ -953,6 +962,7 @@ while state ~= "quit" and not interrupting do
 
                     if action == 'select' then
                         sendAnnotationCommand('selectDetection', object)
+                        speak(port_ispeak, "ok, select it on the tablet")
                     elseif action == 'done' then
                         if cmd:get(2):isString() then
                             object = cmd:get(2):asString()
@@ -960,10 +970,13 @@ while state ~= "quit" and not interrupting do
                         else
                             speak(port_ispeak, "empty object name")
                         end
+                        speak(port_ispeak, "ok, done")
                     elseif action == 'add' then
                         sendAnnotationCommand('addDetection', object)
+                        speak(port_ispeak, "where should I put it?")
                     elseif action == 'delete' then
                         sendAnnotationCommand('deleteSelection', object)
+                        speak(port_ispeak, "ok, deleted")
                     elseif action == 'finish' then
                         sendAnnotationCommand('finishAnnotation', object)
                     else
