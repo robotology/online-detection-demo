@@ -80,7 +80,7 @@ class DetectionsHandler (yarp.RFModule):
          self._old_train_bottle   = yarp.Bottle()
          self._old_train_counter  = 0
          self._current_detections = yarp.Bottle()
-         self._print_string       = print_string
+         self._string             = print_string
          self.image_w             = image_w
          self.image_h             = image_h
 
@@ -96,15 +96,15 @@ class DetectionsHandler (yarp.RFModule):
         cv2.putText(im, text, (int(bbox[0]) + 1, int(bbox[1]) - 5), font, scale, (255,255,255))
 
     def _print_string(self, im, font):
-        scale = 1.5
-        thickness = 5
-        size = cv2.getTextSize(self._print_string, font, scale, thickness)[0]
+        scale = 1
+        thickness = 4
+        size = cv2.getTextSize(self._string, font, scale, thickness)[0]
         label_origin = (self.image_w - size[0], 1)
         label_bottom = (self.image_w-1, size[1] + 14)
         #rect = (label_origin, label_bottom)
 
         cv2.rectangle(im, label_origin, label_bottom, (1, 250, 1), -2)
-        cv2.putText(im, self._print_string, (self.image_w - size[0] + 4, size[1] + 5), font, scale, (100, 100, 100), thickness)
+        cv2.putText(im, self._string, (self.image_w - size[0] + 4, size[1] + 5), font, scale, (100, 100, 100), thickness)
 
     def _pruneOldDetections(self):
          # Remove all boxes that are older than T frames from the buffers of old detections  
@@ -380,7 +380,7 @@ if __name__ == '__main__':
 
     print_string = 'Old'
     if args.module_name == '':
-        print_string = 'Current'
+        print_string = 'Refined'
 
     detHandler = DetectionsHandler(args.input_image_port_name, args.out_det_img_port_name, args.input_detections_port_name, args.rpc_thresh_port_name, args.out_det_port_name, args.image_width, args.image_height, print_string)
 
