@@ -8,8 +8,8 @@ import sys
 import yarp
 
 
-basedir = os.path.dirname(__file__)
-sys.path.append(os.path.abspath(os.path.join(basedir, os.path.pardir, 'external', 're3-tensorflow')))
+#basedir = os.path.dirname(__file__)
+#sys.path.append(os.path.abspath(os.path.join(basedir, os.path.pardir, 'external', 're3-tensorflow')))
 from tracker import re3_tracker
 
 from re3_utils.util import drawing
@@ -131,8 +131,8 @@ class AnnotationsPropagator(yarp.RFModule):
             self.interrupt = True
             reply.addString('Propagation interrupted')
         elif command.get(0).asString() == 'max_time':
-            if command.get(1).isString():
-                self.max_time = int(command.get(1).asString())
+            if command.get(1).isInt():
+                self.max_time = int(command.get(1).asInt())
                 reply.addString('max_time value is now {:s}'.format(str(self.max_time)))
             else:
                 reply.addString('nack')
@@ -174,12 +174,44 @@ class AnnotationsPropagator(yarp.RFModule):
 
         self.annotations = annotations.get(0).asList()
 
-        # ## Temporary
-        # to_send = self.cmd_exploration_port.prepare()
-        # to_send.clear()
-        # to_send.addString("resume")
-        # self.cmd_exploration_port.write()
-        # ## End Temporary
+    def compute_overlap(self, A,B):
+        '''
+        calculate two box's iou
+        '''
+        width = min(A[2],B[2])-max(A[0],B[0]) + 1
+        height = min(A[3],B[3])-max(A[1],B[1]) + 1
+        if width<=0 or height<=0:
+            return 0
+        Aarea =(A[2]-A[0])*(A[3]-A[1]+1) 
+        Barea =(B[2]-B[0])*(B[3]-B[1]+1)
+        iner_area = width* height
+        return iner_area/(Aarea+Barea-iner_area)
+
+
+    def check_annotations_quality(self):
+        is_annotation_ok = True
+
+        if not self.annotations is None and not self.annotations.size() == 0:
+            boxes = {}
+            for i in range(0, self.annotations.size()):
+                ann = self.annotations.get(i).asList()
+                obj_name = ann.get(4).asString()
+                # self.obj_names.append(obj_name)
+                boxes[obj_name] = [ann.get(0).asDouble(), ann.get(1).asDouble(),
+                                   ann.get(2).asDouble(), ann.get(3).asDouble()]
+        
+        overlap_thresh = 0.7           
+        for name1, box1 in boxes.items():
+            for name2, box2 in boxes.items():
+                if not name1 == name2:
+                    o = self.compute_overlap(box1, box2)
+                    print('overlap: {}'.format(o))
+                    if o > overlap_thresh:
+                        is_annotation_ok = False
+                        break
+
+        return is_annotation_ok
+
 
     def send_annotations(self):
         print('Sending annotations')
@@ -296,6 +328,17 @@ class AnnotationsPropagator(yarp.RFModule):
                 to_send.addString(action)
                 self.cmd_exploration_port.write()
 
+    def do_HRI(self, detections):
+        self.sendExplorationCommand('pause')
+        self.predictions = detections
+        self.ask_for_annotations()
+        self.initialize_tracker()
+        self.time = time.time()
+        if self.interrupt:
+            self.interrupt = False
+        self.send_annotations()
+        self.sendExplorationCommand('resume')        
+
     def updateModule(self):
         if self.state == 'do_nothing':
             pass
@@ -315,19 +358,15 @@ class AnnotationsPropagator(yarp.RFModule):
             if detections.get(0).isString() and detections.get(0).asString() == "skip":
                 self.propagate_annotations()
             elif time.time() - self.time > self.max_time or self.annotations is None or self.interrupt:
-                self.sendExplorationCommand('pause')
-                self.predictions = detections
-                self.ask_for_annotations()
-                self.initialize_tracker()
-                self.time = time.time()
-                if self.interrupt:
-                    self.interrupt = False
-                self.send_annotations()
-                self.sendExplorationCommand('resume')
+                self.do_HRI(detections)
 
             else:
                 self.propagate_annotations()
-                self.send_annotations()
+                if not self.check_annotations_quality():
+                    print('*****************************BAD PREDICTIONS*************************************************')
+                    self.do_HRI(detections)    
+                else:                
+                    self.send_annotations()
 
         return True
 
