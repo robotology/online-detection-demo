@@ -27,7 +27,7 @@ from random import randint
 yarp.Network.init()
 
 class DetectionsHandler (yarp.RFModule):
-    def __init__(self, input_image_port_name, out_det_img_port_name, input_detections_port_name, rpc_thresh_port_name, out_det_port_name, image_w, image_h):
+    def __init__(self, input_image_port_name, out_det_img_port_name, input_detections_port_name, rpc_thresh_port_name, out_det_port_name, image_w, image_h, print_string):
 
          print('Setting classes dictionary...\n')
          self._cls2colors = {};
@@ -80,19 +80,31 @@ class DetectionsHandler (yarp.RFModule):
          self._old_train_bottle   = yarp.Bottle()
          self._old_train_counter  = 0
          self._current_detections = yarp.Bottle()
+         self._string             = print_string
+         self.image_w             = image_w
+         self.image_h             = image_h
 
     def _set_label(self, im, text, font, color, bbox):
         scale = 0.4
         thickness = 1
         size = cv2.getTextSize(text, font, scale, thickness)[0]
-        print(text)
-        print(bbox)
         label_origin = (int(bbox[0]), int(bbox[1]) - 15)
         label_bottom = (int(bbox[0])+size[0], int(bbox[1]) -10 + size[1])
         rect = (label_origin, label_bottom)
 
         cv2.rectangle(im, label_origin, label_bottom, color, -2)
         cv2.putText(im, text, (int(bbox[0]) + 1, int(bbox[1]) - 5), font, scale, (255,255,255))
+
+    def _print_string(self, im, font):
+        scale = 1
+        thickness = 4
+        size = cv2.getTextSize(self._string, font, scale, thickness)[0]
+        label_origin = (self.image_w - size[0], 1)
+        label_bottom = (self.image_w-1, size[1] + 14)
+        #rect = (label_origin, label_bottom)
+
+        cv2.rectangle(im, label_origin, label_bottom, (1, 250, 1), -2)
+        cv2.putText(im, self._string, (self.image_w - size[0] + 4, size[1] + 5), font, scale, (100, 100, 100), thickness)
 
     def _pruneOldDetections(self):
          # Remove all boxes that are older than T frames from the buffers of old detections  
@@ -193,6 +205,7 @@ class DetectionsHandler (yarp.RFModule):
     def _drawDetections(self, im, all_dets_received, thresh=0.15, vis=False):
             print('drawDetections*********************************')
             all_dets = self._checkOldDetectionsAndUpdate(all_dets_received)
+            font = cv2.FONT_HERSHEY_SIMPLEX
             if all_dets is not None:
                     for i in range(0,all_dets.size()):
                         dets = all_dets.get(i).asList()
@@ -212,10 +225,8 @@ class DetectionsHandler (yarp.RFModule):
                                     cv2.rectangle(im,(int(round(bbox[0])), int(round(bbox[1]))),(int(round(bbox[2])), int(round(bbox[3]))),color, 2)
 
                                     # print(text for i-th detection)
-                                    font = cv2.FONT_HERSHEY_SIMPLEX
                                     text = '{:s} {:.3f}'.format(cls, score)
                                     self._set_label(im, text, font, color, bbox)
-
 
                         elif dets.get(0).isString() and dets.get(0).asString() == 'train':
                            for j in range(0,all_dets.size()):
@@ -228,7 +239,6 @@ class DetectionsHandler (yarp.RFModule):
                                 cv2.rectangle(im,(int(round(bbox[0])), int(round(bbox[1]))),(int(round(bbox[2])), int(round(bbox[3]))),color, 2)
 
                                 # print(text
-                                font = cv2.FONT_HERSHEY_SIMPLEX
                                 text = 'Train: {:s}'.format(cls)
                                 self._set_label(im, text, font, color, bbox)
 
@@ -241,7 +251,7 @@ class DetectionsHandler (yarp.RFModule):
                     b = self._current_detections.addList()
                     
 
-
+            self._print_string(im, font)
             # Return an RGB image with drawn detections
             im=cv2.cvtColor(im,cv2.COLOR_RGB2BGR)
             return im
@@ -368,7 +378,11 @@ if __name__ == '__main__':
     args.rpc_thresh_port_name = args.rpc_thresh_port_name.format(args.module_name)
     args.out_det_port_name = args.out_det_port_name.format(args.module_name)
 
-    detHandler = DetectionsHandler(args.input_image_port_name, args.out_det_img_port_name, args.input_detections_port_name, args.rpc_thresh_port_name, args.out_det_port_name, args.image_width, args.image_height)
+    print_string = 'Old'
+    if args.module_name == '':
+        print_string = 'Refined'
+
+    detHandler = DetectionsHandler(args.input_image_port_name, args.out_det_img_port_name, args.input_detections_port_name, args.rpc_thresh_port_name, args.out_det_port_name, args.image_width, args.image_height, print_string)
 
     try:
         detHandler.run()
