@@ -48,6 +48,9 @@ class Processing : public yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::P
     yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelMono> >   depthImageOutPort;
     yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> >    displayImageOutPort;
 
+    yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> >    rgbImageInPort;
+    yarp::os::BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelRgb> >    rgbImageOutPort;
+
     bool    camera_configured;
     double  fov_h;
     double  fov_v;
@@ -79,12 +82,17 @@ public:
         BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelFloat>>::open( "/" + moduleName + "/float:i" );
         depthImageOutPort.open("/" + moduleName + "/depth:o");
         camPort.open("/" + moduleName + "/cam:rpc");
-        displayImageOutPort.open("/" + moduleName + "/image:o");
+        displayImageOutPort.open("/" + moduleName + "/o:image");
+
+        rgbImageInPort.open("/" + moduleName + "/rgb:i");
+        rgbImageOutPort.open("/" + moduleName + "/rgb:o");
 
         yarp::os::Network::connect(camPort.getName().c_str(), "/depthCamera/rpc:i", "tcp");
         yarp::os::Network::connect("/depthCamera/depthImage:o", BufferedPort<yarp::sig::ImageOf<yarp::sig::PixelFloat>>::getName().c_str(), "fast_tcp");
-		yarp::os::Network::connect(depthImageOutPort.getName().c_str(), "/modified/depth", "fast_tcp");
-        yarp::os::Network::connect(displayImageOutPort.getName().c_str(), "/modified/depthCol", "fast_tcp");
+        yarp::os::Network::connect("/depthCamera/rgbImage:o", rgbImageInPort.getName().c_str(), "tcp");
+
+		//yarp::os::Network::connect(depthImageOutPort.getName().c_str(), "/modified/depth", "fast_tcp");
+        //yarp::os::Network::connect(displayImageOutPort.getName().c_str(), "/modified/depthCol", "fast_tcp");
 
         camera_configured=false;
 
@@ -101,6 +109,8 @@ public:
         camPort.close();
         depthImageOutPort.close();
         displayImageOutPort.close();
+        rgbImageInPort.close();
+        rgbImageOutPort.close();
     }
 
     /********************************************************/
@@ -110,6 +120,9 @@ public:
         camPort.interrupt();
         depthImageOutPort.interrupt();
         displayImageOutPort.interrupt();
+        rgbImageInPort.interrupt();
+        rgbImageOutPort.interrupt();
+
     }
     /****************************************************************/
     bool setDepthRange(double closeRange, double longRange)
@@ -175,12 +188,21 @@ public:
             //camera_configured=getCameraOptions();
 
         yarp::sig::ImageOf<yarp::sig::PixelMono> &outDepthImage  = depthImageOutPort.prepare();
-        yarp::sig::ImageOf<yarp::sig::PixelRgb> &outImage  = displayImageOutPort.prepare();
+        yarp::sig::ImageOf<yarp::sig::PixelRgb> &outImage = displayImageOutPort.prepare();
+
+        yarp::sig::ImageOf<yarp::sig::PixelRgb> &outrgbImage = rgbImageOutPort.prepare();
+
+        yarp::sig::ImageOf<yarp::sig::PixelRgb> *inImage = rgbImageInPort.read();
+
+        outrgbImage.resize(inImage->width(), inImage->height());
+
+        outrgbImage.zero();
+
+        cv::Mat inColour_cv = yarp::cv::toCvMat(*inImage);
 
         depth = float_yarp;
 
         cv::Mat float_original_cv = yarp::cv::toCvMat(float_yarp);
-        //cv::Mat float_original_cv = cv::cvarrToMat((IplImage *)float_yarp.getIplImage());
         cv::Mat float_cv = float_original_cv;
 
         cv::Mat mono_cv = cv::Mat::ones(float_yarp.height(), float_yarp.width(), CV_8UC1);
@@ -260,18 +282,14 @@ public:
             }
         }
 
-        //IplImage yarpImg = img_cv;
-        //outDepthImage.resize(yarpImg.width, yarpImg.height);
-        //cvCopy( &yarpImg, (IplImage *) outDepthImage .getIplImage());
         outDepthImage = yarp::cv::fromCvMat<yarp::sig::PixelMono>(img_cv);
         depthImageOutPort.write();
 
-        //IplImage yarpImgrgb = rgb_cv;
-        //outImage.resize(yarpImgrgb.width, yarpImgrgb.height);
-        //cvCopy( &yarpImgrgb, (IplImage *) outImage.getIplImage());
         outImage = yarp::cv::fromCvMat<yarp::sig::PixelRgb>(rgb_cv);
         displayImageOutPort.write();
 
+        outrgbImage = yarp::cv::fromCvMat<yarp::sig::PixelRgb>(inColour_cv);
+        rgbImageOutPort.write();
     }
 };
 
