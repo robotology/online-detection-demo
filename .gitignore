@@ -61,3 +61,9 @@ Demo/Datasets
 Network Trash Folder
 Temporary Items
 .apdisk
+build/*
+.idea/
+external/*
+*/__pycache__/
+CMakeCache.txt
+CMakeFiles/
