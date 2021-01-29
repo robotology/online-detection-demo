@@ -1,0 +1,20 @@
+(352.663513 4.880508 548.382141 211.885391 0.595971 sodabottle2) (370.910583 191.312073 584.538391 440.332825 0.585003 sodabottle2) (94.034081 234.782928 275.323547 383.783661 0.506083 book6)
+
+(363.383057 24.251724 580.816772 469.626099 0.644552 sodabottle2) (76.248039 234.32724 285.006195 380.210419 0.548431 book6)
+(280.042542 29.987213 507.288147 456.407867 0.744987 sodabottle2) (0.0 217.010727 136.951187 414.103394 0.852728 soapdispenser5)
+
+
+(88 55 140 96 0.744987 box2) (208 49 258 90 0.744987 carrot6) (109 108 171 165 0.744987 dog3) (215 110 272 163 0.744987 lettuce8) 
+
+
+
+10.0.0.124
+
+
+
+ICUB
+icub@iiticubws030:~/elisa/Repos/py-faster_yarp$ ./tools/detection_yarp.py --caffemodel /home/icub/elisa/Repos/py-faster_yarp/data/zf_fast_rcnn_stage2_iter_54000_humanoids_no20pixels.caffemodel --prototxt /home/icub/elisa/Repos/py-faster_icubworld/models/icub_transformation/ZF/faster_rcnn_alt_opt/faster_rcnn_test.pt --vis
+
+R1
+./detection_yarp.py --prototxt models/icub_transformation_20obj/ZF/faster_rcnn_alt_opt/faster_rcnn_test.pt --caffemodel /media/r1-user/SDCARD/caffe_data_and_models/detection_models/zf_fast_rcnn_stage2_iter_54000_humanoids_no20pixels.caffemodel --vis --classes_file app/humanoids_classes.txt --cameraport /depthCamera/rgbImage:o
+
