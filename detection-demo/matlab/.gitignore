@@ -1,6 +1,0 @@
-external/*
-Data/cnn_models/*
-Data/datasets/*
-Data/models/*
-Data/cnn_weights/*
-bin/
