@@ -1,9 +1,10 @@
 # Copyright: (C) 2016 iCub Facility - Istituto Italiano di Tecnologia
 # Authors: Vadim Tikhanoff
+#          Elisa Maiettini
 # CopyPolicy: Released under the terms of the GNU GPL v2.0.
 
 cmake_minimum_required(VERSION 3.1)
-project(detection-demo)
+project(online-detection-demo)
 
 find_package(ICUBcontrib REQUIRED)
 find_package(YARP 3.1 REQUIRED COMPONENTS OS sig dev math rosmsg cv)
@@ -23,6 +24,7 @@ endif()
 icubcontrib_set_default_prefix()
 
 add_subdirectory(modules)
+add_subdirectory(app)
 
 # generate ad-hoc project to perform "make uninstall"
 icubcontrib_add_uninstall_target()
