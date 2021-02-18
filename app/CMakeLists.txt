@@ -12,7 +12,7 @@ file(GLOB config ${CMAKE_CURRENT_SOURCE_DIR}/config/*.ini)
 set(python_bin ${CMAKE_CURRENT_SOURCE_DIR}/python/iCWT_player.py
 			   ${CMAKE_CURRENT_SOURCE_DIR}/python/BoxesVisualizer.py
 			   ${CMAKE_CURRENT_SOURCE_DIR}/python/Manager.py
-               ${CMAKE_CURRENT_SOURCE_DIR}/python/iCWT_player_RF.py)
+               ${CMAKE_CURRENT_SOURCE_DIR}/python/iCWT_player_RF.py
                ${CMAKE_CURRENT_SOURCE_DIR}/python/detections_handler.py)
 
 set(lua_bin    ${CMAKE_CURRENT_SOURCE_DIR}/lua/detection_demo.lua

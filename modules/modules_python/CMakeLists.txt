@@ -17,4 +17,4 @@ add_custom_command(TARGET copy_python_in_build POST_BUILD
 install(PROGRAMS ${python_bin} DESTINATION bin)
 
 # generate ad-hoc project to perform "make uninstall"
-icubcontrib_add_uninstall_target()
+#icubcontrib_add_uninstall_target()
