@@ -1,28 +1,37 @@
-# WS_demo
+# Online Detection apllication
 
-This repository contains the code for the **Active Learning part** of the work described in the paper ["A Weakly Supervised Strategy for Learning Object Detection on a Humanoid Robot"](https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=9035067). 
+This repository collects the modules for the on-line detection application. The diagram of the final application is as follows:
+![image](https://user-images.githubusercontent.com/3706242/108543828-e4678980-72e5-11eb-9c5d-10968c46e997.png)
 
-The diagram of the final application is as follows:
-![image](https://user-images.githubusercontent.com/3706242/79279154-afacc980-7ead-11ea-8086-66aed1ed2691.jpg)
 
-## Dependencies
-- Tested Cuda versions: 9.0, 10.0
-- Yarp
-- Tested with Python 3.5
+# Description
 
-### For the tracker
-- **numpy** (tested version: 1.13.1) e.g. `python3.5 -m pip install numpy==1.13.1`
-- **opencv-python** (tested version: 3.3.0.10) e.g. `python3.5 -m pip install opencv-python==3.3.0.10`
-- **tensorflow-gpu** (tested versions: 1.5.0 for Cuda 9.0 and 1.13.1 for Cuda 10.0) e.g. `python3.5 -m pip install opencv-python==1.5.0`
-
-Then follow the installation and setup instructions reported at this [link](https://github.com/danielgordon10/re3-tensorflow), cloning the repository in the `external` folder.
-
-## Installation
+The user needs to choose which robot will be used at run time (eg: icub or r1)
 ```
-git clone https://github.com/Arya07/WS_demo.git
-cd WS_demo
-mkdir build
-ccmake ../
-make 
-make install
+eg: detection_demo.lua icub
 ```
+The lua manager connects automatically to all required ports, otherwise, it complains of missing dependencies.
+
+This manager script has various behaviours and accepts the following commands via its port `/detection/cmd:i` or via its `speech interface`.
+
+- **look-around** or spoken **look around**:
+
+This command enables an autonomous looking around behavior depending on the number of object detections. It gets the lists of detections and randomly choses where to look. 
+
+- **where-is #objectName** or spoken **Where is the #objectName**:
+
+This enables the robots to localise on one object chosen by the user. The robot will then use the spatial information to verbally locate the object with respect to others in the scene. Eg: The #targetObject is next to #objectName and the #objectName 
+
+- **closest-to #objectName** or spoken **What is close to the #ObjectName**:
+
+This enables the robots to localise on one object chosen by the user and locate the closest object to it. The robot will then use the spatial information to locate the closest object in the scene. Eg: The #targetObject is next to #objectName and the #objectName 
+
+- **look #objectName** or spoken **look at the #objectName**:
+
+- **home** or spoken **go home**:
+
+Moves the head to its home location (looking down) stopping any previous behavior.
+
+- **quit** or spoken **return to home position**:
+
+Quits the module.
