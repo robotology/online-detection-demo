@@ -2,9 +2,26 @@
 # All Rights Reserved.
 # Authors: Vadim Tikhanoff <vadim.tikhanoff@iit.it>
 
-add_subdirectory(blobAnnotation)
-add_subdirectory(humanStructure)
-add_subdirectory(detectionExtract)
-add_subdirectory(yarp-blob)
-add_subdirectory(yarp-augmentation)
-add_subdirectory(yarp-multi-viewer)
+if(OOD_Weak_supervision)
+    add_subdirectory(blobAnnotation)
+endif()
+
+if(OOD_humanStructure)
+    add_subdirectory(humanStructure)
+endif()
+
+if(OOD_detectionExtract)
+    add_subdirectory(detectionExtract)
+endif()
+
+if(OOD_dispBlobber)
+    add_subdirectory(yarp-blob)
+endif()
+
+if(OOD_augmentation)
+    add_subdirectory(yarp-augmentation)
+endif()
+
+if(OOD_multiviewer)
+    add_subdirectory(yarp-multi-viewer)
+endif()

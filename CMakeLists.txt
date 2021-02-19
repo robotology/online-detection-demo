@@ -21,6 +21,14 @@ if(NOT CMAKE_CONFIGURATION_TYPES)
   endif()
 endif()
 
+option(OOD_Weak_supervision "Enables compilation of weak supervision application" ON)
+option(OOD_detectionExtract "Enables compilation of in bounding box segmentation" OFF)
+option(OOD_humanStructure   "Enables compilation of humanStructure" OFF)
+option(OOD_augmentation     "Enables compilation of yarp-augmentation" OFF)
+option(OOD_dispBlobber      "Enables compilation of yarp-blob" ON)
+option(OOD_multiviewer      "Enables compilation of yarp-multi-viewer" ON)
+option(OOD_offline          "Enables compilation of offline experiments part" OFF)
+
 icubcontrib_set_default_prefix()
 
 add_subdirectory(modules)
