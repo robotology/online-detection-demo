@@ -1,4 +1,4 @@
-# Online Detection apllication
+# Online Detection application
 
 This repository collects the modules for the on-line detection application.
 
