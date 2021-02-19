@@ -10,17 +10,24 @@ The list of dependencies is as follows:
 * [Python](https://www.python.org/downloads/)
 * [Matlab](https://it.mathworks.com/)
 * [Matlab Parallel Computing Toolbox](https://it.mathworks.com/products/parallel-computing.html) 
-* lua
-* posix.signal
+* Lua
+* Posix.signal
    - luarocks
    - luaposix
+* The following Python packages:
+    - **numpy** (tested version: 1.13.1)
+    - **opencv-python** (tested version: 3.3.0.10)
+    - **tensorflow-gpu** (tested versions: 1.5.0 for Cuda 9.0 and 1.13.1 for Cuda 10.0)
 * Other required packages: OpenBLAS, Boost C++, Google Protobuf Buffers C++, Google Logging, Google Flags, LevelDB, HDF5, LMDB, Snappy
 
-You can follow the installtion instructions in the official repositories of the first dependencies (namely, YARP, Opencv, Cuda, Matlab, Python and lua), while you can install the list of packages with the following command:
+You can follow the installtion instructions in the official repositories of the first dependencies (namely, YARP, Opencv, Cuda, Matlab, Python and lua), while you can install the list of packages with the following commands:
 
 ```
 sudo apt-get install libopenblas-dev libboost-all-dev libprotobuf-dev protobuf-compiler \
 libgoogle-glog-dev libgflags-dev libleveldb-dev libhdf5-serial-dev liblmdb-dev libsnappy-dev
+python3.5 -m pip install numpy==1.13.1
+python3.5 -m pip install opencv-python==3.3.0.10
+python3.5 -m pip install opencv-python==1.5.0
 ```
 
 ## External repositories
