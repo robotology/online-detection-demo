@@ -1,5 +1,5 @@
 # Installation guide
-
+In this file, we report the list of instructions for the installation of the `online-detection-demo`. We start covering the installation of the [dependencies](#dependencies) of the application and of the external repositories used. Finally, we provide instructions for compiling and installing the modules of the application.
 
 ## Dependencies:
 
