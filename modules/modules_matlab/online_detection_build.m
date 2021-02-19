@@ -11,14 +11,14 @@ if ~exist('nms_mex', 'file')
   mex -O -outdir bin ...
       CXXFLAGS="\$CXXFLAGS -std=c++11"  ...
       -largeArrayDims ...
-      external/faster_rcnn/functions/nms/nms_mex.cpp ...
+      ../../external/faster_rcnn/functions/nms/nms_mex.cpp ...
       -output nms_mex;
 end
 
 if ~exist('nms_gpu_mex', 'file')
    fprintf('Compiling nms_gpu_mex\n');
-   addpath(fullfile(pwd, 'functions', 'nms'));
-   nvmex('external/faster_rcnn/functions/nms/nms_gpu_mex.cu', 'bin');
+   addpath(fullfile(pwd, '..', '..', 'external', 'faster_rcnn', 'functions', 'nms'));
+   nvmex('../../external/faster_rcnn/functions/nms/nms_gpu_mex.cu', 'bin');
    delete('nms_gpu_mex.o');
 end
 

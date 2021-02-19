@@ -21,9 +21,4 @@ rm $FILE
 
 echo "falkon is ready."
 
-# Make Falkon
-cd FALKON_paper/FALKON
-mex -largeArrayDims ./tri_solve_d.cpp -lmwblas -lmwlapack
-mex -largeArrayDims ./inplace_chol.cpp -lmwblas -lmwlapack
-
 echo "Done."
