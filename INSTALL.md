@@ -1,16 +1,7 @@
+# Installation guide
 
 
-## CMake options
-
-- OOD_Weak_supervision
-- OOD_detectionExtract
-- OOD_humanStructure
-- OOD_augmentation
-- OOD_dispBlobber
-- OOD_multiviewer
-- OOD_offline
-
-### Dependencies:
+## Dependencies:
 
 * [YARP](https://github.com/robotology/yarp)
 * [OpenCV](http://opencv.org/downloads.html)
@@ -38,33 +29,10 @@ libgoogle-glog-dev libgflags-dev libleveldb-dev libhdf5-serial-dev liblmdb-dev l
 
 
 ```
-# $1=/usr/local/MATLAB/R2019b  $2=/usr/local/cuda $3=16
 ./Scripts/fetch_install_faster_rcnn.sh $1 $2 $3
+# e.g. $1=/usr/local/MATLAB/R2019b  $2=/usr/local/cuda $3=16
 ```
 
-### Advanced
-
-Faster R-CNN needs the `caffe-fast-rcnn` version of [Caffe framework](http://caffe.berkeleyvision.org/), wich contains layers specifically created for it.
-
-In the following we provide instructions to fetch that version and compile it, but you can also refer to the official Caffe's fork link:<br>
-https://github.com/ShaoqingRen/caffe/tree/faster-R-CNN .
-
-Note that, we modified the provided version in order to use Resnet50 and Resnet101 models.
-
-The instructions provided below will place `caffe` directory in `external/faster_rcnn/external` folder and will compile it locally and compile Faster R-CNN.
-
-```
-cd $DETECTION_DIR/external/
-git clone https://github.com/ShaoqingRen/faster_rcnn.git
-cd $DETECTION_DIR
-./Scripts/fetch_caffe.sh
-cd external/faster_rcnn/external/caffe
-make MATLAB_DIR=/usr/local/MATLAB/R2019b CUDA_DIR=/usr/local/cuda 
-make matcaffe MATLAB_DIR=/usr/local/MATLAB/R2019b CUDA_DIR=/usr/local/cuda
-cd $DETECTION_DIR/external/faster_rcnn
-matlab faster_rcnn_build
-matlab startup
-```
 
 Please, refer to the [official repository](https://github.com/ShaoqingRen/faster_rcnn#preparation-for-testing) for further details.
 
@@ -85,3 +53,14 @@ matlab online_detection_build
 matlab startup
 ```
 
+
+
+## CMake options
+
+- OOD_Weak_supervision
+- OOD_detectionExtract
+- OOD_humanStructure
+- OOD_augmentation
+- OOD_dispBlobber
+- OOD_multiviewer
+- OOD_offline
