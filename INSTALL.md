@@ -10,9 +10,13 @@ The list of dependencies is as follows:
 * [Python](https://www.python.org/downloads/)
 * [Matlab](https://it.mathworks.com/)
 * [Matlab Parallel Computing Toolbox](https://it.mathworks.com/products/parallel-computing.html) 
+* lua
+* posix.signal
+   - luarocks
+   - luaposix
 * Other required packages: OpenBLAS, Boost C++, Google Protobuf Buffers C++, Google Logging, Google Flags, LevelDB, HDF5, LMDB, Snappy
 
-You can follow the installtion instructions in the official repositories of the first dependencies (namely, YARP, Opencv, Cuda, Matlab and Python), while you can install the list of packages with the following command:
+You can follow the installtion instructions in the official repositories of the first dependencies (namely, YARP, Opencv, Cuda, Matlab, Python and lua), while you can install the list of packages with the following command:
 
 ```
 sudo apt-get install libopenblas-dev libboost-all-dev libprotobuf-dev protobuf-compiler \
