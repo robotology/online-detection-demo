@@ -60,4 +60,4 @@ ccmake ../
 make 
 make install
 ```
-**Note**: Please consider that while doing Cmake you can flag different options, according to the moudles that you want to compile. The default options will allow you to compile the basic version of the demo. Please refer to this [description]((https://github.com/Arya07/online-detection-demo/blob/main/INSTALL_ADVANCED.md)) for details about the different options
+**Note**: Please, consider that while doing Cmake you can flag different options, depending on the modules that you want to compile. The default options will allow you to compile the basic version of the demo. Please refer to this [description]((https://github.com/Arya07/online-detection-demo/blob/main/INSTALL_ADVANCED.md)) for details about the different options
