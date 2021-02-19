@@ -1,6 +1,9 @@
 # Online Detection apllication
 
-This repository collects the modules for the on-line detection application. The diagram of the final application is as follows:
+This repository collects the modules for the on-line detection application.
+
+The diagram of the final application is as follows:
+
 ![image](https://user-images.githubusercontent.com/3706242/108543828-e4678980-72e5-11eb-9c5d-10968c46e997.png)
 
 
