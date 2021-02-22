@@ -9,7 +9,7 @@ The proposed pipeline allows therefore to train a detection model in few seconds
 
 While these modalities can be interchange, a possible use could be to initially train the detection model with the **Teacher-learner modality**. The goal of this initial interaction is that of “bootstrapping” the system, with an initial object detection model. After that, the robot relies on this initial knowledge to adapt to new settings, by actively exploring the environment and asking for limited human intervention, with the **Exploration modality**. During this phase, it iteratively builds new training sets by using both (i) high confidence predictions of the current models with a _self-supervision_ strategy and (ii) asking to a human expert to refine/correct low confidence predicitions. In this latter case, the user rovides refined annotations using a graphical interface on a tablet.
 
-We tested the application on the R1 humanoid robot. It is composed by several modules, each one accounting for the different components of the pipeline.
+The application is composed by several modules, each one accounting for the different components of the pipeline. We tested it on the R1 humanoid robot. 
 
 
 # Description
