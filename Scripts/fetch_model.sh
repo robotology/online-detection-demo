@@ -3,7 +3,7 @@
 FILE=ZF_model_20objs.tar.gz
 URL_model=https://www.dropbox.com/s/410xryxh17uv13x/ZF_model_20objs.tar.gz
 URL_stats=https://www.dropbox.com/s/6bbrofwx29b1sle/ZF20_feature_Stats.mat
-DIRECTORY=Data/cnn_models
+DIRECTORY=modules/modules_matlab/Data/cnn_models
 
 if [ ! -d "$DIRECTORY"  ]; then
 
