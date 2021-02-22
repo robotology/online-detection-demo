@@ -31,4 +31,12 @@ After setting up your system, you can choose among several versions of this appl
 
 Once everything is running, you can interact with the application by one of the following options:
 - Giving commands using the terminal (you can find the list of possible commands at this [link](https://github.com/Arya07/online-detection-demo/blob/main/MODULES_GUIDE.md#detection_demolua)) 
-- Giving commands using the speech interface
+- Giving commands using the speech interface. The list of possible commands is as follows:
+    - _Have a look at this *object_name*_ 
+    - _Forget the *object_name*_
+    - _Explore the table_
+    - _Stop refinement_
+    - _Look at the *object_name*_
+    - _Look around_
+    - _Where is the *object_name*_
+    - _What is close to the *object_name*_
