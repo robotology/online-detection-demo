@@ -1,5 +1,7 @@
 # On-line Detection Application
-In this repository, we collect the source code of the **On-line Detection Application**, a pipeline for efficiently training an object detection system on a humanoid robot. This to iteratively adapt an object detection model to novel scenarios, by exploiting: (i) a teacher-learner pipeline, (ii) weakly supervised learning techniques to reduce the human labeling effort and (iii) an on-line learning approach for fast model re-training. 
+In this repository, we collect the source code of the **On-line Detection Application**, a pipeline for efficiently training an object detection system on a humanoid robot. This to iteratively adapt an object detection model to novel scenarios, by exploiting: (i) a teacher-learner pipeline, (ii) weakly supervised learning techniques to reduce the human labeling effort and (iii) an on-line learning approach for fast model re-training. The diagram of the final application is as follows:
+
+![image](https://user-images.githubusercontent.com/3706242/108543828-e4678980-72e5-11eb-9c5d-10968c46e997.png)
 
 The proposed pipeline allows therefore to train a detection model in few seconds, within two different modalities:
 - **Teacher-learner modality**: the user shows the object of interest to the robot under different viewposes, handling it in hand
@@ -8,9 +10,6 @@ The proposed pipeline allows therefore to train a detection model in few seconds
 While these modalities can be interchange, a possible use could be to initially train the detection model with the **Teacher-learner modality**. The goal of this initial interaction is that of “bootstrapping” the system, with an initial object detection model. After that, the robot relies on this initial knowledge to adapt to new settings, by actively exploring the environment and asking for limited human intervention, with the **Exploration modality**. During this phase, it iteratively builds new training sets by using both (i) high confidence predictions of the current models with a _self-supervision_ strategy and (ii) asking to a human expert to refine/correct low confidence predicitions. In this latter case, the user rovides refined annotations using a graphical interface on a tablet.
 
 We tested the application on the R1 humanoid robot. It is composed by several modules, each one accounting for the different components of the pipeline.
-The diagram of the final application is as follows:
-
-![image](https://user-images.githubusercontent.com/3706242/108543828-e4678980-72e5-11eb-9c5d-10968c46e997.png)
 
 
 # Description
