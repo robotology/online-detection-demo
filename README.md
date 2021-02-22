@@ -32,11 +32,12 @@ After setting up your system, you can choose among several versions of this appl
 Once everything is running, you can interact with the application by one of the following options:
 - Giving commands using the terminal (you can find the list of possible commands at this [link](https://github.com/Arya07/online-detection-demo/blob/main/MODULES_GUIDE.md#detection_demolua)) 
 - Giving commands using the speech interface. The list of possible commands is as follows:
-    - _Have a look at this *object_name*_ 
-    - _Forget the *object_name*_
-    - _Explore the table_
-    - _Stop refinement_
-    - _Look at the *object_name*_
-    - _Look around_
-    - _Where is the *object_name*_
-    - _What is close to the *object_name*_
+    - "_Have a look at this *object_name*_": The robot replies "Let me have a look at the *object_name*" and the learning phase begins. There are a few seconds of images acquisition, where the user needs to show and hold the object in his/her hand and show it to the robot. At the end of the acquisition (the actual number of frames can be set and modified by the user) a new detection model is trained.
+    - "_Forget the *object_name*_": it makes the model delete the classifier and the rls of that particular object.
+    - "_Forget all objects_": it deletes all the models.
+    - "_Explore the table_": this command makes the robot start the refinement of the detection model with the exploration of the environment. It also starts the interactive phase, where the robot asks the annotation of doubtful images.
+    - "_Stop refinement_": this command stops the refinement phase.
+    - "_Look at the *object_name*_": to accomplish this command, the robot looks at the desired object if it is present in the list of the detected objects.
+    - "_Look around_": to accomplish this command the robot changes periodically the fixation point, moving the gaze, alternating randomly between the different detected objects in the scene.
+    - "_Where is the *object_name*_"?: to accomplish this command the robot replies with the list of objects that are close to the mentioned one (within a specified radius).
+    - "_What is close to the *object_name*_"?: to accomplish this command the robot replies with the name of the closest object to the one requested.
