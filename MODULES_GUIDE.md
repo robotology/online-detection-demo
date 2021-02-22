@@ -30,7 +30,7 @@ Moves the head to its home location (looking down) stopping any previous behavio
 
 Quits the module.
 
-## Matlab detection modules
+## Matlab detection module
 This module allows to train a detection model online, in just few seconds. It relies on Faster R-CNN for feature extraction and on FALKON + Minibootstrap procedure for classification. Please, refer to the [paper](https://www.semanticscholar.org/paper/Speeding-Up-Object-Detection-Training-for-Robotics-Maiettini-Pasquale/6a8a3b27a78c78bc80984fca29554de3269d34d3) for further details about the algorithm.
 
 The inputs of the module are listed below:
