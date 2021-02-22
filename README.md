@@ -21,11 +21,14 @@ The application is composed by several modules, each one accounting for the diff
 
 
 ## Usage
-The implemented detection algorithm allows to train a new model online, in just few seconds. It relies on Faster R-CNN for feature extraction and on FALKON + Minibootstrap procedure for classification (more details [here](https://www.semanticscholar.org/paper/Speeding-Up-Object-Detection-Training-for-Robotics-Maiettini-Pasquale/6a8a3b27a78c78bc80984fca29554de3269d34d3)).
+In order to use this application, you first need to **clone** it in your system and execute the **installation instructions** and the system **setup actions** that you can find at this [link](https://github.com/Arya07/online-detection-demo/blob/main/INSTALL.md).
 
-You can use your own Faster R-CNN pretrained weights as feature extraction module but we made available the ones used for our experiments. You can download them running the following command in the folder of the repository.
-```
-./Scripts/fetch_model.sh
+After setting up your system, you can choose among several versions of this application, according to your needs. Here, we will cover the complete version, comprising all types of interaction with the robot, but others are available as xml applications in the folder `app/scripts`. To execute the complete version you should:
+- **Run all the modules** of the _Weakly Supervised Online Detection_ application, represented by the `app/scripts/WS_onlineDetection.xml` file, **except** the `detection_demo.lua` module.
+- **Run** the **matlab detection** module (i.e., you should run the maltab script `Detection_main.m `, from the folder `modules/modules_matlab`)
+- **Connect alla available ports** from the _Weakly Supervised Online Detection_ application
+- **Run** the `detection_demo.lua` and **connect** all again
 
-```
-
+Once everything is running, you can interact with the application by one of the following options:
+- Giving commands using the terminal (you can find the list of possible commands at this [link](https://github.com/Arya07/online-detection-demo/blob/main/MODULES_GUIDE.md#detection_demolua)) 
+- Giving commands using the speech interface
