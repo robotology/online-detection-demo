@@ -8,8 +8,8 @@ import sys
 import yarp
 
 
-basedir = os.path.dirname(__file__)
-sys.path.append(os.path.abspath(os.path.join(basedir, os.path.pardir, 'external', 're3-tensorflow')))
+#basedir = os.path.dirname(__file__)
+sys.path.append('@Tracker_import_path@')
 from tracker import re3_tracker
 
 from re3_utils.util import drawing

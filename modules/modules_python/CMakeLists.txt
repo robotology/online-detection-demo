@@ -10,10 +10,22 @@ endif()
 cmake_minimum_required(VERSION 3.1)
 project(detection-python-modules)
 
+set(WS_import_path "${CMAKE_CURRENT_SOURCE_DIR}/../../modules/modules_python/WeakSupervision")
+set(Tracker_import_path "${CMAKE_CURRENT_SOURCE_DIR}/../../external/re3-tensorflow")
+message(${Tracker_import_path})
+if(NOT EXISTS ${Tracker_import_path})
+    message(FATAL_ERROR "re3-tensorflow repository has not properly been placed in the external folder.")
+endif()
+if(NOT EXISTS ${WS_import_path})
+    message(FATAL_ERROR "The python modules of weak supervision are not in the expected folder.")
+endif()
 
-set(python_bin ${CMAKE_CURRENT_SOURCE_DIR}/AnnotationsPropagator/AnnotationsPropagator.py
+configure_file(AnnotationsPropagator/AnnotationsPropagator.py.in AnnotationsPropagator/AnnotationsPropagator.py @ONLY)
+configure_file(WeakSupervision/StreamUncertaintyBasedMethod.py.in WeakSupervision/StreamUncertaintyBasedMethod.py @ONLY)
+
+set(python_bin ${CMAKE_CURRENT_SOURCE_DIR}/../../build/modules/modules_python/AnnotationsPropagator/AnnotationsPropagator.py
 			   ${CMAKE_CURRENT_SOURCE_DIR}/Exploration/ExplorationModule.py
-               ${CMAKE_CURRENT_SOURCE_DIR}/WeakSupervision/StreamUncertaintyBasedMethod.py)
+               ${CMAKE_CURRENT_SOURCE_DIR}/../../build/modules/modules_python/WeakSupervision/StreamUncertaintyBasedMethod.py)
 
 add_custom_target(copy_python_in_build ALL)
 add_custom_command(TARGET copy_python_in_build POST_BUILD
