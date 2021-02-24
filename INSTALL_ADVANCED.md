@@ -33,7 +33,18 @@ mex -largeArrayDims ./tri_solve_d.cpp -lmwblas -lmwlapack
 mex -largeArrayDims ./inplace_chol.cpp -lmwblas -lmwlapack
 ```
 
-
+## Advanced instructions for installing the Re3 Tracker
+If the installation using the `Scripts/fetch_install_re3.sh` failed or you prefer to install Falkon by yourself, you will find the list of isntructions in this section.
+In the remaining of this file we will refer to `$DETECTION_DIR` as the directory where you cloned the repository `online-detection-demo`.
+```
+cd $DETECTION_DIR/
+cd external
+git clone https://github.com/moorejee/Re3
+cd re3-tensorflow/logs
+wget https://www.dropbox.com/s/y6b15l0clgyyq8p/re3_weights.tar.gz?dl=0 -O re3_weights.tar.gz --no-check-certificate
+tar -xf re3_weights.tar.gz
+rm re3_weights.tar.gz
+```
 ## CMake options
 
 - **OOD_Weak_supervision**: if ON, it enables the modules that allow for a weakly supervised learning of the detection model (default ON)
