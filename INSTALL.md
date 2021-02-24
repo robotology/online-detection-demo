@@ -35,6 +35,7 @@ The external repositories required for the matlab version of this application is
 * [Faster R-CNN](https://github.com/ShaoqingRen/faster_rcnn)
 * [Caffe](http://caffe.berkeleyvision.org/)
 * [FALKON](https://github.com/LCSL/FALKON_paper)
+* [Re3 tracker](https://github.com/moorejee/Re3)
 
 ### Faster R-CNN and Caffe installation
 For this step, we prepared the script `fetch_install_faster_rcnn.sh` for your convinience. The script will clone the official repository of Faster R-CNN in the `external` folder, fetch the correct CAFFE version and compile both of them in the correct location. 
@@ -52,8 +53,16 @@ For this step, we prepared the script `fetch_install_falkon.sh` for your convini
 ./Scripts/fetch_install_falkon.sh
 ```
 
-If using the script you get some errors or if you prefer to install Faster R-CNN by yourself, you will find the list of instructions at this [link](https://github.com/Arya07/online-detection-demo/blob/main/INSTALL_ADVANCED.md). 
+If using the script you get some errors or if you prefer to install Falkon by yourself, you will find the list of instructions at this [link](https://github.com/Arya07/online-detection-demo/blob/main/INSTALL_ADVANCED.md). 
 
+### Re3 Tracker installation
+For this step, we prepared the script `fetch_install_re3.sh` for your convinience. The script will fetch the correct version of the Re3 tracker and compile it in the correct location. Run the script as follows:
+
+```
+./Scripts/fetch_install_re3.sh
+```
+
+If using the script you get some errors or if you prefer to install the Re3 Tracker by yourself, you will find the list of instructions at this [link](https://github.com/Arya07/online-detection-demo/blob/main/INSTALL_ADVANCED.md). 
 
 ## Installation
 
