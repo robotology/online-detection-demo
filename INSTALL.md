@@ -80,7 +80,7 @@ ccmake ../
 make 
 make install
 ```
-**Note**: Please, consider that while doing Cmake you can flag different options, depending on the modules that you want to compile. The default options will allow you to compile the basic version of the demo. Please refer to this [description]((https://github.com/Arya07/online-detection-demo/blob/main/INSTALL_ADVANCED.md)) for details about the different options
+**Note**: Please, consider that while doing Cmake you can flag different options, depending on the modules that you want to compile. The default options will allow you to compile the basic version of the demo. Please refer to this [description](https://github.com/Arya07/online-detection-demo/blob/main/INSTALL_ADVANCED.md#cmake-options) for details about the different options
 
 ## Setting up the system
 The implemented detection algorithm allows to train a new model online, in just few seconds. It relies on Faster R-CNN for feature extraction and on FALKON + Minibootstrap procedure for classification (more details [here](https://www.semanticscholar.org/paper/Speeding-Up-Object-Detection-Training-for-Robotics-Maiettini-Pasquale/6a8a3b27a78c78bc80984fca29554de3269d34d3)).
