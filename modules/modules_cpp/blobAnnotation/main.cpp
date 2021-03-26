@@ -277,7 +277,7 @@ public:
 
         cv::namedWindow("detections", 1);
 
-        cvSetMouseCallback("detections", CallBackFunc, NULL);
+        cv::setMouseCallback("detections", CallBackFunc, NULL);
 
         return true;
     }

@@ -151,7 +151,7 @@ public:
             cv::Mat image;
             std::string imageFile = path + "/" + nameList[i];
             yDebug() << "File " << imageFile.c_str();
-            image = cv::imread(imageFile, CV_LOAD_IMAGE_COLOR);
+            image = cv::imread(imageFile, cv::IMREAD_COLOR);
             resize(image, image, cv::Size(100, 120), 0, 0, cv::INTER_CUBIC);
 
             if(! image.data )                              // Check for invalid input

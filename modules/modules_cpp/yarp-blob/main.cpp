@@ -223,7 +223,7 @@ public:
         img_blobs = img_cv;
 
         cv::Mat rgb_cv;
-        cvtColor(img_cv,rgb_cv,CV_GRAY2RGB);
+        cvtColor(img_cv,rgb_cv,cv::COLOR_GRAY2RGB);
         cv::Mat overlayFrame;
 
         double minVal, maxVal;
@@ -240,7 +240,7 @@ public:
         std::vector<std::vector<cv::Point> > cnt;
         std::vector<cv::Vec4i> hrch;
 
-        findContours( cleanedImg, cnt, hrch, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE );
+        findContours( cleanedImg, cnt, hrch, cv::RETR_TREE, cv::CHAIN_APPROX_SIMPLE );
 
         std::vector<cv::Moments> mu( cnt.size() );
         std::vector<cv::Point2f> mc( cnt.size() );
@@ -271,7 +271,7 @@ public:
 
                 //findContours( img_blobs, cnt, hrch, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE );
 
-                cv::drawContours( img_cv, cnt, i, cvScalar(0,0,0), CV_FILLED, 8, hrch, 0, cv::Point() );
+                cv::drawContours( img_cv, cnt, i, cvScalar(0,0,0), cv::FILLED, 8, hrch, 0, cv::Point() );
 
                 //cv::drawContours( img_out, cnt, i, cvScalar(255,255,255), CV_FILLED, 8, hrch, 0, cv::Point() );
 

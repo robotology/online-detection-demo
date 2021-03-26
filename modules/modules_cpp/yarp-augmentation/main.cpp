@@ -28,6 +28,9 @@
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/opencv.hpp>
+#include <opencv2/core/types_c.h>
+#include <opencv2/videoio/videoio_c.h>
+
 
 #include <dirent.h>
 #include <cstring>
@@ -183,7 +186,7 @@ public:
 
         cv::GaussianBlur(disp, disp, cv::Size(gaussSize,gaussSize), sigmaX1, sigmaY1);
 
-        cv::threshold(disp, disp, backgroundThresh, -1, CV_THRESH_TOZERO);
+        cv::threshold(disp, disp, backgroundThresh, -1, cv::THRESH_TOZERO);
 
         int dilate_niter = 2;
         int erode_niter = 1;
@@ -214,7 +217,7 @@ public:
         std::vector<std::vector<cv::Point> > cnt;
         std::vector<cv::Vec4i> hrch;
 
-        findContours( disp, cnt, hrch, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_TC89_L1 );
+        findContours( disp, cnt, hrch, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_TC89_L1 );
 
         /* get moments and mass center */
         std::vector<cv::Moments> mu(cnt.size() );
@@ -241,7 +244,7 @@ public:
                 highestVal = i;
         }
 
-        cvtColor(disp, disp, CV_GRAY2RGB);
+        cvtColor(disp, disp, cv::COLOR_GRAY2RGB);
 
         cv::Mat bw(inColour_cv.size(), CV_8UC3, cv::Scalar(0,0,0));
         cv::Mat imageOutput(inColour_cv.size(), CV_8UC3, cv::Scalar(255,255,255));
@@ -308,9 +311,9 @@ public:
                 std::string backgroundFile = path + "/bkgrd-" + std::to_string(whichBackground+1) + ".jpg";
                 yDebug() << "File " << backgroundFile.c_str();
 
-                image = cv::imread(backgroundFile, CV_LOAD_IMAGE_COLOR);
+                image = cv::imread(backgroundFile, cv::IMREAD_COLOR);
 
-                cv::cvtColor( image, image, CV_BGR2RGB );
+                cv::cvtColor( image, image, cv::COLOR_BGR2RGB );
 
                 if(! image.data )                              // Check for invalid input
                 {
