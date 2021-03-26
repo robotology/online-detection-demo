@@ -2,7 +2,7 @@
 # All Rights Reserved.
 # Authors: Vadim Tikhanoff <vadim.tikhanoff@iit.it>
 
-if(OOD_Weak_supervision)
+if(OOD_Weak_supervision OR OOD_HRI)
     add_subdirectory(blobAnnotation)
 endif()
 

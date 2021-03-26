@@ -7,11 +7,14 @@ from kivy.config import Config
 from kivy.uix.label import Label
 from kivy.uix.textinput import TextInput
 
+import yarp
+yarp.Network.init()
+
 class ButtonsLayout(GridLayout):
     def __init__(self, labels, port, strInputLayout):
         super(ButtonsLayout, self).__init__(cols=2, spacing=[5,5], padding=[10,10,10,10])
         self.label_dict = labels
-        self.port = port
+        self._out_port = port
         self.message = None
         self.strInputLayout = strInputLayout
         self.others = None
@@ -22,16 +25,21 @@ class ButtonsLayout(GridLayout):
             button.bind(on_press=self.buttonPressed)
             self.add_widget(button)
 
+
     def buttonPressed(self, instance):
         print(instance.text)
 
-        self.message = ''
+        self.message = None
         for i in range(0, len(self.label_dict[instance.text])):
-            self.message = self.message + ' ' + self.label_dict[instance.text][i]
+            if self.message is None:
+                self.message = self.label_dict[instance.text][i]
+            else:
+                self.message = self.message + ' ' + self.label_dict[instance.text][i]
 
         is_canceled = False
         if not instance.text is 'Train' and not instance.text is 'Forget' and not instance.text is 'Confirm':
-            print('Sending message : ***{}*** with port ***{}***'.format(self.message, self.port))
+            print('Sending message : ***{}***'.format(self.message))
+            self.send_message()
             if instance.text == 'Start refinement':
                 for child in self.children:
                     if child.text == 'Stop refinement':
@@ -54,6 +62,11 @@ class ButtonsLayout(GridLayout):
             self.disabled = True
             self.strInputLayout.disabled = False
 
+    def send_message(self):
+        to_send = self._out_port.prepare()
+        to_send.clear()
+        to_send.addString(self.message)
+        self._out_port.write()
 
     def get_message(self):
         return self.message
@@ -69,7 +82,7 @@ class StrInputLayout(GridLayout):
     def __init__(self, port):
         super(StrInputLayout, self).__init__(cols=1, spacing=[5,5], padding=[10,10,10,10])
 
-        self.port = port
+        self._out_port = port
         self.obj_name = None
         self.is_canceled = False
         self.button_layouts = None
@@ -107,7 +120,8 @@ class StrInputLayout(GridLayout):
             message = button_layout.get_message()
             if not message is None:
                 message = message + ' ' + value.text
-                print('Sending message : ***{}*** with port ***{}***'.format(message, self.port))
+                print('Sending message : ***{}***'.format(message))
+                self.send_message(message)
                 button_layout.set_message(None)
                 break
         if not self.button_layouts is None:
@@ -119,22 +133,32 @@ class StrInputLayout(GridLayout):
         self.button_layouts = list(button_layouts)
 
 
+    def send_message(self, message):
+        to_send = self._out_port.prepare()
+        to_send.clear()
+        to_send.addString(message)
+        self._out_port.write()
+
+
 
 class OODRemoteLayout(GridLayout):
 
     def __init__(self):
+        module_name = 'HRIgui'
+        out_port = yarp.BufferedPortBottle()
+        out_port.open('/' + module_name + '/cmd:o')
+        print('{:s} opened'.format('/' + module_name + '/cmd:o'))
         super(OODRemoteLayout, self).__init__(cols=1)
 
         detection_label_dict = {'Train': ['train'], 'Start refinement': ['refine', 'start'], 'Stop refinement': ['refine', 'stop'], 'Forget': ['forget']}
         annotation_label_dict = {'Add': ['annotation', 'add'], 'Delete': ['annotation', 'delete'], 'Select': ['annotation', 'select'], 'Confirm': ['annotation', 'done'], 'Done.': ['annotation', 'finish'], 'Quit': ['quit']}  
-        port = 'demo_cmd_port'
 
         Window.size = (500, 500)
         Window.clearcolor = (1, 1, 1, 0.8)
 
-        strInputLayout   = StrInputLayout(port)
-        detectionLayout  = ButtonsLayout(detection_label_dict, port, strInputLayout) 
-        annotationLayout = ButtonsLayout(annotation_label_dict, port, strInputLayout) 
+        strInputLayout   = StrInputLayout(out_port)
+        detectionLayout  = ButtonsLayout(detection_label_dict, out_port, strInputLayout) 
+        annotationLayout = ButtonsLayout(annotation_label_dict, out_port, strInputLayout) 
 
         detectionLayout.set_others([annotationLayout])
         annotationLayout.set_others([detectionLayout])

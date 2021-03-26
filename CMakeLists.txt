@@ -22,6 +22,7 @@ if(NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 
 option(OOD_Weak_supervision "Enables compilation of weak supervision application" ON)
+option(OOD_HRI              "Enables compilation of hri part of the application" OFF)
 option(OOD_detectionExtract "Enables compilation ofe in bounding box segmentation" OFF)
 option(OOD_humanStructure   "Enables compilation of humanStructure" OFF)
 option(OOD_augmentation     "Enables compilation of yarp-augmentation" OFF)
