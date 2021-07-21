@@ -44,7 +44,7 @@ Once everything is running, you can interact with the application by one of the 
 ## Related publications
 
 This application is the result of the implementation of three works, rispectively reported in the following publications:
-- [_Interactive data collection for deep learning object detectors on humanoid robots, E. Maiettini, G. Pasquale, L. Rosasco and L. Natal, IROS 2017 (https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=8246973)
-- [_On-line object detection: a robotics challenge_], E. Maiettini, G. Pasquale, L. Rosasco and L. Natale, Autonomous Robots (4), 2020 (https://link.springer.com/article/10.1007/s10514-019-09894-9)
-- [_A Weakly Supervised Strategy for Learning Object Detection on a Humanoid Robot_] E. Maiettini, G. Pasquale, V. Tikhanoff, L. Rosasco and L. Natale, Humanoids 2019 (https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=9035067)
+- [Interactive data collection for deep learning object detectors on humanoid robots, E. Maiettini, G. Pasquale, L. Rosasco and L. Natale, IROS 2017](https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=8246973)
+- [On-line object detection: a robotics challenge, E. Maiettini, G. Pasquale, L. Rosasco and L. Natale, Autonomous Robots (4), 2020](https://link.springer.com/article/10.1007/s10514-019-09894-9)
+- [A Weakly Supervised Strategy for Learning Object Detection on a Humanoid Robot, E. Maiettini, G. Pasquale, V. Tikhanoff, L. Rosasco and L. Natale, Humanoids 2019](https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=9035067)
 
