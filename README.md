@@ -1,9 +1,5 @@
 # On-line Detection Application
-In this repository, we collect the source code of the **On-line Detection Application**, a pipeline for efficiently training an object detection system on a humanoid robot. This allows to iteratively adapt an object detection model to novel scenarios, by exploiting: (i) a teacher-learner pipeline, (ii) weakly supervised learning techniques to reduce the human labeling effort and (iii) an on-line learning approach for fast model re-training. The application is the result of the implementation of three works, rispectively reported in the following publications:
-- [_Interactive data collection for deep learning object detectors on humanoid robots_](https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=8246973)
-- [_On-line object detection: a robotics challenge_](https://link.springer.com/article/10.1007/s10514-019-09894-9)
-- [_A Weakly Supervised Strategy for Learning Object Detection on a Humanoid Robot_](https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=9035067)
-
+In this repository, we collect the source code of the **On-line Detection Application**, a pipeline for efficiently training an object detection system on a humanoid robot. This allows to iteratively adapt an object detection model to novel scenarios, by exploiting: (i) a teacher-learner pipeline, (ii) weakly supervised learning techniques to reduce the human labeling effort and (iii) an on-line learning approach for fast model re-training. 
 
 The diagram of the final application is as follows:
 
@@ -44,4 +40,11 @@ Once everything is running, you can interact with the application by one of the 
 |"_Look around_" | to accomplish this command the robot changes periodically the fixation point, moving the gaze, alternating randomly between the different detected objects in the scene. |
 | "_Where is the *object_name*_"? | to accomplish this command the robot replies with the list of objects that are close to the mentioned one (within a specified radius). |
 | "_What is close to the *object_name*_"? | to accomplish this command the robot replies with the name of the closest object to the one requested. |
+
+## Related publications
+
+This application is the result of the implementation of three works, rispectively reported in the following publications:
+- [_Interactive data collection for deep learning object detectors on humanoid robots, E. Maiettini, G. Pasquale, L. Rosasco and L. Natal, IROS 2017 (https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=8246973)
+- [_On-line object detection: a robotics challenge_], E. Maiettini, G. Pasquale, L. Rosasco and L. Natale, Autonomous Robots (4), 2020 (https://link.springer.com/article/10.1007/s10514-019-09894-9)
+- [_A Weakly Supervised Strategy for Learning Object Detection on a Humanoid Robot_] E. Maiettini, G. Pasquale, V. Tikhanoff, L. Rosasco and L. Natale, Humanoids 2019 (https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=9035067)
 
