@@ -742,6 +742,17 @@ end
 
 ---------------------------------------------------------------------------------------------------------------
 
+function sendInteract(action)
+    local cmd = port_cmd_exploration:prepare()
+    cmd:clear()
+    cmd:addString(action)
+    cmd:addString("interaction")
+
+    port_cmd_exploration:write()
+end
+
+---------------------------------------------------------------------------------------------------------------
+
 function sendAnnotationCommand(action, object)
     local cmd = port_cmd_annotation:prepare()
     cmd:clear()
@@ -836,7 +847,7 @@ while state ~= "quit" and not interrupting do
               cmd_rx == "train" or cmd_rx == "forget" or
                cmd_rx == "hello" or cmd_rx == "listen" or 
                 cmd_rx == "track" or cmd_rx == "what-is" or
-                 cmd_rx == "refine" or cmd_rx == "explore" or 
+                 cmd_rx == "interact" or cmd_rx == "explore" or 
                   cmd_rx == "annotation" then
 
             clearDraw()
@@ -913,7 +924,7 @@ while state ~= "quit" and not interrupting do
                 print( "training")
                 yarp.delay(1.5)
 
-            elseif state == "refine" then
+            elseif state == "explore" then
                 if isAL then
                     action = cmd:get(1):asString()
 
@@ -928,18 +939,7 @@ while state ~= "quit" and not interrupting do
                         sendRefine(action)
                         sendExplore(action)
                         state = "home"
-                    else
-                        speak(port_ispeak, "refine: unknown action " .. action)
-                    end
-                else
-                    print("cannot start refinement, please restart the demo with al option")
-                end
-
-            elseif state == "explore" then
-                if isAL then
-                    action = cmd:get(1):asString()
-
-                    if action == 'pause' then
+                    elseif action == 'pause' then
                         print("Pausing exploration")
                         speak(port_ispeak, "I am not sure about what I see, can you help me?")
                         sendExplore(action)
@@ -953,9 +953,40 @@ while state ~= "quit" and not interrupting do
                         speak(port_ispeak, "refine: unknown action " .. action)
                     end
                 else
-                    print("cannot pause refinement, please restart the demo with al option")
+                    print("cannot start refinement, please restart the demo with al option")
                 end
 
+            elseif state == "interact" then
+                if isAL then
+                    action = cmd:get(1):asString()
+
+                    if action == 'start' then
+                        speak(port_ispeak, "ok, I will start interaction ")
+                        sendInteract(action)
+                        yarp.delay(1.8)
+                        sendRefine(action)
+                        state = "refine"
+                    elseif action == 'stop' then
+                        speak(port_ispeak, "ok, I will stop interaction ")
+                        sendRefine(action)
+                        sendInteract(action)
+                        state = "home"
+                    elseif action == 'pause' then
+                        print("Pausing interaction")
+                        speak(port_ispeak, "I am not sure about what I see, can you help me?")
+                        sendInteract(action)
+                        state = "refine"
+                    elseif action == 'resume' then
+                        print("Resuming interaction")
+                        speak(port_ispeak, "ok, thank you!")
+                        sendInteract(action)
+                        state = "refine"
+                    else
+                        speak(port_ispeak, "interact: unknown action " .. action)
+                    end
+                else
+                    print("cannot start refinement, please restart the demo with al option")
+                end
 
             elseif state == "annotation" then
                 if isAL then

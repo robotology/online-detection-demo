@@ -12,6 +12,28 @@ class ExplorationModule (yarp.RFModule):
         self.robot = 'icub'
 
         self.module_name = rf.find("module_name").asString()
+        self.is_interaction = rf.find("is_interaction").asBool()
+        self.is_exploration = rf.find("is_exploration").asBool()
+
+        self.cmd_port = yarp.Port()
+        self.cmd_port.open('/' + self.module_name + '/command:i')
+        print('{:s} opened'.format('/' + self.module_name + '/command:i'))
+        self.attach(self.cmd_port)
+
+        if self.is_exploration:
+            self.configure_exploration(rf)
+
+        if self.is_interaction:
+            self.configure_interaction(rf)
+
+        self.state = 'do_nothing'
+
+        return True
+
+    def configure_interaction(self, rf):
+        print('to be implemented')
+
+    def configure_exploration(self, rf):
         num_steps = rf.find("steps").asInt()
         print(num_steps)
 
@@ -96,8 +118,7 @@ class ExplorationModule (yarp.RFModule):
             self.steps[str(i)] = s
 
         print(self.steps)
-            
-        self.state = 'do_nothing'
+
         self.parts_state = {}
         self.parts_state_previous = {}
         rf_group = rf.findGroup('parts')
@@ -109,10 +130,6 @@ class ExplorationModule (yarp.RFModule):
         self.out_ports = {}
         self.in_ports = {}
 
-        self.cmd_port = yarp.Port()
-        self.cmd_port.open('/' + self.module_name + '/command:i')
-        print('{:s} opened'.format('/' + self.module_name + '/command:i'))
-        self.attach(self.cmd_port)
         self.is_same_counter = 100
 
         time.sleep(3)
@@ -120,7 +137,8 @@ class ExplorationModule (yarp.RFModule):
             self.in_port = yarp.BufferedPortBottle()
             self.in_port.open('/' + self.module_name + '/' + self.parts[i] + ':i')
             print('{:s} opened'.format('/' + self.module_name + '/' + self.parts[i] + ':i'))
-            print(yarp.NetworkBase.connect('/icub/' + self.parts[i] + '/state:o', '/' + self.module_name + '/' + self.parts[i] + ':i'))
+            print(yarp.NetworkBase.connect('/icub/' + self.parts[i] + '/state:o',
+                                           '/' + self.module_name + '/' + self.parts[i] + ':i'))
             self.in_ports[self.parts[i]] = self.in_port
 
             self.out_port = yarp.Port()
@@ -129,10 +147,12 @@ class ExplorationModule (yarp.RFModule):
             connected = False
             if self.robot == 'r1':
                 if self.parts[i] is not 'torso':
-                    connected = yarp.NetworkBase.connect('/' + self.module_name + '/' + self.parts[i] + ':o', '/ctpservice/' + self.parts[i] + '/rpc')
+                    connected = yarp.NetworkBase.connect('/' + self.module_name + '/' + self.parts[i] + ':o',
+                                                         '/ctpservice/' + self.parts[i] + '/rpc')
                     print(connected)
                 else:
-                    connected = yarp.NetworkBase.connect('/' + self.module_name + '/' + self.parts[i] + ':o', '/cer/' + self.parts[i] + '/rpc:i')
+                    connected = yarp.NetworkBase.connect('/' + self.module_name + '/' + self.parts[i] + ':o',
+                                                         '/cer/' + self.parts[i] + '/rpc:i')
                     print(connected)
             elif self.robot == 'icub':
                 connected = yarp.NetworkBase.connect('/' + self.module_name + '/' + self.parts[i] + ':o',
@@ -143,11 +163,10 @@ class ExplorationModule (yarp.RFModule):
 
             if not connected:
                 print('Error: missing connections')
-#                self.cleanup()
-#                sys.exit()
-            
-            self.out_ports[self.parts[i]] = self.out_port
+            #                self.cleanup()
+            #                sys.exit()
 
+            self.out_ports[self.parts[i]] = self.out_port
         return True
 
     def move_all_to(self, position, secs):
@@ -201,23 +220,42 @@ class ExplorationModule (yarp.RFModule):
 
     def respond(self, command, reply):
         if command.get(0).asString() == 'start':
-            print('Starting exploration')
-            self.state = 'start'           
-            reply.addString('Exploration started')
+            if command.get(1).asString() == 'exploration':
+                print('Starting exploration')
+                self.state = 'start_exploration'
+                reply.addString('Exploration started')
+            elif command.get(1).asString() == 'interaction':
+                print('Starting interaction')
+                self.state = 'start_interaction'
+                reply.addString('Interaction started')
         elif command.get(0).asString() == 'pause':
-            print('Pausing exploration')
-            self.state = 'pause'            
-            reply.addString('Exploration paused')
+            if command.get(1).asString() == 'exploration':
+                print('Pausing exploration')
+                self.state = 'pause_exploration'
+                reply.addString('Exploration paused')
+            elif command.get(1).asString() == 'interaction':
+                print('Pausing interaction')
+                self.state = 'pause_interaction'
+                reply.addString('Interaction paused')
         elif command.get(0).asString() == 'resume':
-            print('Resuming exploration')
-            self.state = 'start'
-            reply.addString('Exploration resumed')
+            if command.get(1).asString() == 'exploration':
+                print('Resuming exploration')
+                self.state = 'start_exploration'
+                reply.addString('Exploration resumed')
+            elif command.get(1).asString() == 'interaction':
+                print('Resuming interaction')
+                self.state = 'start_interaction'
+                reply.addString('Interaction resumed')
         elif command.get(0).asString() == 'stop':
             if self.state == 'exploration':
                 print('Stopping exploration. Going home.')
-                self.state = 'home'
+                self.state = 'home_exploration'
                 reply.addString('Exploration stopped')
-            else:
+            elif self.state == 'interaction':
+                print('Stopping interaction. Going home.')
+                self.state = 'home_interaction'
+                reply.addString('Interaction stopped')
+            else: # I don't know if it makes sense anymore
                 print('The robot is not exploring. Going home.')
                 self.state = 'home'
                 reply.addString('The robot is not exploring. Going home.')
@@ -274,7 +312,6 @@ class ExplorationModule (yarp.RFModule):
                                print('current {:f} ; previous {:f}'.format(self.parts_state[part][i], self.parts_state_previous[part][i]))
                                is_same = False
                                break
-
                 else:
                     break
             
@@ -303,7 +340,16 @@ class ExplorationModule (yarp.RFModule):
                     self.parts_state_previous[part] = self.parts_state[part].copy()
                 #print('is not the same')
 
-        elif self.state == 'start':
+        elif self.state == 'interaction':
+            print('interaction to be implemented')
+        elif self.state == 'start_interaction':
+            print('start_interaction to be implemented')
+        elif self.state == 'pause_interaction':
+            print('pause_interaction to be implemented')
+        elif self.state == 'home_interaction':
+            print('home_interaction to be implemented')
+
+        elif self.state == 'start_exploration':
             print('state start')
             print(self.current_step)
             step = self.steps[str(self.current_step)]
@@ -328,7 +374,7 @@ class ExplorationModule (yarp.RFModule):
             self.send_commands(commands)
             self.state = 'exploration'
 
-        elif self.state == 'pause':
+        elif self.state == 'pause_exploration':
             #time.sleep(0.1)
             print('pause state')
             for part in self.parts_state:
@@ -361,7 +407,7 @@ class ExplorationModule (yarp.RFModule):
             self.send_commands(commands)
             self.state = 'do_nothing'
 
-        elif self.state == 'home':
+        elif self.state == 'home_exploration':
             print('state home')
             step = self.home
             commands = {}
@@ -386,6 +432,7 @@ class ExplorationModule (yarp.RFModule):
             self.send_commands(commands)
             self.current_step = 0
             self.state = 'do_nothing'
+
         elif self.state == 'do_nothing':
             pass
         else:
