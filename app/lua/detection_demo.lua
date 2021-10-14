@@ -160,11 +160,12 @@ ret = ret and yarp.NetworkBase_connect(port_ispeak:getName(), "/iSpeak")
 
 if whichRobot == "icub" then
     print ("Going through ICUB's connection")
-    ret = ret and yarp.NetworkBase_connect(port_gaze_tx:getName(), "/iKinGazeCtrl/angles:i")
-    ret = ret and yarp.NetworkBase_connect(port_gaze_rpc:getName(), "/iKinGazeCtrl/rpc")
-    ret = ret and yarp.NetworkBase_connect("/iKinGazeCtrl/angles:o", port_gaze_rx:getName() )
-    ret = ret and yarp.NetworkBase_connect(port_sfm_rpc:getName(),"/SFM/rpc")
-    ret = ret and yarp.NetworkBase_connect(port_are_rpc:getName(),"/actionsRenderingEngine/cmd:io")
+--    ret = ret and yarp.NetworkBase_connect(port_gaze_tx:getName(), "/iKinGazeCtrl/angles:i")
+--    ret = ret and yarp.NetworkBase_connect(port_gaze_rpc:getName(), "/iKinGazeCtrl/rpc")
+--    ret = ret and yarp.NetworkBase_connect("/iKinGazeCtrl/angles:o", port_gaze_rx:getName() )
+--    ret = ret and yarp.NetworkBase_connect(port_sfm_rpc:getName(),"/SFM/rpc")
+--    ret = ret and yarp.NetworkBase_connect(port_are_rpc:getName(),"/actionsRenderingEngine/cmd:io")
+    ret = ret and yarp.NetworkBase_connect(port_cmd_gaze:getName(), "/blob-tracker/command:i" )
 else
     print ("Going through R1's connection")
     ret = ret and yarp.NetworkBase_connect(port_gaze_tx:getName(), "/cer_gaze-controller/target:i")
@@ -910,6 +911,7 @@ while state ~= "quit" and not interrupting do
                 print( "will speak")
                 speak(port_ispeak, "Let me have a look at the " .. object)
                 print( "training")
+                yarp.delay(1.5)
 
             elseif state == "refine" then
                 if isAL then

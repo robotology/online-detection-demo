@@ -1,0 +1,203 @@
+<application>
+<name>Online Segmentation iCub</name>
+
+    <module>
+        <name>yarpdev</name>
+        <parameters>--context realsense --from realsense2Conf_640_480.ini</parameters>
+        <node>localhost</node>
+    </module>
+
+    <module>
+        <name>yarpdev</name>
+        <parameters>--device speech --lingware-context speech --default-language en-GB --robot icub --pitch 80 --speed 100</parameters>
+        <node>localhost</node>
+    </module>
+
+     <module>
+        <name>iSpeak</name>
+        <parameters>--package speech-dev</parameters>
+        <node>localhost</node>
+    </module>
+    
+    <module>
+        <name>yarp-blob</name>
+        <node>docker-manager</node>
+    </module>
+
+    <module>
+        <name>dispBlobber</name>
+        <parameters>--imW 640 --imH 480 --bufferSize 1 --minBlobSize 100 --maxBlobSize 50000 --backgroundThresh 100 --imageThreshRatioLow 10 --imageThreshRatioHigh 100 --margin 1</parameters>
+        <node>docker-manager</node>
+    </module>
+
+    <module>
+        <name>speechRecognizer</name>
+        <parameters></parameters>
+        <node>r1-vm-windows</node>
+    </module>
+
+     <module>
+        <name>detection_image.lua</name>
+        <parameters>icub</parameters>
+        <deployer>lua</deployer>
+        <node>docker-manager</node>
+    </module>
+    
+    <module>
+        <name>track_blob.py</name>
+        <parameters></parameters>
+        <deployer>python3.5</deployer>
+        <node>docker-manager</node>
+    </module>
+    
+    <module>
+        <name>detection_speech_helper.lua</name>
+        <parameters></parameters>
+        <deployer>lua</deployer>
+        <node>docker-manager</node>
+        <dependencies>
+            <port timeout="10">/detection-image/image:i</port>
+            <port timeout="10">/detection-image/image:o</port>
+            <port timeout="10">/detection-image/cmd:i</port>
+        </dependencies>
+    </module>
+
+    <module>
+        <name>detection_demo.lua</name>
+        <parameters>icub</parameters>
+        <deployer>lua</deployer>
+        <node>docker-manager</node>
+        <dependencies>
+            <port timeout="10">/speechRecognizer/rpc</port>
+        </dependencies>
+    </module>
+
+    <module>
+        <name>yarpview</name>
+        <node>localhost</node>
+        <parameters>--name /viewer/detection --x 600 --y 0 --w 500 --h 480 --RefreshTime 33 --compact</parameters>
+    </module>
+
+    <module>
+        <name>yarpview</name>
+        <node>localhost</node>
+        <parameters>--name /viewer/objects --x 1135 --y 0 --w 500 --h 480 --RefreshTime 33 --compact</parameters>
+    </module>
+
+    <module>
+        <name>yarpview</name>
+        <parameters>--name /viewer/crop --x 10 --y 550 --p 50 --compact</parameters>
+        <node>localhost</node>
+    </module>
+
+    <module>
+        <name>yarpview</name>
+        <parameters>--name /viewer/depth --x 400 --y 550 --p 50 --compact</parameters>
+        <node>localhost</node>
+    </module>
+
+    <!--connections for speech -->
+
+     <connection>
+        <from>/iSpeak/speech-dev/rpc</from>
+        <to>/r1/speech:rpc</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+
+    <!--connections for detection image -->
+
+    <connection>
+        <from>/detection/image:o </from>
+        <to>/viewer/detection</to>
+        <protocol> mjpeg </protocol>
+    </connection>
+
+    <!--connections for detection -->
+
+    <connection>
+        <from> /detection/dets:o </from>
+        <to>/manager/targets:i</to>
+        <protocol> fast_tcp </protocol>
+    </connection>
+
+    <connection>
+        <from>/detection/speech:o</from>
+        <to>/manager/cmd:i</to>
+        <protocol> fast_tcp </protocol>
+    </connection>
+
+    <connection>
+        <from>/depthCamera/rgbImage:o</from>
+        <to>/detection/image:i</to>
+        <protocol> mjpeg </protocol>
+    </connection>
+    
+    <connection>
+        <from>/depthCamera/depthImage:o</from>
+        <to>/yarp-blob/float:i</to>
+        <protocol>fast_tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/yarp-blob/depth:o</from>
+        <to>/dispBlobber/img:i</to>
+        <protocol>mjpeg</protocol>
+    </connection>
+
+    <connection>
+        <from>/dispBlobber/opt:o</from>
+        <to>/viewer/crop</to>
+        <protocol>mjpeg</protocol>
+    </connection>
+
+    <connection>
+        <from>/yarp-blob/depth:o</from>
+        <to>/viewer/depth</to>
+        <protocol>fast_tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/dispBlobber/roi/left:o</from>
+        <to>/detection/gt_boxes</to>
+        <protocol>fast_tcp</protocol>
+    </connection>
+    
+    <connection>
+        <from>/dispBlobber/opt:o</from>
+        <to>/detection/mask:i</to>
+        <protocol>mjpeg</protocol>
+    </connection>
+
+    <connection>
+        <from>/dispBlobber/roi/left:o</from>
+        <to>/onTheFlyRec/gaze/blob</to>
+        <protocol>fast_tcp</protocol>
+    </connection>
+    
+    <connection>
+        <from>/detection/dets:o</from>
+        <to>/manager/targets:i</to>
+        <protocol>fast_tcp</protocol>
+    </connection>
+    
+	<connection>
+        <from>/manager/ispeak:o</from>
+        <to>/iSpeak</to>
+        <protocol>fast_tcp</protocol>
+    </connection>
+    
+    <connection>
+        <from>/manager/draw:o</from>
+        <to>/detection-image/cmd:i</to>
+        <protocol>fast_tcp</protocol>
+    </connection>
+    
+    <connection>
+        <from>/manager/detection/cmd:o</from>
+        <to>/detection/command:i</to>
+        <protocol>fast_tcp</protocol>
+    </connection>
+
+</application>
+

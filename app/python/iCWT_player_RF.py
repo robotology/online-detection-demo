@@ -21,7 +21,7 @@ class iCWT_player(yarp.RFModule):
         self.image_w = 320
         self.image_h = 240
 
-        self.fake = False
+        self.fake = True
         self.sendScore = False
 
         self.module_name = ''
@@ -142,15 +142,15 @@ class iCWT_player(yarp.RFModule):
                         b.addDouble(random.randrange(0, 10)/10)
                     b.addString(object.find('name').text)
 
-                if self.fake:
-                    c = annotations_bottle.addList()
-                    c.addInt(100)
-                    c.addInt(100)
-                    c.addInt(250)
-                    c.addInt(250)
-                    c.addString('fake')
+            if self.fake:
+                c = annotations_bottle.addList()
+                c.addInt(100)
+                c.addInt(100)
+                c.addInt(250)
+                c.addInt(250)
+                c.addString('fake')
 
-                self.output_box_port.write()
+            self.output_box_port.write()
             self.output_image_port.write(self.out_buf_image)
 
             if self.counter >= len(self.lines)-1:
@@ -164,7 +164,7 @@ class iCWT_player(yarp.RFModule):
             boxes.clear()
 
             received_image = self._input_image_port.read()
-            boxes = self._input_boxes_port.read()
+            boxes = self._input_boxes_port.read(False)
 
             self._in_buf_image.copy(received_image)
             assert self._in_buf_array.__array_interface__['data'][0] == self._in_buf_image.getRawImage().__int__()
@@ -182,7 +182,18 @@ class iCWT_player(yarp.RFModule):
                 b.addInt(int(boxes.get(0).asList().get(2).asInt()))
                 b.addInt(int(boxes.get(0).asList().get(3).asInt()))
                 b.addString('class')
-                self.output_box_port.write()
+
+            annotations_bottle = self.output_box_port.prepare()
+            annotations_bottle.clear()
+            t = annotations_bottle.addList()
+            if self.fake:
+                c = t.addList()
+                c.addDouble(100)
+                c.addDouble(100)
+                c.addDouble(250)
+                c.addDouble(250)
+                c.addString('fake')
+            self.output_box_port.write()
         else:
             pass
         return True

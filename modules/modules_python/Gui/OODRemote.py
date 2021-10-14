@@ -65,7 +65,9 @@ class ButtonsLayout(GridLayout):
     def send_message(self):
         to_send = self._out_port.prepare()
         to_send.clear()
-        to_send.addString(self.message)
+        words_list = self.message.split(' ')
+        for i in range(len(words_list)):
+            to_send.addString(words_list[i])
         self._out_port.write()
 
     def get_message(self):
@@ -136,7 +138,9 @@ class StrInputLayout(GridLayout):
     def send_message(self, message):
         to_send = self._out_port.prepare()
         to_send.clear()
-        to_send.addString(message)
+        words_list = message.split(' ')
+        for i in range(len(words_list)):
+            to_send.addString(words_list[i])
         self._out_port.write()
 
 

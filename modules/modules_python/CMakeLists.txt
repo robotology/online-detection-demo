@@ -38,6 +38,7 @@ else()
 
 	set(python_bin ${CMAKE_CURRENT_SOURCE_DIR}/../../build/modules/modules_python/AnnotationsPropagator/AnnotationsPropagator.py
 				   ${CMAKE_CURRENT_SOURCE_DIR}/Exploration/ExplorationModule.py
+				   ${CMAKE_CURRENT_SOURCE_DIR}/Exploration/ExplorationModule_icub.py
 				   ${CMAKE_CURRENT_SOURCE_DIR}/Gui/OODRemote.py
 		           ${CMAKE_CURRENT_SOURCE_DIR}/../../build/modules/modules_python/WeakSupervision/StreamUncertaintyBasedMethod.py)
 

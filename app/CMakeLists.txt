@@ -9,12 +9,14 @@ set(PROJECTNAME detection-app)
 file(GLOB scripts ${CMAKE_CURRENT_SOURCE_DIR}/scripts/*.xml)
 file(GLOB config ${CMAKE_CURRENT_SOURCE_DIR}/config/*.ini)
 
-set(python_bin ${CMAKE_CURRENT_SOURCE_DIR}/python/detections_handler.py)
+set(python_bin ${CMAKE_CURRENT_SOURCE_DIR}/python/detections_handler.py
+               ${CMAKE_CURRENT_SOURCE_DIR}/python/track_blob.py)                           
 
 
 if(OOD_offline)
     list(APPEND python_bin ${CMAKE_CURRENT_SOURCE_DIR}/python/Manager.py
                            ${CMAKE_CURRENT_SOURCE_DIR}/python/iCWT_player_RF.py)
+
 endif() 
 if(OOD_Weak_supervision)
     list(APPEND python_bin ${CMAKE_CURRENT_SOURCE_DIR}/python/BoxesVisualizer.py)
