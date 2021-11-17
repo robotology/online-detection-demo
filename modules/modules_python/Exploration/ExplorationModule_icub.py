@@ -16,6 +16,7 @@ class ExplorationModule (yarp.RFModule):
         self.robot = 'icub'
 
         self.module_name = rf.find("module_name").asString()
+        print('MODULE_NAME: {}'.format(self.module_name))
         self.is_interaction = rf.find("is_interaction").asBool()
         self.is_exploration = rf.find("is_exploration").asBool()
 
@@ -40,17 +41,17 @@ class ExplorationModule (yarp.RFModule):
         self.arm = rf.find("arm").asString()  # self.arm = 'left' or 'right'
 
         # Prepare ports and images for receiving inputs
-        self.image_w = rf.find("image_w").asString()
-        self.image_h = rf.find("image_h").asString()
+        self.image_w = rf.find("image_w").asInt()
+        self.image_h = rf.find("image_h").asInt()
 
         # self.camera_fx = 618.0714111328125
         # self.camera_fy = 617.783447265625
         # self.camera_cx = 305.902252197265625
         # self.camera_cy = 246.352935791015625
-        self.camera_fx = rf.find("camera_fx").asString()
-        self.camera_fy = rf.find("camera_fy").asString()
-        self.camera_cx = rf.find("camera_cx").asString()
-        self.camera_cy = rf.find("camera_cy").asString()
+        self.camera_fx = rf.find("camera_fx").asDouble()
+        self.camera_fy = rf.find("camera_fy").asDouble()
+        self.camera_cx = rf.find("camera_cx").asDouble()
+        self.camera_cy = rf.find("camera_cy").asDouble()
 
         self.camera_pose_port = yarp.BufferedPortVector()
         self.camera_pose_port.open('/' + self.module_name + '/camera_pose:i')
@@ -312,6 +313,7 @@ class ExplorationModule (yarp.RFModule):
         print('depth: {}'.format(d))
 
         # Convert uv to xy
+        print(pixel_target[0])
         target_x = (pixel_target[0] - self.camera_cx) / self.camera_fx
         target_y = (pixel_target[1] - self.camera_cy) / self.camera_fy
         print('Converted (x,y): ({},{})'.format(target_x, target_y))
@@ -575,11 +577,11 @@ class ExplorationModule (yarp.RFModule):
 
             # Find measures in meters of the target and of the contact point
             pixel_target = self.blob_to_UVtarget(target_box)
-            print('pixel target: ({},{},{})'.format(str(pixel_target[0]), str(pixel_target[1]), str(pixel_target[2])))
+            print('pixel target: {}'.format(str(pixel_target)))
             pixel_contact = np.array([target_box.get(0).asList().get(2).asInt(), pixel_target[1]])
-            print('pixel contact: ({},{},{})'.format(str(pixel_contact[0]), str(pixel_contact[1]), str(pixel_contact[2])))
+            print('pixel contact: {}'.format(str(pixel_contact)))
             target_xyz, contact_xyz = self.UVtarget_to_xyztarget(pixel_target, pixel_contact, self.depth_array)
-            print('xyz target: ({},{},{})'.format(str(target_xyz[0]), str(target_xyz[1]), str(target_xyz[2])))
+            print('xyz target: {}'.format(str(target_xyz)))
             print('xyz contact: ({},{},{})'.format(str(contact_xyz[0]), str(contact_xyz[1]), str(contact_xyz[2])))
             target_H = self.xyztarget_to_targetH(target_xyz)
             contact_H = self.xyztarget_to_targetH(contact_xyz)
@@ -638,12 +640,14 @@ if __name__ == '__main__':
     rf = yarp.ResourceFinder()
     rf.setVerbose(True)
     rf.setDefaultContext("ExplorationModule")
-    conffile = rf.find("from").asString()
+#    conffile = rf.find("from").asString()
+    conffile = 'projects/public/online-detection-demo/app/config/interactive_exploration_conf_icub.ini'
     if not conffile:
         print('Using default conf file')
         rf.setDefaultConfigFile('../app/config/exploration_conf.ini')
     else:
         rf.setDefaultConfigFile(rf.find("from").asString())
+        rf.setDefaultConfigFile(conffile)
 
     rf.configure(sys.argv)
 
