@@ -243,8 +243,8 @@ class AnnotationsPropagator(yarp.RFModule):
         self._ask_annotations_port.interrupt()
         self._reply_image_port.interrupt()
         self._reply_annotations_port.interrupt()
-        self._output_image_port.close()
-        self._output_annotations_port.close()
+        self._output_image_port.interrupt()
+        self._output_annotations_port.interrupt()
 
         return True
 

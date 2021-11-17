@@ -1,0 +1,174 @@
+<application>
+<name>Weakly Supervised Online Detection Interaction</name>
+
+    <!--MODULES -->
+	<module>
+        <name>iCWT_player_RF.py</name>
+        <parameters> </parameters>
+        <deployer>python3.5</deployer>
+        <node>localhost</node>
+    </module>
+
+    <module>
+        <name>AnnotationsPropagator.py</name>
+        <parameters>--from /home/elisa/Repos/online-detection-demo/app/config/annotations_propagator_conf.ini</parameters>
+        <deployer>python3.5</deployer>
+        <node>localhost</node>
+    </module>
+
+    <module>
+        <name>blobAnnotation</name>
+        <node>localhost</node>
+        <parameters></parameters>
+    </module>
+
+    <module>
+        <name>BoxesVisualizer.py</name>
+        <parameters>--from contexts/online-detection-demo/annotations_propagator_conf.ini</parameters>
+        <deployer>python3.5</deployer>
+        <node>localhost</node>
+    </module>
+
+    <module>
+        <name>BoxesVisualizer.py</name>
+        <parameters>--from contexts/online-detection-demo/ws_module_conf.ini</parameters>
+        <deployer>python3.5</deployer>
+        <node>localhost</node>
+    </module> 
+
+    <!-- Yarpview for visualization -->
+
+    <module>
+        <name>yarpview</name>
+        <node>localhost</node>
+        <parameters>--name /viewer/dataset --x 0 --y 0 --w 500 --h 480 --RefreshTime 33</parameters>
+    </module>
+
+    <module>
+        <name>yarpview</name>
+        <node>localhost</node>
+        <parameters>--name /viewer/AnnotationsPropagator --x 0 --y 0 --w 500 --h 480 --RefreshTime 33</parameters>
+    </module>
+
+    <module>
+        <name>yarpview</name>
+        <node>localhost</node>
+        <parameters>--name /viewer/WSModule --x 0 --y 0 --w 500 --h 480 --RefreshTime 33</parameters>
+    </module>
+
+
+    <!--CONNECTIONS -->
+
+    <!--connections for WeaklySupervised Module -->
+
+    <connection>
+        <from>/iCWTPlayer/image:o</from>
+        <to>/WSModule/image:i</to>
+        <protocol> mjpeg </protocol>
+    </connection>
+
+    <connection>
+        <from>/iCWTPlayer/box:o</from>
+        <to>/WSModule/predictions:i</to>
+        <protocol>tcp</protocol>
+    </connection>  
+
+    <connection>
+        <from>/WSModule/annotations:o</from>
+        <to>/detection/refine/annotations:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+   <!--connections for AnnotationsPropagator -->
+
+     <connection>
+        <from>/WSModule/ask/image:o</from>
+        <to>/AnnotationsPropagator/image:i</to>
+        <protocol> mjpeg </protocol>
+    </connection>
+
+    <connection>
+        <from>/WSModule/ask/annotations:o</from>
+        <to>/AnnotationsPropagator/predictions:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/AnnotationsPropagator/image:o</from>
+        <to>/WSModule/reply/image:i</to>
+        <protocol>mjpeg</protocol>
+    </connection>
+
+    <connection>
+        <from>/AnnotationsPropagator/annotations:o</from>
+        <to>/WSModule/reply/annotations:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <!--connections for HRI annotation -->
+   <connection>
+        <from>/AnnotationsPropagator/ask/image:o</from>
+        <to>/blobAnnotation/image:i</to>
+        <protocol>mjpeg</protocol>
+    </connection>
+   <connection>
+        <from>/AnnotationsPropagator/ask/annotations:o</from>
+        <to>/blobAnnotation/detections:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+   <connection>
+        <from>/blobAnnotation/image:o</from>
+        <to>/AnnotationsPropagator/reply/image:i</to>
+        <protocol>mjpeg</protocol>
+    </connection>
+   <connection>
+        <from>/blobAnnotation/blobs:o</from>
+        <to>/AnnotationsPropagator/reply/annotations:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <!--connections for visualization -->
+
+    <connection>
+        <from>/WSModule/image:o</from>
+        <to>/WSModule/visualization/image:i</to>
+        <protocol>mjpeg</protocol>
+    </connection>
+
+    <connection>
+        <from>/WSModule/annotations:o</from>
+        <to>/WSModule/visualization/boxes:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+     <connection>
+        <from>/WSModule/visualization/image:o</from>
+        <to>/viewer/WSModule</to>
+        <protocol> mjpeg </protocol>
+    </connection>
+
+    <connection>
+        <from>/AnnotationsPropagator/image:o</from>
+        <to>/AnnotationsPropagator/visualization/image:i</to>
+        <protocol>mjpeg</protocol>
+    </connection>
+
+    <connection>
+        <from>/AnnotationsPropagator/annotations:o</from>
+        <to>/AnnotationsPropagator/visualization/boxes:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+     <connection>
+        <from>/AnnotationsPropagator/visualization/image:o</from>
+        <to>/viewer/AnnotationsPropagator</to>
+        <protocol> mjpeg </protocol>
+    </connection>
+
+     <connection>
+        <from>/iCWTPlayer/image:o</from>
+        <to>/viewer/dataset</to>
+        <protocol> mjpeg </protocol>
+    </connection>
+
+</application>

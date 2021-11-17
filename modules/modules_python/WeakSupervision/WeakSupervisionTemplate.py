@@ -35,13 +35,13 @@ class WeakSupervisionTemplate(yarp.RFModule, ABC):
         self._in_buf_array = np.ones((self.image_h, self.image_w, 3), dtype=np.uint8)
         self._in_buf_image = yarp.ImageRgb()
         self._in_buf_image.resize(self.image_w, self.image_h)
-        self._in_buf_image.setExternal(self._in_buf_array, self._in_buf_array.shape[1], self._in_buf_array.shape[0])
+        self._in_buf_image.setExternal(self._in_buf_array.data, self._in_buf_array.shape[1], self._in_buf_array.shape[0])
 
         print('Preparing output image...\n')
         self._out_buf_image = yarp.ImageRgb()
         self._out_buf_image.resize(self.image_w, self.image_h)
         self._out_buf_array = np.zeros((self.image_h, self.image_w, 3), dtype=np.uint8)
-        self._out_buf_image.setExternal(self._out_buf_array, self._out_buf_array.shape[1], self._out_buf_array.shape[0])
+        self._out_buf_image.setExternal(self._out_buf_array.data, self._out_buf_array.shape[1], self._out_buf_array.shape[0])
 
         #self.cmd_exploration_port = yarp.BufferedPortBottle()
         #self.cmd_exploration_port.open('/' + self.module_name + '/exploration/command:o')
@@ -84,9 +84,6 @@ class WeakSupervisionTemplate(yarp.RFModule, ABC):
         elif command.get(0).asString() == 'thresh_low':
             self.conf_thresh_low = float(command.get(1).asDouble())
             reply.addString('Confidence threshold low set to {:f}'.format(self.conf_thresh_low))
-        else:
-            print('Command {:s} not recognized'.format(command.get(0).asString()))
-            reply.addString('Command {:s} not recognized'.format(command.get(0).asString()))
         return True
 
     def cleanup(self):

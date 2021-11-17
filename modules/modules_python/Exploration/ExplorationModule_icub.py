@@ -3,9 +3,13 @@
 import yarp
 import sys
 import time
+import numpy as np
+from pyquaternion import Quaternion
+import math
 
 # Initialise YARP
 yarp.Network.init()
+
 
 class ExplorationModule (yarp.RFModule):
     def configure(self, rf):
@@ -31,7 +35,60 @@ class ExplorationModule (yarp.RFModule):
         return True
 
     def configure_interaction(self, rf):
-        print('to be implemented')
+        print('configure_interaction function')
+
+        self.arm = rf.find("arm").asString()  # self.arm = 'left' or 'right'
+
+        # Prepare ports and images for receiving inputs
+        self.image_w = rf.find("image_w").asString()
+        self.image_h = rf.find("image_h").asString()
+
+        # self.camera_fx = 618.0714111328125
+        # self.camera_fy = 617.783447265625
+        # self.camera_cx = 305.902252197265625
+        # self.camera_cy = 246.352935791015625
+        self.camera_fx = rf.find("camera_fx").asString()
+        self.camera_fy = rf.find("camera_fy").asString()
+        self.camera_cx = rf.find("camera_cx").asString()
+        self.camera_cy = rf.find("camera_cy").asString()
+
+        self.camera_pose_port = yarp.BufferedPortVector()
+        self.camera_pose_port.open('/' + self.module_name + '/camera_pose:i')
+        connected = yarp.Network().connect('/realsense-holder-publisher/pose:o', '/' + self.module_name + '/camera_pose:i')
+        print('{}: {}'.format('/' + self.module_name + '/camera_pose:i', connected))
+
+        self.target_in_port = yarp.BufferedPortBottle()
+        self.target_in_port.open('/' + self.module_name + '/target:i')
+        #connected = yarp.Network().connect('/dispBlobber/roi/left:o', '/' + self.module_name + '/target:i')
+        #print('{}: {}'.format('/' + self.module_name + '/target:i', connected))
+
+        self.depth_in_port = yarp.BufferedPortImageFloat()
+        self.depth_in_port.open('/' + self.module_name + '/depth:i')
+        connected = yarp.Network().connect('/depthCamera/depthImage:o', '/' + self.module_name + '/depth:i')
+        print('{}: {}'.format('/' + self.module_name + '/depth:i', connected))
+
+        self.depth_img = yarp.ImageFloat()
+        self.depth_img.resize(self.image_w, self.image_h)
+        self.depth_array = np.ones((self.image_h, self.image_w, 1), dtype=np.float32)
+        self.depth_img.setExternal(self.depth_array.data, self.depth_array.shape[1], self.depth_array.shape[0])
+
+        self.cam_H = None
+        self.target_H = None
+
+        # Open port to give feedback on exploration
+
+        # Open ports to communicate with karma
+        # self._karma_commands_port = yarp.BufferedPortBottle()
+        self._karma_commands_port = yarp.RpcClient()
+        self._karma_commands_port.open('/' + self.module_name + '/karma_commands:o')
+        print('{:s} opened'.format('/' + self.module_name + '/karma_commands:o'))
+
+        # Open ports to communicate with ARE
+        self._are_commands_port = yarp.BufferedPortBottle()
+        self._are_commands_port.open('/' + self.module_name + '/are_commands:o')
+        print('{:s} opened'.format('/' + self.module_name + '/are_commands:o'))
+
+        return True
 
     def configure_exploration(self, rf):
         num_steps = rf.find("steps").asInt()
@@ -41,7 +98,8 @@ class ExplorationModule (yarp.RFModule):
         #self.parts = ['right_arm']
 
         # Example of steps structure
-        # t = {'position': [-21.742, 20.0391, -9.93166, 35.0684, 0.977786, 0.0298225, -0.0565045, 0.163115], 'time': 4.0}
+        # t = {'position': [-21.742, 20.0391, -9.93166, 35.0684, 0.977786, 0.0298225, -0.0565045, 0.163115],
+        #      'time': 4.0}
         # s = {'right_arm': t}
         # self.steps = {'1': s}
 
@@ -218,6 +276,79 @@ class ExplorationModule (yarp.RFModule):
             else:
                 print('Robot {} unknown'.format(self.robot))
 
+    def yarp_vector_to_se3(self):
+        vector = self.camera_pose_port.read(False)
+
+        if vector is not None:
+            H = Quaternion(axis=[vector[3], vector[4], vector[5]], angle=vector[6]).transformation_matrix
+            for i in range(3):
+                H[i, 3] = vector[i]
+
+            return True, H
+        else:
+            return False, []
+
+    def blob_to_UVtarget(self, blob):
+        '''
+        This function computes the target as the center of the input bounding box
+        '''
+        blob_coord = blob.get(0).asList()
+        print('Received blob (tlx,tly,brx,bry): ({},{},{},{})'.format(blob_coord.get(0).asInt(),
+                                                                      blob_coord.get(1).asInt(),
+                                                                      blob_coord.get(2).asInt(),
+                                                                      blob_coord.get(3).asInt()))
+        target_u = (blob_coord.get(0).asInt() + blob_coord.get(2).asInt()) / 2
+        target_v = (blob_coord.get(1).asInt() + blob_coord.get(3).asInt()) / 2
+        print('Correspondent pixel_target (u,v): ({}, {})'.format(target_u, target_v))
+
+        return np.array([target_u, target_v])
+
+    def UVtarget_to_xyztarget(self, pixel_target, pixel_contact, depth_img_array):
+        '''
+        This function convert an (u,v) pixel and depth information in (x,y,z) coordinates in the camera frame
+        '''
+        # Retrieve Depth from pixel
+        d = depth_img_array[int(pixel_target[1]), int(pixel_target[0]), 0]
+        print('depth: {}'.format(d))
+
+        # Convert uv to xy
+        target_x = (pixel_target[0] - self.camera_cx) / self.camera_fx
+        target_y = (pixel_target[1] - self.camera_cy) / self.camera_fy
+        print('Converted (x,y): ({},{})'.format(target_x, target_y))
+
+        # Convert uv to xy
+        contact_x = (pixel_contact[0] - self.camera_cx) / self.camera_fx
+        contact_y = (pixel_contact[1] - self.camera_cy) / self.camera_fy
+        print('Converted (x,y): ({},{})'.format(contact_x, contact_y))
+
+        return np.array([target_x, target_y, d]), np.array([contact_x, contact_y, d])
+
+    def xyztarget_to_targetH(self, target_xyz):
+        target_H = np.array(
+            [[1, 0, 0, target_xyz[0]], [0, 1, 0, target_xyz[1]], [0, 0, 1, target_xyz[2]], [0, 0, 0, 1]])
+        print('target_H: {}'.format(target_H))
+        return target_H
+
+    def send_commands_to_karma(self, action, target_np, dimension, delta):
+        # to_send = self._karma_commands_port.prepare()
+        # to_send.clear()
+        to_send = yarp.Bottle()
+        reply = yarp.Bottle()
+
+        # b = to_send.addList()
+        # b.addString('train')
+        to_send.addString(action) # either push or vdraw
+        to_send.addDouble(target_np[0])
+        to_send.addDouble(target_np[1] - delta)
+        to_send.addDouble(target_np[2])
+        to_send.addInt(0)
+        to_send.addDouble(dimension + delta)
+        if action == 'vdraw':
+            to_send.addDouble(0.01)
+
+        self._karma_commands_port.write(to_send, reply)
+        return reply
+
     def respond(self, command, reply):
         if command.get(0).asString() == 'start':
             if command.get(1).asString() == 'exploration':
@@ -324,7 +455,7 @@ class ExplorationModule (yarp.RFModule):
                 for part in self.parts_state:
                     self.parts_state_previous[part] = self.parts_state[part].copy()
                 print('is the same')
-                self.state = 'start'
+                self.state = 'start_exploration'
                 self.current_step = self.current_step + 1
                 self.is_same_counter = 0
                 print(self.current_step)
@@ -339,15 +470,6 @@ class ExplorationModule (yarp.RFModule):
                 for part in self.parts_state:
                     self.parts_state_previous[part] = self.parts_state[part].copy()
                 #print('is not the same')
-
-        elif self.state == 'interaction':
-            print('interaction to be implemented')
-        elif self.state == 'start_interaction':
-            print('start_interaction to be implemented')
-        elif self.state == 'pause_interaction':
-            print('pause_interaction to be implemented')
-        elif self.state == 'home_interaction':
-            print('home_interaction to be implemented')
 
         elif self.state == 'start_exploration':
             print('state start')
@@ -433,11 +555,83 @@ class ExplorationModule (yarp.RFModule):
             self.current_step = 0
             self.state = 'do_nothing'
 
+        elif self.state == 'interaction':
+            print('interaction state')
+        elif self.state == 'start_interaction':
+            print('start_interaction state')
+
+            self.state = 'interaction'
+
+            # Read camera pose
+            ok, new_cam_H = self.yarp_vector_to_se3()
+            if ok:
+                self.cam_H = new_cam_H
+
+            # Read target and depth image from WS module
+            target_box = self.target_in_port.read(True)  # target_box = (tlx,tly,brx,bry)
+            received_img = self.depth_in_port.read(True)
+            self.depth_img.copy(received_img)
+            assert self.depth_array.__array_interface__['data'][0] == self.depth_img.getRawImage().__int__() # To double check with version of yarp
+
+            # Find measures in meters of the target and of the contact point
+            pixel_target = self.blob_to_UVtarget(target_box)
+            print('pixel target: ({},{},{})'.format(str(pixel_target[0]), str(pixel_target[1]), str(pixel_target[2])))
+            pixel_contact = np.array([target_box.get(0).asList().get(2).asInt(), pixel_target[1]])
+            print('pixel contact: ({},{},{})'.format(str(pixel_contact[0]), str(pixel_contact[1]), str(pixel_contact[2])))
+            target_xyz, contact_xyz = self.UVtarget_to_xyztarget(pixel_target, pixel_contact, self.depth_array)
+            print('xyz target: ({},{},{})'.format(str(target_xyz[0]), str(target_xyz[1]), str(target_xyz[2])))
+            print('xyz contact: ({},{},{})'.format(str(contact_xyz[0]), str(contact_xyz[1]), str(contact_xyz[2])))
+            target_H = self.xyztarget_to_targetH(target_xyz)
+            contact_H = self.xyztarget_to_targetH(contact_xyz)
+
+            root_to_target = self.cam_H.dot(target_H)
+            target_np = [root_to_target[i, 3] for i in range(3)]  # target_np = (x,y,z) in robot coordinate system
+            print('target_np: ({},{},{})'.format(str(target_np[0]), str(target_np[1]), str(target_np[2])))
+
+            root_to_contact = self.cam_H.dot(contact_H)
+            contact_np = [root_to_contact[i, 3] for i in range(3)]  # target_np = (x,y,z) in robot coordinate system
+            print('contact_np: ({},{},{})'.format(str(contact_np[0]), str(contact_np[1]), str(contact_np[2])))
+
+            # Identify right values for karma
+            dimension = math.sqrt(math.pow(target_np[0]-contact_np[0], 2) + math.pow(target_np[1]-contact_np[1], 2) + math.pow(target_np[2]-contact_np[2], 2))
+            delta = dimension/2
+            print('dimension: {}'.format(dimension))
+            print('delta: {}'.format(delta))
+
+            # Check feasibility
+            is_feasible = False
+            # Prepare and send vdraw command to karma
+            reply = self.send_commands_to_karma('vdraw', target_np, dimension, delta)
+            if reply.get(1).asDouble() < 1.0:
+                is_feasible = True
+
+            # Prepare and send push command to karma
+            if is_feasible:
+                self.send_commands_to_karma('push', target_np, dimension, delta)
+
+            self.state = 'do_nothing'
+
+        elif self.state == 'pause_interaction':
+            print('pause_interaction state not implemented')
+            # .... To see if it is ill posed
+            #self.state = 'do_nothing'
+        elif self.state == 'home_interaction':
+            print('home_interaction state')
+            to_send = self._are_commands_port.prepare()
+            to_send.clear()
+
+            to_send.addString('home')
+            to_send.addString('arms')
+            to_send.addString('head')
+
+            self._are_commands_port.write()
+            self.state = 'do_nothing'
         elif self.state == 'do_nothing':
             pass
         else:
             print('state {:s} unknown'.format(self.state))
         return True
+
 
 if __name__ == '__main__':
 
