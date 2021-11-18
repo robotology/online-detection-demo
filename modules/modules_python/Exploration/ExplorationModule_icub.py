@@ -340,13 +340,21 @@ class ExplorationModule (yarp.RFModule):
         # b = to_send.addList()
         # b.addString('train')
         to_send.addString(action) # either push or vdraw
+        to_print = '(' + action
         to_send.addDouble(target_np[0])
+        to_print = to_print + ', ' + str(target_np[0])
         to_send.addDouble(target_np[1] - delta)
+        to_print = to_print + ', ' + str(target_np[1] - delta)
         to_send.addDouble(target_np[2])
+        to_print = to_print + ', ' + str(target_np[2])
         to_send.addInt(0)
+        to_print = to_print + ', ' + str(0)
         to_send.addDouble(dimension + delta)
+        to_print = to_print + ', ' + str(dimension + delta)
         if action == 'vdraw':
             to_send.addDouble(0.01)
+            to_print = to_print + ', ' + str(0.01)
+        print(to_print)
 
         self._karma_commands_port.write(to_send, reply)
         return reply
