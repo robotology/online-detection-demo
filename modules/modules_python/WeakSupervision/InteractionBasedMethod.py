@@ -94,7 +94,7 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
         elif command.get(0).asString() == 'start':
             if command.get(1).asString() == 'interaction':
                 self.skip = False
-                self.state = 'interact'
+                self.state = 'refine'
                 reply.addString('Enetering interaction state.')
                 print('Enetering interaction state.')
             else:
@@ -114,7 +114,7 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
         return True
 
     def send_interaction_success(self):
-        if self.state == 'interact':
+        if self.state == 'refine':
             print('sending interaction success')
             to_send = self.manager_cmd.prepare()
             to_send.clear()
@@ -127,7 +127,7 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
             print('Not sending interaction success')
 
     def send_interaction_failure(self):
-        if self.state == 'interact':
+        if self.state == 'refine':
             print('sending interaction failure')
             to_send = self.manager_cmd.prepare()
             to_send.clear()
@@ -195,7 +195,7 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
         self._ask_annotations_port.write()
 
     def receive_data(self) -> None:
-        if self.state == 'interact':
+        if self.state == 'refine':
             print('Waiting for detections...')
             detections = yarp.Bottle()
             detections.clear()
@@ -329,7 +329,7 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
         '''
         This function sends the next target to explore
         '''
-        if self.state == 'interact' and not self.target[0] == -1 and not self.skip:
+        if self.state == 'refine' and not self.target[0] == -1 and not self.skip:
             print('Sending exploration target')
             to_send = self._send_exploration_targets_port.prepare()
             to_send.clear()
@@ -356,16 +356,16 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
           - if we are not in interaction mode and we are not exploring we only
           want to propagate image to the tracker
         '''
-        if not self.exploring and self.state == 'interact':
+        if not self.exploring and self.state == 'refine':
             self.ask_for_annotations()
             self.pick_target()
             self.send_exploration_target()
-        elif not self.exploring and not self.state == 'interact':
+        elif self.exploring and self.state == 'refine':
             self._out_buf_array[:, :] = self._in_buf_array
             self.propagate_image()
 
     def use_data(self) -> None:
-        if self.state == 'interact':
+        if self.state == 'refine':
             print('Using received annotations')
             to_send = self._output_annotations_port.prepare()
             to_send.clear()
