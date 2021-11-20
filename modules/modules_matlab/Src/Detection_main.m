@@ -93,7 +93,7 @@ while ~strcmp(state,'quit')
                
            case{'stop'}
                action_to_stop = cmd_bottle.get(1).asString().toCharArray';
-               if strcmp(action_to_stop, 'refinement')
+               if strcmp(action_to_stop, 'refinement') and strcmp(state, 'refine_stream')
                    disp('switching to state Update Model...');
                    state = 'update_model';
                    % Update dataset with the new collected dataset

@@ -14,7 +14,7 @@ yarp.Network.init()
 class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
     def configure(self, rf):
         super(InteractionBasedMethod, self).configure(rf)
-        self.arm = rf.find("arm").asString() # self.arm = 'left' or 'right'
+        self.arm = rf.find("arm").asString()  # self.arm = 'left' or 'right'
         self.predictions = []
         self.annotations = []
 
@@ -42,6 +42,11 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
         self._reply_annotations_port.open('/' + self.module_name + '/reply/annotations:i')
         print('{:s} opened'.format('/' + self.module_name + '/reply/annotations:i'))
 
+        # Ports to send commands to state machine and detection modules
+        self.manager_cmd = yarp.BufferedPortBottle()
+        self.manager_cmd.open('/' + self.module_name + '/manager_cmd:o')
+        print('{:s} opened'.format('/' + self.module_name + '/manager_cmd:o'))
+
         print('Preparing image to ask annotation...')
         self._ask_buf_image = yarp.ImageRgb()
         self._ask_buf_image.resize(self.image_w, self.image_h)
@@ -57,27 +62,82 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
         self.skip = False
         self.performed_action = 'active'
         self.exploring = False
+        self.state = 'do_nothing'
 
         return True
 
     def respond(self, command, reply):
         super(InteractionBasedMethod, self).respond(command, reply)
-        if command.get(0).asString() == 'exploration':
-            if command.get(1).asString() == 'success':
-                self.exploring = False
-                reply.addString('Current exploration step succeeded, starting next one')
-                print('Current exploration step succeeded, starting next one')
-            elif command.get(1).asString() == 'fail':
-                self.exploring = False
-                self.skip = True
-                reply.addString('Current exploration step failed')
-                print('Current exploration step failed')
+        if command.get(0).asString() == 'interaction':
+            if self.exploring:
+                if command.get(1).asString() == 'success':
+                    self.exploring = False
+                    # Send to the state machine the end of the exploration phase
+                    self.send_interaction_success()
+                    reply.addString('Current interaction step succeeded, stopping interaction')
+                    print('Current interaction step succeeded, starting next one')
+                    self.state = 'do_nothing'
+                elif command.get(1).asString() == 'fail':
+                    self.exploring = False
+                    # Send to the state machine the end of the exploration phase with failure:
+                    # an action needs to be taken, like the human moving the objects in front of the robot
+                    # to change the current configuration
+                    self.send_interaction_failure()
+                    reply.addString('Current interaction step failed, stopping interaction')
+                    print('Current interaction step failed')
+                    self.state = 'do_nothing'
+                else:
+                    reply.addString('No ongoing interaction. Doing nothing.')
+                    print('No ongoing interaction. Doing nothing.')
         elif command.get(0).asString() == 'refine':
             self.skip = False
+        elif command.get(0).asString() == 'start':
+            if command.get(1).asString() == 'interaction':
+                self.skip = False
+                self.state = 'interact'
+                reply.addString('Enetering interaction state.')
+                print('Enetering interaction state.')
+            else:
+                reply.addString('Unknown action to start')
+                print('Unknown action to start.')
+        elif command.get(0).asString() == 'stop':
+            if command.get(1).asString() == 'interaction':
+                self.state = 'do_nothing'
+                reply.addString('Stopping interaction state.')
+                print('Stopping interaction state.')
+            else:
+                reply.addString('Unknown action to start')
+                print('Unknown action to start.')
         else:
             print('Command {:s} not recognized'.format(command.get(0).asString()))
             reply.addString('Command {:s} not recognized'.format(command.get(0).asString()))
         return True
+
+    def send_interaction_success(self):
+        if self.state == 'interact':
+            print('sending interaction success')
+            to_send = self.manager_cmd.prepare()
+            to_send.clear()
+            to_send.addString('interact')
+            to_send.addString('stop')
+            self.manager_cmd.write()
+            self.state = 'do_nothing'
+            self.skip = True
+        else:
+            print('Not sending interaction success')
+
+    def send_interaction_failure(self):
+        if self.state == 'interact':
+            print('sending interaction failure')
+            to_send = self.manager_cmd.prepare()
+            to_send.clear()
+            to_send.addString('interact')
+            to_send.addString('fail')
+            self.manager_cmd.write()
+            self.skip = True
+            self.state = 'do_nothing'
+        else:
+            print('Not sending interaction failure')
 
     def ask_for_annotations(self):
         # Send image and doubtful predictions to the annotator
@@ -135,30 +195,33 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
         self._ask_annotations_port.write()
 
     def receive_data(self) -> None:
-        print('Waiting for detections or annotations...')
-        detections = yarp.Bottle()
-        detections.clear()
-        detections = self._input_predictions_port.read()
-        received_image = self._input_image_port.read()
-        print('Image received...')
-        self._in_buf_image.copy(received_image)
-        assert self._in_buf_array.__array_interface__['data'][0] == self._in_buf_image.getRawImage().__int__()
+        if self.state == 'interact':
+            print('Waiting for detections...')
+            detections = yarp.Bottle()
+            detections.clear()
+            detections = self._input_predictions_port.read()
+            received_image = self._input_image_port.read()
+            print('Image received...')
+            self._in_buf_image.copy(received_image)
+            assert self._in_buf_array.__array_interface__['data'][0] == self._in_buf_image.getRawImage().__int__()
 
-        self.predictions = []
-        if detections is not None:
-            for i in range(0, detections.size()):
-                dets = detections.get(i).asList()
-                if dets.get(0).isDouble():
-                    bbox = [dets.get(0).asDouble(), dets.get(1).asDouble(), dets.get(2).asDouble(),
-                            dets.get(3).asDouble()]  # bbox format: [tl_x, tl_y, br_x, br_y]
-                    score = dets.get(4).asDouble()  # score of i-th detection
-                    cls = dets.get(5).asString()  # label of i-th detection
-                    detection_dict = {
-                        'bbox': bbox,
-                        'confidence': score,
-                        'class': cls
-                    }
-                    self.predictions.append(detection_dict)
+            self.predictions = []
+            if detections is not None:
+                for i in range(0, detections.size()):
+                    dets = detections.get(i).asList()
+                    if dets.get(0).isDouble():
+                        bbox = [dets.get(0).asDouble(), dets.get(1).asDouble(), dets.get(2).asDouble(),
+                                dets.get(3).asDouble()]  # bbox format: [tl_x, tl_y, br_x, br_y]
+                        score = dets.get(4).asDouble()  # score of i-th detection
+                        cls = dets.get(5).asString()  # label of i-th detection
+                        detection_dict = {
+                            'bbox': bbox,
+                            'confidence': score,
+                            'class': cls
+                        }
+                        self.predictions.append(detection_dict)
+        else:
+            print('Not receivieng data')
 
     @staticmethod
     def compute_overlap(A, B):
@@ -255,15 +318,19 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
                         print('Conditions not verified')
             if not index_to_pick == -1:
                 self.target[:] = self.annotations[index_to_pick]['bbox'][:]
+                print(self.annotations[index_to_pick]['class'])
             else:
                 print('Exploration target not found')
-                self.skip = True
+                self.exploring = False
+                self.send_interaction_failure()
+                self.state = 'do_nothing'
 
     def send_exploration_target(self):
         '''
         This function sends the next target to explore
         '''
-        if not self.target[0] == -1:
+        if self.state == 'interact' and not self.target[0] == -1 and not self.skip:
+            print('Sending exploration target')
             to_send = self._send_exploration_targets_port.prepare()
             to_send.clear()
             t = to_send.addList()
@@ -281,38 +348,46 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
 
     def process_data(self) -> None:
         '''
-        After receiving a prediction, the module:
-         1. Asks the annotation to the tracker
-         2. If the robot is not exploring, it sends a new target to explore
-         3. It propagates the image
+        After receiving a prediction:
+          - if we are in interaction mode but still not exploring:
+             1. Asks the annotation to the tracker
+             2. Pick the box to explore
+             3. Sends a new target to explore
+          - if we are not in interaction mode and we are not exploring we only
+          want to propagate image to the tracker
         '''
-        self.ask_for_annotations()
-        if not self.exploring:
+        if not self.exploring and self.state == 'interact':
+            self.ask_for_annotations()
             self.pick_target()
             self.send_exploration_target()
-        self._out_buf_array[:, :] = self._in_buf_array
-        self.propagate_image()
+        elif not self.exploring and not self.state == 'interact':
+            self._out_buf_array[:, :] = self._in_buf_array
+            self.propagate_image()
 
     def use_data(self) -> None:
-        to_send = self._output_annotations_port.prepare()
-        to_send.clear()
+        if self.state == 'interact':
+            print('Using received annotations')
+            to_send = self._output_annotations_port.prepare()
+            to_send.clear()
 
-        if self.annotations is not None and not self.skip:
-            for p in self.annotations:
-                b = to_send.addList()
-                # b.addString('train')
-                b.addDouble(p['bbox'][0])
-                b.addDouble(p['bbox'][1])
-                b.addDouble(p['bbox'][2])
-                b.addDouble(p['bbox'][3])
-                b.addString(p['class'])
-                b.addString(self.performed_action)
-        elif self.skip:
-            self.skip = False
-            to_send.addString('skip')
+            if self.annotations is not None and not self.skip:
+                for p in self.annotations:
+                    b = to_send.addList()
+                    # b.addString('train')
+                    b.addDouble(p['bbox'][0])
+                    b.addDouble(p['bbox'][1])
+                    b.addDouble(p['bbox'][2])
+                    b.addDouble(p['bbox'][3])
+                    b.addString(p['class'])
+                    b.addString(self.performed_action)
+            elif self.skip:
+                self.skip = False
+                to_send.addString('skip')
 
-        self._output_annotations_port.write()
-        self._output_image_port.write(self._out_buf_image)
+            self._output_annotations_port.write()
+            self._output_image_port.write(self._out_buf_image)
+        else:
+            pass
 
     def cleanup(self):
         super(InteractionBasedMethod, self).cleanup()

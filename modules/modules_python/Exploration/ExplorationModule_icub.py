@@ -39,6 +39,8 @@ class ExplorationModule (yarp.RFModule):
         print('configure_interaction function')
 
         self.arm = rf.find("arm").asString()  # self.arm = 'left' or 'right'
+        if self.arm == 'right':
+            print('**************************************** WARNING: Actions with right arm not implemented ****************************************')
 
         # Prepare ports and images for receiving inputs
         self.image_w = rf.find("image_w").asInt()
@@ -75,6 +77,9 @@ class ExplorationModule (yarp.RFModule):
 
         self.cam_H = None
         self.target_H = None
+        self.target_np_to_send = None
+        self.dimension = 0.0
+        self.delta = 0.08
 
         # Open port to give feedback on exploration
 
@@ -85,9 +90,14 @@ class ExplorationModule (yarp.RFModule):
         print('{:s} opened'.format('/' + self.module_name + '/karma_commands:o'))
 
         # Open ports to communicate with ARE
-        self._are_commands_port = yarp.BufferedPortBottle()
+        self._are_commands_port = yarp.RpcClient()
         self._are_commands_port.open('/' + self.module_name + '/are_commands:o')
         print('{:s} opened'.format('/' + self.module_name + '/are_commands:o'))
+
+        # Open ports to communicate with karma
+        self._ws_commands_port = yarp.RpcClient()
+        self._ws_commands_port.open('/' + self.module_name + '/ws_commands:o')
+        print('{:s} opened'.format('/' + self.module_name + '/ws_commands:o'))
 
         return True
 
@@ -339,25 +349,57 @@ class ExplorationModule (yarp.RFModule):
 
         # b = to_send.addList()
         # b.addString('train')
-        to_send.addString(action) # either push or vdraw
+        to_send.addString(action)  # either push or vdraw
         to_print = '(' + action
         to_send.addDouble(target_np[0])
         to_print = to_print + ', ' + str(target_np[0])
-        to_send.addDouble(target_np[1] - delta)
-        to_print = to_print + ', ' + str(target_np[1] - delta)
+        to_send.addDouble(target_np[1] - delta + dimension)
+        to_print = to_print + ', ' + str(target_np[1] - delta + dimension)
         to_send.addDouble(target_np[2])
         to_print = to_print + ', ' + str(target_np[2])
-        to_send.addInt(0)
-        to_print = to_print + ', ' + str(0)
-        to_send.addDouble(dimension + delta)
-        to_print = to_print + ', ' + str(dimension + delta)
+        if self.arm == 'left':
+            to_send.addDouble(180.0)
+            to_print = to_print + ', ' + str(180.0)
+        else:
+            print('Actions with right arm not implemented')
+        to_send.addDouble(delta)
+        to_print = to_print + ', ' + str(delta)
         if action == 'vdraw':
             to_send.addDouble(0.01)
             to_print = to_print + ', ' + str(0.01)
+        to_print = to_print + ')'
         print(to_print)
 
         self._karma_commands_port.write(to_send, reply)
         return reply
+
+    def check_feasibility(self, target_np, dimension, delta):
+        new_target_np = target_np
+
+        # Check x coordinate and adjust it
+        check_x = -0.60 <= target_np[0] <= -0.30
+        if check_x and -0.60 <= target_np[0] <= -0.55:
+            new_target_np[0] = -0.55
+        elif check_x and -0.25 <= target_np[0] <= -0.30:
+            new_target_np[0] = -0.30
+
+        # Check y coordinate
+        check_y = -0.20 <= target_np[1] - delta + dimension <= -0.10  # TO CHECK
+
+        # Check z coordinate and adjust it
+        check_z = target_np[2] >= -0.08
+        if check_z and target_np[2] >= -0.04:
+            new_target_np[2] = -0.05
+
+        # Prepare and send vdraw command to karma
+        vdraw_ok = False
+        reply = self.send_commands_to_karma('vdraw', new_target_np, dimension, delta)
+        print('vdraw output: {}'.format(str(reply.get(1).asDouble())))
+        if reply.get(1).asDouble() < 0.6:
+            vdraw_ok = True
+
+        is_feasible = check_x and check_y and check_z and vdraw_ok
+        return is_feasible, new_target_np
 
     def respond(self, command, reply):
         if command.get(0).asString() == 'start':
@@ -369,6 +411,11 @@ class ExplorationModule (yarp.RFModule):
                 print('Starting interaction')
                 self.state = 'start_interaction'
                 reply.addString('Interaction started')
+        elif command.get(0).asString() == 'send':
+            if command.get(1).asString() == 'interaction':
+                print('Sending interaction command')
+                self.state = 'send_interaction'
+                reply.addString('Sending interaction command')
         elif command.get(0).asString() == 'pause':
             if command.get(1).asString() == 'exploration':
                 print('Pausing exploration')
@@ -396,10 +443,9 @@ class ExplorationModule (yarp.RFModule):
                 print('Stopping interaction. Going home.')
                 self.state = 'home_interaction'
                 reply.addString('Interaction stopped')
-            else: # I don't know if it makes sense anymore
-                print('The robot is not exploring. Going home.')
-                self.state = 'home'
-                reply.addString('The robot is not exploring. Going home.')
+            else:  # I don't know if it makes sense anymore
+                print('The robot is neither exploring nor interacting. Doing nothing.')
+                reply.addString('The robot is not exploring nor interacting. Doing nothing.')
         else:
             print('Command {:s} not recognized'.format(command.get(0).asString()))
             reply.addString('Command {:s} not recognized'.format(command.get(0).asString()))
@@ -569,7 +615,6 @@ class ExplorationModule (yarp.RFModule):
             print('interaction state')
         elif self.state == 'start_interaction':
             print('start_interaction state')
-
             self.state = 'interaction'
 
             # Read camera pose
@@ -581,7 +626,7 @@ class ExplorationModule (yarp.RFModule):
             target_box = self.target_in_port.read(True)  # target_box = (tlx,tly,brx,bry)
             received_img = self.depth_in_port.read(True)
             self.depth_img.copy(received_img)
-            assert self.depth_array.__array_interface__['data'][0] == self.depth_img.getRawImage().__int__() # To double check with version of yarp
+            assert self.depth_array.__array_interface__['data'][0] == self.depth_img.getRawImage().__int__()
 
             # Find measures in meters of the target and of the contact point
             pixel_target = self.blob_to_UVtarget(target_box)
@@ -599,25 +644,35 @@ class ExplorationModule (yarp.RFModule):
             print('target_np: ({},{},{})'.format(str(target_np[0]), str(target_np[1]), str(target_np[2])))
 
             root_to_contact = self.cam_H.dot(contact_H)
-            contact_np = [root_to_contact[i, 3] for i in range(3)]  # target_np = (x,y,z) in robot coordinate system
+            contact_np = [root_to_contact[i, 3] for i in range(3)]  # contactt_np = (x,y,z) in robot coordinate system
             print('contact_np: ({},{},{})'.format(str(contact_np[0]), str(contact_np[1]), str(contact_np[2])))
 
             # Identify right values for karma
-            dimension = math.sqrt(math.pow(target_np[0]-contact_np[0], 2) + math.pow(target_np[1]-contact_np[1], 2) + math.pow(target_np[2]-contact_np[2], 2))
-            delta = dimension/2
-            print('dimension: {}'.format(dimension))
-            print('delta: {}'.format(delta))
+            self.dimension = math.sqrt(math.pow(target_np[0]-contact_np[0], 2) + math.pow(target_np[1]-contact_np[1], 2) + math.pow(target_np[2]-contact_np[2], 2))
+            #delta = 0.08
+            print('dimension: {}'.format(self.dimension))
+            print('delta: {}'.format(self.delta))
 
-            # Check feasibility
-            is_feasible = False
-            # Prepare and send vdraw command to karma
-            reply = self.send_commands_to_karma('vdraw', target_np, dimension, delta)
-            if reply.get(1).asDouble() < 1.0:
-                is_feasible = True
+            if self.arm == 'left':
+                # Check feasibility
+                is_feasible, self.target_np_to_send = self.check_feasibility(target_np, self.dimension, self.delta)
+                print('is_feasible: {}'.format(is_feasible))
+                print('new_target_np: ({},{},{})'.format(str(self.target_np_to_send[0]), str(self.target_np_to_send[1]), str(self.target_np_to_send[2])))
 
-            # Prepare and send push command to karma
-            if is_feasible:
-                self.send_commands_to_karma('push', target_np, dimension, delta)
+                # Prepare and send push command to karma
+                if is_feasible:
+                    print('Feasible action, waiting for send interaction command')
+                    self.state = 'do_nothing'
+                else:
+                    to_send = self._ws_commands_port.prepare()
+                    to_send.clear()
+                    to_send.addString('interaction')
+                    to_send.addString('fail')
+                    self._ws_commands_port.write()
+            elif self.arm == 'right':
+                print('Actions with right arm, not implemented')
+            else:
+                print('Unknown arm: {}'.format(self.arm))
 
             self.state = 'do_nothing'
 
@@ -635,6 +690,9 @@ class ExplorationModule (yarp.RFModule):
             to_send.addString('head')
 
             self._are_commands_port.write()
+            self.state = 'do_nothing'
+        elif self.state == 'send_interaction':
+            self.send_commands_to_karma('push', self.target_np_to_send, self.dimension, self.delta)
             self.state = 'do_nothing'
         elif self.state == 'do_nothing':
             pass

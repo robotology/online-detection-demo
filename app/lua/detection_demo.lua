@@ -971,16 +971,21 @@ while state ~= "quit" and not interrupting do
                         sendRefine(action)
                         sendInteract(action)
                         state = "home"
-                    elseif action == 'pause' then
-                        print("Pausing interaction")
-                        speak(port_ispeak, "I am not sure about what I see, can you help me?")
-                        sendInteract(action)
-                        state = "refine"
-                    elseif action == 'resume' then
-                        print("Resuming interaction")
-                        speak(port_ispeak, "ok, thank you!")
-                        sendInteract(action)
-                        state = "refine"
+                    elseif action == 'fail' then
+                        speak(port_ispeak, "The interaction failed. Can you move the objects please?")
+                        sendRefine('stop')
+                        sendInteract('stop')
+                        state = "home"
+--                    elseif action == 'pause' then
+--                        print("Pausing interaction")
+--                        speak(port_ispeak, "I am not sure about what I see, can you help me?")
+--                        sendInteract(action)
+--                        state = "refine"
+--                    elseif action == 'resume' then
+--                        print("Resuming interaction")
+--                        speak(port_ispeak, "ok, thank you!")
+--                        sendInteract(action)
+--                        state = "refine"
                     else
                         speak(port_ispeak, "interact: unknown action " .. action)
                     end
