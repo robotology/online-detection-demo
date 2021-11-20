@@ -94,7 +94,7 @@ class ExplorationModule (yarp.RFModule):
         self._are_commands_port.open('/' + self.module_name + '/are_commands:o')
         print('{:s} opened'.format('/' + self.module_name + '/are_commands:o'))
 
-        # Open ports to communicate with karma
+        # Open ports to communicate with ws module
         self._ws_commands_port = yarp.RpcClient()
         self._ws_commands_port.open('/' + self.module_name + '/ws_commands:o')
         print('{:s} opened'.format('/' + self.module_name + '/ws_commands:o'))
@@ -320,17 +320,26 @@ class ExplorationModule (yarp.RFModule):
         '''
         # Retrieve Depth from pixel
         d = depth_img_array[int(pixel_target[1]), int(pixel_target[0]), 0]
+#        d = depth_img_array[int(pixel_target[0]), int(pixel_target[1]), 0]
         print('depth: {}'.format(d))
 
         # Convert uv to xy
-        print(pixel_target[0])
-        target_x = (pixel_target[0] - self.camera_cx) / self.camera_fx
-        target_y = (pixel_target[1] - self.camera_cy) / self.camera_fy
+        #print(pixel_target[0])
+#        target_x = -(pixel_target[0] * d) / self.camera_fx
+#        target_y = -(pixel_target[1] * d) / self.camera_fy
+        #target_x = (pixel_target[0] - self.camera_cx) / self.camera_fx
+        #target_y = (pixel_target[1] - self.camera_cy) / self.camera_fy
+        target_x = ((pixel_target[0] - self.camera_cx) * d) / self.camera_fx
+        target_y = ((pixel_target[1] - self.camera_cy) * d) / self.camera_fy
         print('Converted (x,y): ({},{})'.format(target_x, target_y))
 
         # Convert uv to xy
-        contact_x = (pixel_contact[0] - self.camera_cx) / self.camera_fx
-        contact_y = (pixel_contact[1] - self.camera_cy) / self.camera_fy
+#        contact_x = -(pixel_contact[0] * d) / self.camera_fx
+#        contact_y = -(pixel_contact[1] * d) / self.camera_fy
+        #contact_x = (pixel_contact[0] - self.camera_cx) / self.camera_fx
+        #contact_y = (pixel_contact[1] - self.camera_cy) / self.camera_fy
+        contact_x = ((pixel_contact[0] - self.camera_cx)* d) / self.camera_fx
+        contact_y = ((pixel_contact[1] - self.camera_cy)* d) / self.camera_fy
         print('Converted (x,y): ({},{})'.format(contact_x, contact_y))
 
         return np.array([target_x, target_y, d]), np.array([contact_x, contact_y, d])
@@ -353,8 +362,8 @@ class ExplorationModule (yarp.RFModule):
         to_print = '(' + action
         to_send.addDouble(target_np[0])
         to_print = to_print + ', ' + str(target_np[0])
-        to_send.addDouble(target_np[1] - delta + dimension)
-        to_print = to_print + ', ' + str(target_np[1] - delta + dimension)
+        to_send.addDouble(target_np[1] + delta - dimension)
+        to_print = to_print + ', ' + str(target_np[1] + delta - dimension)
         to_send.addDouble(target_np[2])
         to_print = to_print + ', ' + str(target_np[2])
         if self.arm == 'left':
@@ -387,9 +396,10 @@ class ExplorationModule (yarp.RFModule):
         check_y = -0.20 <= target_np[1] - delta + dimension <= -0.10  # TO CHECK
 
         # Check z coordinate and adjust it
-        check_z = target_np[2] >= -0.08
-        if check_z and target_np[2] >= -0.04:
-            new_target_np[2] = -0.05
+#        check_z = target_np[2] >= -0.08
+#        if check_z and target_np[2] >= -0.04:
+        new_target_np[2] = -0.06
+        check_z = True
 
         # Prepare and send vdraw command to karma
         vdraw_ok = False
@@ -664,11 +674,12 @@ class ExplorationModule (yarp.RFModule):
                     print('Feasible action, waiting for send interaction command')
                     self.state = 'do_nothing'
                 else:
-                    to_send = self._ws_commands_port.prepare()
+                    to_send = yarp.Bottle()
+                    reply = yarp.Bottle()
                     to_send.clear()
                     to_send.addString('interaction')
                     to_send.addString('fail')
-                    self._ws_commands_port.write()
+                    self._ws_commands_port.write(to_send, reply)
             elif self.arm == 'right':
                 print('Actions with right arm, not implemented')
             else:
