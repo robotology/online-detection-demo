@@ -124,9 +124,17 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
             to_send.addString('interact')
             to_send.addString('stop')
             self.manager_cmd.write()
-            time.sleep(1.5)
+            time.sleep(2.5)
+#            self.skip = True
+            to_send = self._output_annotations_port.prepare()
+            to_send.clear()
+            self.skip = False
+            to_send.addString('skip')
+            self._output_annotations_port.write()
+
+            time.sleep(1.0)
             self.state = 'do_nothing'
-            self.skip = True
+            #self.skip = True
         else:
             print('Not sending interaction success')
 
@@ -138,8 +146,15 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
             to_send.addString('interact')
             to_send.addString('fail')
             self.manager_cmd.write()
-            time.sleep(1.5)
-            self.skip = True
+            time.sleep(2.5)
+            #self.skip = True
+            to_send = self._output_annotations_port.prepare()
+            to_send.clear()
+            self.skip = False
+            to_send.addString('skip')
+            self._output_annotations_port.write()
+
+            time.sleep(1.0)
             self.state = 'do_nothing'
         else:
             print('Not sending interaction failure')
@@ -368,6 +383,10 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
             self.pick_target()
             self.send_exploration_target()
         elif self.exploring and self.state == 'refine':
+            #self._out_buf_array[:, :] = self._in_buf_array
+            self.ask_for_annotations()
+        #    self.propagate_image()
+        else:
             self._out_buf_array[:, :] = self._in_buf_array
             self.propagate_image()
 
