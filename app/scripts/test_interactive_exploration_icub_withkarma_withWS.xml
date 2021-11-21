@@ -1,15 +1,33 @@
 <application>
-<name>Weakly Supervised Online Detection Interaction</name>
+<name>Weakly Supervised Online Detection</name>
 
     <!--MODULES -->
-	<module>
-        <name>iCWT_player_RF.py</name>
-        <parameters> </parameters>
-        <deployer>python3.5</deployer>
+    <module>
+        <name>yarpdev</name>
+        <parameters>--context realsense --from realsense2Conf.ini</parameters>
         <node>localhost</node>
     </module>
-
+    
     <module>
+        <name>yarp-blob</name>
+        <node>docker-manager</node>
+    </module>
+    
+    <module>
+        <name>actionsRenderingEngine</name>
+        <parameters></parameters>
+        <deployer></deployer>
+        <node>iiticublap235</node>
+    </module> 
+    
+    <module>
+        <name>karmaMotor</name>
+        <parameters></parameters>
+        <deployer></deployer>
+        <node>iiticublap235</node>
+    </module> 
+    
+        <module>
         <name>AnnotationsPropagator.py</name>
         <parameters>--from /home/elisa/Repos/online-detection-demo/app/config/annotations_propagator_conf.ini</parameters>
         <deployer>python3.5</deployer>
@@ -56,10 +74,77 @@
         <parameters>--name /viewer/WSModule --x 0 --y 0 --w 500 --h 480 --RefreshTime 33</parameters>
     </module>
 
+    <!-- Yarpview for visualization -->
+
+    <module>
+        <name>yarpview</name>
+        <parameters>--name /viewer/depth --x 400 --y 550 --p 50 --compact</parameters>
+        <node>localhost</node>
+    </module>
+
 
     <!--CONNECTIONS -->
+    
+    <!--connections between WeaklySupervised Module and Exploration Module -->
+    
+    <connection>
+        <from>/WSModule/exploration/targets:o</from>
+        <to>/exploration/target:i</to>
+        <protocol>fast_tcp</protocol>
+    </connection>
+    
+    <!--connections for Exploration Module -->
 
-    <!--connections for WeaklySupervised Module -->
+    <connection>
+        <from>/yarp-blob/depth:o</from>
+        <to>/viewer/depth</to>
+        <protocol>fast_tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/depthCamera/depthImage:o</from>
+        <to>/yarp-blob/float:i</to>
+        <protocol>fast_tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/depthCamera/rgbImage:o</from>
+        <to>/viewer/rgb</to>
+        <protocol> mjpeg </protocol>
+    </connection>
+
+    <connection>
+        <from>/WSModule/manager_cmd:o</from>
+        <to>/manager/cmd:i</to>
+        <protocol> fast_tcp </protocol>
+    </connection>
+
+    <connection>
+        <from>/exploration/ws_commands:o</from>
+        <to>/WSModule/command:i</to>
+        <protocol> fast_tcp </protocol>
+    </connection>
+
+    <connection>
+        <from>/manager/exploration/cmd:o</from>
+        <to>/WSModule/command:i</to>
+        <protocol> fast_tcp </protocol>
+    </connection>
+
+    <connection>
+        <from>/exploration/karma_commands:o</from>
+        <to>/karmaMotor/rpc</to>
+        <protocol> fast_tcp </protocol>
+    </connection>
+    
+    <connection>
+        <from>/exploration/are_commands:o</from>
+        <to>/actionsRenderingEngine/cmd:io</to>
+        <protocol> fast_tcp </protocol>
+    </connection>
+    
+    
+<!--connections for WeaklySupervised Module -->
 
     <connection>
         <from>/depthCamera/rgbImage:o</from>
@@ -170,5 +255,7 @@
         <to>/viewer/dataset</to>
         <protocol> mjpeg </protocol>
     </connection>
+
+
 
 </application>

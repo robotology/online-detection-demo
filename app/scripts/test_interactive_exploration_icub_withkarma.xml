@@ -1,0 +1,112 @@
+<application>
+<name>Weakly Supervised Online Detection</name>
+
+    <!--MODULES -->
+    <module>
+        <name>yarpdev</name>
+        <parameters>--context realsense --from realsense2Conf.ini</parameters>
+        <node>localhost</node>
+    </module>
+    
+    <module>
+        <name>yarp-blob</name>
+        <node>docker-manager</node>
+    </module>
+
+    <module>
+        <name>ExplorationModule_icub.py</name>
+        <parameters>--from /projects/public/online-detection-demo/app/config/interactive_exploration_conf_icub_320x240.ini</parameters>
+        <deployer>python3.5</deployer>
+        <node>docker-manager</node>
+    </module>
+
+
+    <module>
+        <name>BoxesVisualizer.py</name>
+        <parameters>--from contexts/online-detection-demo/ws_module_conf.ini</parameters>
+        <deployer>python3.5</deployer>
+        <node>docker-ws</node>
+    </module> 
+    
+    <module>
+        <name>actionsRenderingEngine</name>
+        <parameters></parameters>
+        <deployer></deployer>
+        <node>iiticublap235</node>
+    </module> 
+    
+    <module>
+        <name>karmaMotor</name>
+        <parameters></parameters>
+        <deployer></deployer>
+        <node>iiticublap235</node>
+    </module> 
+
+    <!-- Yarpview for visualization -->
+
+    <module>
+        <name>yarpview</name>
+        <parameters>--name /viewer/depth --x 400 --y 550 --p 50 --compact</parameters>
+        <node>localhost</node>
+    </module>
+
+    <module>
+        <name>yarpview</name>
+        <parameters>--name /viewer/rgb --x 400 --y 550 --p 50 --compact --out /click</parameters>
+        <node>localhost</node>
+    </module>
+
+
+    <!--CONNECTIONS -->
+
+    <connection>
+        <from>/yarp-blob/depth:o</from>
+        <to>/viewer/depth</to>
+        <protocol>fast_tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/depthCamera/depthImage:o</from>
+        <to>/yarp-blob/float:i</to>
+        <protocol>fast_tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/depthCamera/rgbImage:o</from>
+        <to>/viewer/rgb</to>
+        <protocol> mjpeg </protocol>
+    </connection>
+
+    <connection>
+        <from>/WSModule/manager_cmd:o</from>
+        <to>/manager/cmd:i</to>
+        <protocol> fast_tcp </protocol>
+    </connection>
+
+    <connection>
+        <from>/exploration/ws_commands:o</from>
+        <to>/WSModule/command:i</to>
+        <protocol> fast_tcp </protocol>
+    </connection>
+
+    <connection>
+        <from>/manager/exploration/cmd:o</from>
+        <to>/WSModule/command:i</to>
+        <protocol> fast_tcp </protocol>
+    </connection>
+
+    <connection>
+        <from>/exploration/karma_commands:o</from>
+        <to>/karmaMotor/rpc</to>
+        <protocol> fast_tcp </protocol>
+    </connection>
+    
+    <connection>
+        <from>/exploration/are_commands:o</from>
+        <to>/actionsRenderingEngine/cmd:io</to>
+        <protocol> fast_tcp </protocol>
+    </connection>
+
+
+
+</application>

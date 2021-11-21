@@ -3,6 +3,7 @@ import yarp
 import numpy as np
 import os
 import torch
+import time
 
 basedir = os.path.dirname(__file__)
 sys.path.append(os.path.abspath(os.path.join(basedir, os.path.pardir, '..')))
@@ -71,14 +72,15 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
         if command.get(0).asString() == 'interaction':
             if self.exploring:
                 if command.get(1).asString() == 'success':
-                    self.exploring = False
+#                    self.exploring = False
                     # Send to the state machine the end of the exploration phase
                     self.send_interaction_success()
                     reply.addString('Current interaction step succeeded, stopping interaction')
                     print('Current interaction step succeeded, starting next one')
                     self.state = 'do_nothing'
-                elif command.get(1).asString() == 'fail':
                     self.exploring = False
+                elif command.get(1).asString() == 'fail':
+                    #self.exploring = False
                     # Send to the state machine the end of the exploration phase with failure:
                     # an action needs to be taken, like the human moving the objects in front of the robot
                     # to change the current configuration
@@ -86,6 +88,7 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
                     reply.addString('Current interaction step failed, stopping interaction')
                     print('Current interaction step failed')
                     self.state = 'do_nothing'
+                    self.exploring = False
                 else:
                     reply.addString('No ongoing interaction. Doing nothing.')
                     print('No ongoing interaction. Doing nothing.')
@@ -121,6 +124,7 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
             to_send.addString('interact')
             to_send.addString('stop')
             self.manager_cmd.write()
+            time.sleep(1.5)
             self.state = 'do_nothing'
             self.skip = True
         else:
@@ -134,6 +138,7 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
             to_send.addString('interact')
             to_send.addString('fail')
             self.manager_cmd.write()
+            time.sleep(1.5)
             self.skip = True
             self.state = 'do_nothing'
         else:
@@ -335,7 +340,7 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
             print('Sending exploration target')
             to_send = self._send_exploration_targets_port.prepare()
             to_send.clear()
-            #t = to_send.addList()
+#            t = to_send.addList()
 
             b = to_send.addList()
             b.addInt(int(self.target[0]))
