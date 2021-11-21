@@ -434,18 +434,26 @@ class ExplorationModule (yarp.RFModule):
                     reply.addString('No interaction command to send')
         elif command.get(0).asString() == 'pause':
             if command.get(1).asString() == 'exploration':
-                print('Pausing exploration')
-                self.state = 'pause_exploration'
-                reply.addString('Exploration paused')
+                if self.state == 'exploration':
+                    print('Pausing exploration')
+                    self.state = 'pause_exploration'
+                    reply.addString('Exploration paused')
+                else:
+                    print('Cannot pause exploration. Current state is {}'.format(self.state))
+                    reply.addString('Cannot pause exploration. Current state is {}'.format(self.state))
             elif command.get(1).asString() == 'interaction':
                 print('Pausing interaction')
                 self.state = 'pause_interaction'
                 reply.addString('Interaction paused')
         elif command.get(0).asString() == 'resume':
             if command.get(1).asString() == 'exploration':
-                print('Resuming exploration')
-                self.state = 'start_exploration'
-                reply.addString('Exploration resumed')
+                if self.state == 'pause_exploration':
+                    print('Resuming exploration')
+                    self.state = 'start_exploration'
+                    reply.addString('Exploration resumed')
+                else:
+                    print('Cannot resume exploration. Current state is {}'.format(self.state))
+                    reply.addString('Cannot resume exploration. Current state is {}'.format(self.state))
             elif command.get(1).asString() == 'interaction':
                 print('Resuming interaction')
                 self.state = 'start_interaction'
