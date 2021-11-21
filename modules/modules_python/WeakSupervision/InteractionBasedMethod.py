@@ -306,11 +306,11 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
             for i, p in enumerate(self.predictions):
                 if np.where(all_max_overlaps[:, 1] == i)[0].size and p['confidence'] < confidence_to_pick:
                     center_x = p['bbox'][0] + (p['bbox'][2] - p['bbox'][0])/2
-                    if self.arm == 'left' and center_x < 250:
+                    if self.arm == 'left' and center_x < int((self.image_w/9)*4):
                         print('Picking target for left arm from predictions')
                         index_to_pick = np.where(all_max_overlaps[:, 1] == i)[0][0]
                         confidence_to_pick = p['confidence']
-                    elif self.arm == 'right' and center_x > 450:
+                    elif self.arm == 'right' and center_x > int((self.image_w/9)*6):
                         print('Picking target for right arm from predictions')
                         index_to_pick = np.where(all_max_overlaps[:, 1] == i)[0][0]
                         confidence_to_pick = p['confidence']
