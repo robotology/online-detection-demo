@@ -80,6 +80,7 @@ class ExplorationModule (yarp.RFModule):
         self.target_np_to_send = None
         self.dimension = 0.0
         self.delta = 0.08
+        self.interaction_sent = True
 
         # Open port to give feedback on exploration
 
@@ -423,9 +424,14 @@ class ExplorationModule (yarp.RFModule):
                 reply.addString('Interaction started')
         elif command.get(0).asString() == 'send':
             if command.get(1).asString() == 'interaction':
-                print('Sending interaction command')
-                self.state = 'send_interaction'
-                reply.addString('Sending interaction command')
+                if not self.interaction_sent:
+                    print('Sending interaction command')
+                    self.state = 'send_interaction'
+                    reply.addString('Sending interaction command')
+                else:
+                    print('No interaction command to send')
+                    self.state = 'do_nothing'
+                    reply.addString('No interaction command to send')
         elif command.get(0).asString() == 'pause':
             if command.get(1).asString() == 'exploration':
                 print('Pausing exploration')
@@ -625,6 +631,9 @@ class ExplorationModule (yarp.RFModule):
             print('interaction state')
         elif self.state == 'start_interaction':
             print('start_interaction state')
+            if not self.interaction_sent:
+                self.interaction_sent = True
+                print('An old interaction command has not been sent. Resetting.')
             self.state = 'interaction'
 
             # Read camera pose
@@ -673,6 +682,7 @@ class ExplorationModule (yarp.RFModule):
                 if is_feasible:
                     print('Feasible action, waiting for send interaction command')
                     self.state = 'do_nothing'
+                    self.interaction_sent = False
                 else:
                     to_send = yarp.Bottle()
                     reply = yarp.Bottle()
@@ -680,12 +690,13 @@ class ExplorationModule (yarp.RFModule):
                     to_send.addString('interaction')
                     to_send.addString('fail')
                     self._ws_commands_port.write(to_send, reply)
+                    self.state = 'do_nothing'
             elif self.arm == 'right':
                 print('Actions with right arm, not implemented')
+                self.state = 'do_nothing'
             else:
                 print('Unknown arm: {}'.format(self.arm))
-
-            self.state = 'do_nothing'
+                self.state = 'do_nothing'
 
         elif self.state == 'pause_interaction':
             print('pause_interaction state not implemented')
@@ -693,18 +704,32 @@ class ExplorationModule (yarp.RFModule):
             #self.state = 'do_nothing'
         elif self.state == 'home_interaction':
             print('home_interaction state')
-            to_send = self._are_commands_port.prepare()
+            to_send = yarp.Bottle()
+            reply = yarp.Bottle()
             to_send.clear()
 
             to_send.addString('home')
             to_send.addString('arms')
             to_send.addString('head')
 
-            self._are_commands_port.write()
+            self._are_commands_port.write(to_send, reply)
             self.state = 'do_nothing'
+            print('home command sent')
         elif self.state == 'send_interaction':
-            self.send_commands_to_karma('push', self.target_np_to_send, self.dimension, self.delta)
-            self.state = 'do_nothing'
+            if not self.interaction_sent:
+                self.send_commands_to_karma('push', self.target_np_to_send, self.dimension, self.delta)
+                to_send = yarp.Bottle()
+                reply = yarp.Bottle()
+                to_send.clear()
+                to_send.addString('interaction')
+                to_send.addString('success')
+                self._ws_commands_port.write(to_send, reply)
+                self.interaction_sent = True
+                self.state = 'home_interaction'
+                print('interaction command sent')
+            else:
+                self.state = 'do_nothing'
+                print('no interaction command to send')
         elif self.state == 'do_nothing':
             pass
         else:
