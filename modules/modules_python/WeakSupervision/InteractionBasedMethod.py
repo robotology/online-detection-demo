@@ -286,7 +286,7 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
             index_to_pick = -1
             if self.arm == 'left':
                 print('Picking target for left arm from annotations')
-                x_to_pick = int(self.image_w/3)+1
+                x_to_pick = int((self.image_w/9)*4)
                 for i in indices:
                     if centers[i][0] < x_to_pick:
                         x_to_pick = centers[i][0]
@@ -295,10 +295,12 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
                 print('Picking target for right arm from annotations')
                 x_to_pick = int(self.image_w/3)+1
                 for i in indices:
-                    if centers[i][0] > x_to_pick:
+                    if centers[i][0] > int((self.image_w/9)*6):
                         x_to_pick = centers[i][0]
                         index_to_pick = i
-            self.target[:] = self.annotations[index_to_pick]['bbox'][:]
+            if not index_to_pick == -1:
+                print(self.annotations[index_to_pick]['class'])
+                self.target[:] = self.annotations[index_to_pick]['bbox'][:]
 
         if self.target[0] == -1:
             index_to_pick = -1
