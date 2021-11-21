@@ -335,13 +335,13 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
             print('Sending exploration target')
             to_send = self._send_exploration_targets_port.prepare()
             to_send.clear()
-            t = to_send.addList()
+            #t = to_send.addList()
 
-            b = t.addList()
-            b.addDouble(self.target[0])
-            b.addDouble(self.target[1])
-            b.addDouble(self.target[2])
-            b.addDouble(self.target[3])
+            b = to_send.addList()
+            b.addInt(int(self.target[0]))
+            b.addInt(int(self.target[1]))
+            b.addInt(int(self.target[2]))
+            b.addInt(int(self.target[3]))
             self._send_exploration_targets_port.write()
             self._send_exploration_image_port.write(self._ask_buf_image)  # To check if it is still the correct image
             self.exploring = True
