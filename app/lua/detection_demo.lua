@@ -165,7 +165,7 @@ if whichRobot == "icub" then
 --    ret = ret and yarp.NetworkBase_connect("/iKinGazeCtrl/angles:o", port_gaze_rx:getName() )
 --    ret = ret and yarp.NetworkBase_connect(port_sfm_rpc:getName(),"/SFM/rpc")
 --    ret = ret and yarp.NetworkBase_connect(port_are_rpc:getName(),"/actionsRenderingEngine/cmd:io")
-    ret = ret and yarp.NetworkBase_connect(port_cmd_gaze:getName(), "/blob-tracker/command:i" )
+--    ret = ret and yarp.NetworkBase_connect(port_cmd_gaze:getName(), "/blob-tracker/command:i" )
 else
     print ("Going through R1's connection")
     ret = ret and yarp.NetworkBase_connect(port_gaze_tx:getName(), "/cer_gaze-controller/target:i")
@@ -813,7 +813,7 @@ lookedObject = ""
 
 multipleName = yarp.Bottle()
 multipleDraw = yarp.Bottle()
-
+refinement_action = ""
 ---------------------------------------
 -- While loop for various modalities --
 ---------------------------------------
@@ -933,22 +933,24 @@ while state ~= "quit" and not interrupting do
                         sendExplore(action)
                         yarp.delay(1.8)
                         sendRefine(action)
-                        state = "refine"
-                    elseif action == 'stop' then
+                        state = "refine_explore"
+                        refinement_action = "exploration"
+                    elseif action == 'stop' and refinement_action == "exploration" then
                         speak(port_ispeak, "ok, I will stop exploration ")
                         sendRefine(action)
                         sendExplore(action)
                         state = "home"
-                    elseif action == 'pause' then
+                        refinement_action = ""
+                    elseif action == 'pause' and refinement_action == "exploration" then
                         print("Pausing exploration")
                         speak(port_ispeak, "I am not sure about what I see, can you help me?")
                         sendExplore(action)
-                        state = "refine"
-                    elseif action == 'resume' then
+                        state = "refine_explore"
+                    elseif action == 'resume' and refinement_action == "exploration" then
                         print("Resuming exploration")
                         speak(port_ispeak, "ok, thank you!")
                         sendExplore(action)
-                        state = "refine"
+                        state = "refine_explore"
                     else
                         speak(port_ispeak, "refine: unknown action " .. action)
                     end
@@ -962,20 +964,26 @@ while state ~= "quit" and not interrupting do
 
                     if action == 'start' then
                         speak(port_ispeak, "ok, I will start interaction ")
+                        print("start interction")
                         sendInteract(action)
                         yarp.delay(1.8)
                         sendRefine(action)
-                        state = "refine"
-                    elseif action == 'stop' then
+                        state = "refine_interact"
+                        refinement_action = "interaction"
+                    elseif action == 'stop' and refinement_action == "interaction" then
+                        print("Stop interaction")
                         speak(port_ispeak, "ok, I will stop interaction ")
                         sendRefine(action)
                         sendInteract(action)
                         state = "home"
-                    elseif action == 'fail' then
+                        refinement_action = ""
+                    elseif action == 'fail' and refinement_action == "interaction" then
+                        print("failed interaction")
                         speak(port_ispeak, "The interaction failed. Can you move the objects please?")
                         sendRefine('stop')
                         sendInteract('stop')
                         state = "home"
+                        refinement_action = ""
 --                    elseif action == 'pause' then
 --                        print("Pausing interaction")
 --                        speak(port_ispeak, "I am not sure about what I see, can you help me?")
@@ -988,6 +996,7 @@ while state ~= "quit" and not interrupting do
 --                        state = "refine"
                     else
                         speak(port_ispeak, "interact: unknown action " .. action)
+                        print("interact else with:" .. action .. refinement_action)
                     end
                 else
                     print("cannot start refinement, please restart the demo with al option")
@@ -1219,7 +1228,9 @@ while state ~= "quit" and not interrupting do
                 end
             end
         end
-    elseif state == "refine" then
+    elseif state == "refine_interact" then
+        yarp.delay(0.1)
+    elseif state == "refine_explore" then
         yarp.delay(0.1)
     elseif state == "forget" then
         yarp.delay(0.1)
