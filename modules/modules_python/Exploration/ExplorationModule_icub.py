@@ -656,8 +656,10 @@ class ExplorationModule (yarp.RFModule):
             self.depth_img.copy(received_img)
             assert self.depth_array.__array_interface__['data'][0] == self.depth_img.getRawImage().__int__()
 
-            cx = fixation_point_bottle.get(0).asList().get(0).asInt()
-            cy = fixation_point_bottle.get(0).asList().get(1).asInt()
+#            cx = fixation_point_bottle.get(0).asList().get(0).asInt()
+#            cy = fixation_point_bottle.get(0).asList().get(1).asInt()
+            cx = int(self.image_w/2)
+            cy = int(self.image_h/2)
 
             fixation_point_pixel = [cx, cy]
             print('Received fixation point (cx, cy): ({},{})'.format(cx, cy))
@@ -799,14 +801,6 @@ class ExplorationModule (yarp.RFModule):
                 self._are_commands_port.write(to_send, reply)
                 print('Command sent')
 
-                # Send interaction success to WSmodule
-                to_send = yarp.Bottle()
-                reply = yarp.Bottle()
-                to_send.clear()
-                to_send.addString('interaction')
-                to_send.addString('success')
-                self._ws_commands_port.write(to_send, reply)
-
                 # Send idle command to ARE
                 to_send = yarp.Bottle()
                 reply = yarp.Bottle()
@@ -818,7 +812,26 @@ class ExplorationModule (yarp.RFModule):
 
                 # Restore variables
                 self.torso_sent = True
-                self.state = 'home_interaction'
+                # Send home command to ARE
+                to_send = yarp.Bottle()
+                reply = yarp.Bottle()
+                to_send.clear()
+
+                to_send.addString('home')
+                to_send.addString('arms')
+                to_send.addString('head')
+                self._are_commands_port.write(to_send, reply)
+                self.state = 'do_nothing'
+                print('home command sent')
+
+                # Send interaction success to WSmodule
+                to_send = yarp.Bottle()
+                reply = yarp.Bottle()
+                to_send.clear()
+                to_send.addString('interaction')
+                to_send.addString('success')
+                self._ws_commands_port.write(to_send, reply)
+
             else:
                 self.state = 'do_nothing'
                 print('no interaction command to send')
