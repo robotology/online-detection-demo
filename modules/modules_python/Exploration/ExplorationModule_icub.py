@@ -81,6 +81,7 @@ class ExplorationModule (yarp.RFModule):
         self.dimension = 0.0
         self.delta = 0.08
         self.interaction_sent = True
+        self.torso_sent = True
 
         # Open port to give feedback on exploration
 
@@ -424,7 +425,7 @@ class ExplorationModule (yarp.RFModule):
                 reply.addString('Exploration with torso started')
         elif command.get(0).asString() == 'send':
             if command.get(1).asString() == 'interaction':
-                if not self.interaction_sent:
+                if not self.interaction_sent or not self.torso_sent:
                     print('Sending interaction command')
                     self.state = 'send_interaction'
                     reply.addString('Sending interaction command')
@@ -670,6 +671,8 @@ class ExplorationModule (yarp.RFModule):
             fixation_point_np = [root_to_target[i, 3] for i in range(3)]  # target_np = (x,y,z) in robot coordinate system
             print('fixation_point_np: ({},{},{})'.format(str(fixation_point_np[0]), str(fixation_point_np[1]), str(fixation_point_np[2])))
             self.fixation_point_np_to_send = fixation_point_np
+            self.state = 'do_nothing'
+            self.torso_sent = False
 
         elif self.state == 'stick_interaction':
             print('stick_interaction state')
@@ -775,14 +778,16 @@ class ExplorationModule (yarp.RFModule):
                 reply = yarp.Bottle()
                 to_send.clear()
                 to_send.addString('look')
-                to_send.addDouble(self.fixation_point_np_to_send[0])
-                to_send.addDouble(self.fixation_point_np_to_send[1])
-                to_send.addDouble(self.fixation_point_np_to_send[2])
+                t = to_send.addList()
+                t.addDouble(self.fixation_point_np_to_send[0])
+                t.addDouble(self.fixation_point_np_to_send[1])
+                t.addDouble(self.fixation_point_np_to_send[2])
                 to_send.addString('fixate')
                 print('Command to send to ARE: look {} {} {} fixate'.format(float(self.fixation_point_np_to_send[0]),
                                                                             float(self.fixation_point_np_to_send[1]),
                                                                             float(self.fixation_point_np_to_send[2])))
-                # self._are_commands_port.write(to_send, reply)
+                self._are_commands_port.write(to_send, reply)
+                print('Command sent')
 
                 # Send explore torso command to ARE
                 to_send = yarp.Bottle()
@@ -791,7 +796,8 @@ class ExplorationModule (yarp.RFModule):
                 to_send.addString('explore')
                 to_send.addString('torso')
                 print('Command to send to ARE: explore torso')
-                #self._are_commands_port.write(to_send, reply)
+                self._are_commands_port.write(to_send, reply)
+                print('Command sent')
 
                 # Send interaction success to WSmodule
                 to_send = yarp.Bottle()
@@ -807,12 +813,12 @@ class ExplorationModule (yarp.RFModule):
                 to_send.clear()
                 to_send.addString('idle')
                 print('Command to send to ARE: idle')
-                #self._are_commands_port.write(to_send, reply)
+                self._are_commands_port.write(to_send, reply)
+                print('Command sent')
 
                 # Restore variables
                 self.torso_sent = True
                 self.state = 'home_interaction'
-                self.state = 'do_nothing'
             else:
                 self.state = 'do_nothing'
                 print('no interaction command to send')
