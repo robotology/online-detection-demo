@@ -964,21 +964,29 @@ while state ~= "quit" and not interrupting do
 
                     if action == 'start' then
                         speak(port_ispeak, "ok, I will start interaction ")
+                        speak(port_ispeak, "I am not sure about what I see, can you help me?")
                         print("start interction")
-                        sendInteract(action)
+                        sendInteract("torso")
                         yarp.delay(1.8)
                         sendRefine(action)
                         state = "refine_interact"
-                        refinement_action = "interaction"
-                    elseif action == 'stop' and refinement_action == "interaction" then
-                        print("Stop interaction")
-                        speak(port_ispeak, "ok, I will stop interaction ")
-                        sendRefine(action)
-                        sendInteract(action)
-                        state = "home"
-                        refinement_action = ""
-                    elseif action == 'fail' and refinement_action == "interaction" then
-                        print("failed interaction")
+                        refinement_action = "interaction_torso"
+                    elseif action == 'stop' then
+                        if refinement_action == "interaction_stick" then
+                            print("Stop interaction_stick")
+                            speak(port_ispeak, "ok, I will stop interaction ")
+                            sendRefine(action)
+                            sendInteract(action)
+                            state = "home"
+                            refinement_action = ""
+                        elseif refinement_action == "interaction_torso" then
+                            print("Stop interaction_torso, starting interaction_stick")
+                            sendInteract("stick")
+                            refinement_action = "interaction_stick"
+                            state = "refine_interact"
+                        end
+                    elseif action == 'fail' and refinement_action == "interaction_stick" then
+                        print("Failed interaction_stick")
                         speak(port_ispeak, "The interaction failed. Can you move the objects please?")
                         sendRefine('stop')
                         sendInteract('stop')

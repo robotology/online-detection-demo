@@ -321,24 +321,14 @@ class ExplorationModule (yarp.RFModule):
         '''
         # Retrieve Depth from pixel
         d = depth_img_array[int(pixel_target[1]), int(pixel_target[0]), 0]
-#        d = depth_img_array[int(pixel_target[0]), int(pixel_target[1]), 0]
         print('depth: {}'.format(d))
 
         # Convert uv to xy
-        #print(pixel_target[0])
-#        target_x = -(pixel_target[0] * d) / self.camera_fx
-#        target_y = -(pixel_target[1] * d) / self.camera_fy
-        #target_x = (pixel_target[0] - self.camera_cx) / self.camera_fx
-        #target_y = (pixel_target[1] - self.camera_cy) / self.camera_fy
         target_x = ((pixel_target[0] - self.camera_cx) * d) / self.camera_fx
         target_y = ((pixel_target[1] - self.camera_cy) * d) / self.camera_fy
         print('Converted (x,y): ({},{})'.format(target_x, target_y))
 
         # Convert uv to xy
-#        contact_x = -(pixel_contact[0] * d) / self.camera_fx
-#        contact_y = -(pixel_contact[1] * d) / self.camera_fy
-        #contact_x = (pixel_contact[0] - self.camera_cx) / self.camera_fx
-        #contact_y = (pixel_contact[1] - self.camera_cy) / self.camera_fy
         contact_x = ((pixel_contact[0] - self.camera_cx)* d) / self.camera_fx
         contact_y = ((pixel_contact[1] - self.camera_cy)* d) / self.camera_fy
         print('Converted (x,y): ({},{})'.format(contact_x, contact_y))
@@ -418,10 +408,20 @@ class ExplorationModule (yarp.RFModule):
                 print('Starting exploration')
                 self.state = 'start_exploration'
                 reply.addString('Exploration started')
-            elif command.get(1).asString() == 'interaction':
-                print('Starting interaction')
-                self.state = 'start_interaction'
-                reply.addString('Interaction started')
+            # elif command.get(1).asString() == 'interaction':
+            #     print('Starting interaction')
+            #     self.state = 'start_interaction'
+            #     reply.addString('Interaction started')
+        elif command.get(0).asString() == 'stick':
+            if command.get(1).asString() == 'interaction':
+                print('Starting interaction with stick')
+                self.state = 'stick_interaction'
+                reply.addString('Interaction with stick started')
+        elif command.get(0).asString() == 'torso':
+            if command.get(1).asString() == 'interaction':
+                print('Exploration with torso started')
+                self.state = 'torso_interaction'
+                reply.addString('Exploration with torso started')
         elif command.get(0).asString() == 'send':
             if command.get(1).asString() == 'interaction':
                 if not self.interaction_sent:
@@ -637,8 +637,42 @@ class ExplorationModule (yarp.RFModule):
 
         elif self.state == 'interaction':
             print('interaction state')
-        elif self.state == 'start_interaction':
-            print('start_interaction state')
+        elif self.state == 'torso_interaction':
+            print('torso_interaction state')
+            if not self.torso_sent:
+                self.torso_sent = True
+                print('An old interaction command has not been sent. Resetting.')
+            self.state = 'interaction'
+
+            # Read camera pose
+            ok, new_cam_H = self.yarp_vector_to_se3()
+            if ok:
+                self.cam_H = new_cam_H
+
+            # Read target and depth image from WS module
+            fixation_point_bottle = self.target_in_port.read(True)  # fixation_point_bottle = (cx,cy)
+            received_img = self.depth_in_port.read(True)
+            self.depth_img.copy(received_img)
+            assert self.depth_array.__array_interface__['data'][0] == self.depth_img.getRawImage().__int__()
+
+            cx = fixation_point_bottle.get(0).asList().get(0).asInt()
+            cy = fixation_point_bottle.get(0).asList().get(1).asInt()
+
+            fixation_point_pixel = [cx, cy]
+            print('Received fixation point (cx, cy): ({},{})'.format(cx, cy))
+
+            # Find measures in meters of the target and of the contact point
+            fixation_point_xyz, _ = self.UVtarget_to_xyztarget(fixation_point_pixel, fixation_point_pixel, self.depth_array)
+            print('xyz fixation point: {}'.format(str(fixation_point_xyz)))
+            fixation_point_H = self.xyztarget_to_targetH(fixation_point_xyz)
+
+            root_to_target = self.cam_H.dot(fixation_point_H)
+            fixation_point_np = [root_to_target[i, 3] for i in range(3)]  # target_np = (x,y,z) in robot coordinate system
+            print('fixation_point_np: ({},{},{})'.format(str(fixation_point_np[0]), str(fixation_point_np[1]), str(fixation_point_np[2])))
+            self.fixation_point_np_to_send = fixation_point_np
+
+        elif self.state == 'stick_interaction':
+            print('stick_interaction state')
             if not self.interaction_sent:
                 self.interaction_sent = True
                 print('An old interaction command has not been sent. Resetting.')
@@ -735,6 +769,50 @@ class ExplorationModule (yarp.RFModule):
                 self.interaction_sent = True
                 self.state = 'home_interaction'
                 print('interaction command sent')
+            elif not self.torso_sent:
+                # Send look with fixation command to ARE
+                to_send = yarp.Bottle()
+                reply = yarp.Bottle()
+                to_send.clear()
+                to_send.addString('look')
+                to_send.addDouble(self.fixation_point_np_to_send[0])
+                to_send.addDouble(self.fixation_point_np_to_send[1])
+                to_send.addDouble(self.fixation_point_np_to_send[2])
+                to_send.addString('fixate')
+                print('Command to send to ARE: look {} {} {} fixate'.format(float(self.fixation_point_np_to_send[0]),
+                                                                            float(self.fixation_point_np_to_send[1]),
+                                                                            float(self.fixation_point_np_to_send[2])))
+                # self._are_commands_port.write(to_send, reply)
+
+                # Send explore torso command to ARE
+                to_send = yarp.Bottle()
+                reply = yarp.Bottle()
+                to_send.clear()
+                to_send.addString('explore')
+                to_send.addString('torso')
+                print('Command to send to ARE: explore torso')
+                #self._are_commands_port.write(to_send, reply)
+
+                # Send interaction success to WSmodule
+                to_send = yarp.Bottle()
+                reply = yarp.Bottle()
+                to_send.clear()
+                to_send.addString('interaction')
+                to_send.addString('success')
+                self._ws_commands_port.write(to_send, reply)
+
+                # Send idle command to ARE
+                to_send = yarp.Bottle()
+                reply = yarp.Bottle()
+                to_send.clear()
+                to_send.addString('idle')
+                print('Command to send to ARE: idle')
+                #self._are_commands_port.write(to_send, reply)
+
+                # Restore variables
+                self.torso_sent = True
+                self.state = 'home_interaction'
+                self.state = 'do_nothing'
             else:
                 self.state = 'do_nothing'
                 print('no interaction command to send')

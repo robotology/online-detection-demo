@@ -4,6 +4,7 @@ import numpy as np
 import os
 import torch
 import time
+import math
 
 basedir = os.path.dirname(__file__)
 sys.path.append(os.path.abspath(os.path.join(basedir, os.path.pardir, '..')))
@@ -64,6 +65,9 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
         self.performed_action = 'active'
         self.exploring = False
         self.state = 'do_nothing'
+        self.interaction_modality = ''
+        self.fixation_point = [-1] * 2
+        self.target = [-1] * 4
 
         return True
 
@@ -72,12 +76,13 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
         if command.get(0).asString() == 'interaction':
             if self.exploring:
                 if command.get(1).asString() == 'success':
-#                    self.exploring = False
+                    # self.exploring = False
                     # Send to the state machine the end of the exploration phase
                     self.send_interaction_success()
                     reply.addString('Current interaction step succeeded, stopping interaction')
                     print('Current interaction step succeeded, starting next one')
                     self.state = 'do_nothing'
+                    self.interaction_modality = ''
                     self.exploring = False
                 elif command.get(1).asString() == 'fail':
                     #self.exploring = False
@@ -88,21 +93,42 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
                     reply.addString('Current interaction step failed, stopping interaction')
                     print('Current interaction step failed')
                     self.state = 'do_nothing'
+                    self.interaction_modality = ''
                     self.exploring = False
                 else:
                     reply.addString('No ongoing interaction. Doing nothing.')
                     print('No ongoing interaction. Doing nothing.')
         elif command.get(0).asString() == 'refine':
             self.skip = False
-        elif command.get(0).asString() == 'start':
+        # elif command.get(0).asString() == 'start':
+        #     if command.get(1).asString() == 'interaction':
+        #         self.skip = False
+        #         self.state = 'refine'
+        #         reply.addString('Enetering interaction state.')
+        #         print('Enetering interaction state.')
+        #     else:
+        #         reply.addString('Unknown action to start')
+        #         print('Unknown action to start.')
+        elif command.get(0).asString() == 'torso':
             if command.get(1).asString() == 'interaction':
                 self.skip = False
                 self.state = 'refine'
-                reply.addString('Enetering interaction state.')
-                print('Enetering interaction state.')
+                self.interaction_modality = 'torso'
+                reply.addString('Entering interaction with torso state.')
+                print('Entering interaction with torso state.')
             else:
-                reply.addString('Unknown action to start')
-                print('Unknown action to start.')
+                reply.addString('Unknown action to do with torso')
+                print('Unknown action to do with torso.')
+        elif command.get(0).asString() == 'stick':
+            if command.get(1).asString() == 'interaction':
+                self.skip = False
+                self.state = 'refine'
+                self.interaction_modality = 'stick'
+                reply.addString('Entering interaction with stick state.')
+                print('Entering interaction with stick state.')
+            else:
+                reply.addString('Unknown action to do with stick')
+                print('Unknown action to do with stick.')
         elif command.get(0).asString() == 'stop':
             if command.get(1).asString() == 'interaction':
                 self.state = 'do_nothing'
@@ -257,6 +283,22 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
         iner_area = width * height
         return iner_area / (Aarea + Barea - iner_area)
 
+    def pick_fixation_point(self):
+        self.fixation_point = [-1] * 2
+
+        # Find the closest center to the center of the image
+        min_distance = math.sqrt(math.pow(self.image_w, 2) + math.pow(self.image_h, 2))
+        fixation_point = [-1] * 2
+        for i, a in enumerate(self.annotations):
+            cx = a['bbox'][0] + (a['bbox'][2] - a['bbox'][0])/2
+            cy = a['bbox'][1] + (a['bbox'][3] - a['bbox'][1])/2
+            distance = math.sqrt(math.pow(cx - self.image_w/2, 2) + math.pow(cy - self.image_h/2, 2))
+            if distance <= min_distance:
+                min_distance = distance
+                fixation_point = [cx, cy]
+
+        self.fixation_point = fixation_point
+
     def pick_target(self):
         '''
         This function compares the predictions and annotations
@@ -351,11 +393,10 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
         '''
         This function sends the next target to explore
         '''
-        if self.state == 'refine' and not self.target[0] == -1 and not self.skip:
-            print('Sending exploration target')
+        if self.state == 'refine' and self.interaction_modality == 'stick' and not self.target[0] == -1 and not self.skip:
+            print('Sending target of interaction with stick')
             to_send = self._send_exploration_targets_port.prepare()
             to_send.clear()
-#            t = to_send.addList()
 
             b = to_send.addList()
             b.addInt(int(self.target[0]))
@@ -363,7 +404,19 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
             b.addInt(int(self.target[2]))
             b.addInt(int(self.target[3]))
             self._send_exploration_targets_port.write()
-            self._send_exploration_image_port.write(self._ask_buf_image)  # To check if it is still the correct image
+            self._send_exploration_image_port.write(self._ask_buf_image)
+            self.exploring = True
+
+        elif self.state == 'refine' and self.interaction_modality == 'stick' and not self.target[0] == -1 and not self.skip:
+            print('Sending fixation point')
+            to_send = self._send_exploration_targets_port.prepare()
+            to_send.clear()
+
+            b = to_send.addList()
+            b.addInt(int(self.fixation_point[0]))
+            b.addInt(int(self.fixation_point[1]))
+            self._send_exploration_targets_port.write()
+            self._send_exploration_image_port.write(self._ask_buf_image)
             self.exploring = True
         else:
             print('No exploration target sent')
@@ -378,9 +431,13 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
           - if we are not in interaction mode and we are not exploring we only
           want to propagate image to the tracker
         '''
-        if not self.exploring and self.state == 'refine':
+        if not self.exploring and self.state == 'refine' and self.interaction_modality == 'stick':
             self.ask_for_annotations()
             self.pick_target()
+            self.send_exploration_target()
+        elif not self.exploring and self.state == 'refine' and self.interaction_modality == 'torso':
+            self.ask_for_annotations()
+            self.pick_fixation_point()
             self.send_exploration_target()
         elif self.exploring and self.state == 'refine':
             #self._out_buf_array[:, :] = self._in_buf_array
