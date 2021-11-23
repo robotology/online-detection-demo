@@ -407,7 +407,7 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
             self._send_exploration_image_port.write(self._ask_buf_image)
             self.exploring = True
 
-        elif self.state == 'refine' and self.interaction_modality == 'stick' and not self.target[0] == -1 and not self.skip:
+        elif self.state == 'refine' and self.interaction_modality == 'torso' and not self.fixation_point[0] == -1 and not self.skip:
             print('Sending fixation point')
             to_send = self._send_exploration_targets_port.prepare()
             to_send.clear()
