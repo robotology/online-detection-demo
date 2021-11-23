@@ -90,7 +90,7 @@
         <name>AnnotationsPropagator.py</name>
         <parameters>--from contexts/online-detection-demo/annotations_propagator_conf.ini</parameters>
         <deployer>python3.5</deployer>
-        <node>docker-manager</node>
+        <node>docker-ws</node>
     </module>
 <!--
     <module>
