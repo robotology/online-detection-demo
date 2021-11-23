@@ -42,6 +42,7 @@ class AnnotationsPropagator(yarp.RFModule):
         self.image_h = 240
         # self.max_time = rf.find("max_propagation").asInt()
         self.max_time = 2000
+        self.can_HRI = False
         self.module_name = 'AnnotationsPropagator'
 
         self.cmd_port = yarp.Port()
@@ -140,6 +141,15 @@ class AnnotationsPropagator(yarp.RFModule):
             self.state = 'do_nothing'
             # self.terminate_process()
             reply.addString('refine state deactivated')
+        elif command.get(0).asString() == 'hri':
+            if command.get(1).asString() == 'enable':
+                self.can_HRI = True
+                reply.addString('hri possibility enabled')
+            elif command.get(1).asString() == 'disable':
+                self.can_HRI = False
+                reply.addString('hri possibility enabled')
+            else:
+                reply.addString('unknown hri option')
         else:
             print('Command {:s} not recognized'.format(command.get(0).asString()))
             reply.addString('Command {:s} not recognized'.format(command.get(0).asString()))
@@ -362,12 +372,14 @@ class AnnotationsPropagator(yarp.RFModule):
 
             else:
                 self.propagate_annotations()
-                if not self.check_annotations_quality():
-                    print('*****************************BAD PREDICTIONS*************************************************')
-                    self.do_HRI(detections)    
-                else:                
+                if self.can_HRI:
+                    if not self.check_annotations_quality():
+                        print('*****************************BAD PREDICTIONS*************************************************')
+                        self.do_HRI(detections)
+                    else:
+                        self.send_annotations()
+                else:
                     self.send_annotations()
-
         return True
 
 
