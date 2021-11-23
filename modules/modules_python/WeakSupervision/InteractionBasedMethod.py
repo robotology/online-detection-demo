@@ -98,6 +98,10 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
                 else:
                     reply.addString('No ongoing interaction. Doing nothing.')
                     print('No ongoing interaction. Doing nothing.')
+            else:
+                reply.addString('Currently not exploring')
+                print('Currently not exploring.')
+
         elif command.get(0).asString() == 'refine':
             self.skip = False
         # elif command.get(0).asString() == 'start':
