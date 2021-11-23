@@ -81,7 +81,8 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
                     self.send_interaction_success()
                     reply.addString('Current interaction step succeeded, stopping interaction')
                     print('Current interaction step succeeded, starting next one')
-                    self.state = 'do_nothing'
+                    if self.interaction_modality == 'stick':
+                        self.state = 'do_nothing'
                     self.interaction_modality = ''
                     self.exploring = False
                 elif command.get(1).asString() == 'fail':
@@ -92,7 +93,8 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
                     self.send_interaction_failure()
                     reply.addString('Current interaction step failed, stopping interaction')
                     print('Current interaction step failed')
-                    self.state = 'do_nothing'
+                    if self.interaction_modality == 'stick':
+                        self.state = 'do_nothing'
                     self.interaction_modality = ''
                     self.exploring = False
                 else:
@@ -154,17 +156,17 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
             to_send.addString('interact')
             to_send.addString('stop')
             self.manager_cmd.write()
-            time.sleep(2.5)
-#            self.skip = True
-            to_send = self._output_annotations_port.prepare()
-            to_send.clear()
-            self.skip = False
-            to_send.addString('skip')
-            self._output_annotations_port.write()
+            if self.interaction_modality == 'stick':
+                time.sleep(2.5)
+                to_send = self._output_annotations_port.prepare()
+                to_send.clear()
+                self.skip = False
+                to_send.addString('skip')
+                self._output_annotations_port.write()
 
-            time.sleep(1.0)
-            self.state = 'do_nothing'
-            #self.skip = True
+                time.sleep(1.0)
+                self.state = 'do_nothing'
+#            elif self.interaction_modality == 'torso'
         else:
             print('Not sending interaction success')
 
@@ -176,16 +178,16 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
             to_send.addString('interact')
             to_send.addString('fail')
             self.manager_cmd.write()
-            time.sleep(2.5)
-            #self.skip = True
-            to_send = self._output_annotations_port.prepare()
-            to_send.clear()
-            self.skip = False
-            to_send.addString('skip')
-            self._output_annotations_port.write()
+            if self.interaction_modality == 'stick':
+                time.sleep(2.5)
+                to_send = self._output_annotations_port.prepare()
+                to_send.clear()
+                self.skip = False
+                to_send.addString('skip')
+                self._output_annotations_port.write()
 
-            time.sleep(1.0)
-            self.state = 'do_nothing'
+                time.sleep(1.0)
+                self.state = 'do_nothing'
         else:
             print('Not sending interaction failure')
 
