@@ -673,7 +673,7 @@ class ExplorationModule (yarp.RFModule):
             fixation_point_np = [root_to_target[i, 3] for i in range(3)]  # target_np = (x,y,z) in robot coordinate system
             print('fixation_point_np: ({},{},{})'.format(str(fixation_point_np[0]), str(fixation_point_np[1]), str(fixation_point_np[2])))
             self.fixation_point_np_to_send = fixation_point_np
-            self.state = 'do_nothing'
+            self.state = 'send_interaction'
             self.torso_sent = False
 
         elif self.state == 'stick_interaction':
@@ -728,7 +728,7 @@ class ExplorationModule (yarp.RFModule):
                 # Prepare and send push command to karma
                 if is_feasible:
                     print('Feasible action, waiting for send interaction command')
-                    self.state = 'do_nothing'
+                    self.state = 'send_interaction'
                     self.interaction_sent = False
                 else:
                     to_send = yarp.Bottle()
