@@ -46,7 +46,7 @@
     </module>
 
     <module>
-        <name>detection_speech_helper.lua</name>
+        <name>detection_speech_helper_cts.lua</name>
         <parameters></parameters>
         <deployer>lua</deployer>
         <node>docker-manager</node>
@@ -153,6 +153,12 @@
         <name>yarpview</name>
         <node>localhost</node>
         <parameters>--name /viewer/DetectionShowSup --x 0 --y 0 --w 500 --h 480 --RefreshTime 33</parameters>
+    </module>
+    
+    <module>
+        <name>realsense-holder-publisher</name>
+        <node>localhost</node>
+        <parameters>--from config_half_tilted.ini</parameters>
     </module>
 
     <module>

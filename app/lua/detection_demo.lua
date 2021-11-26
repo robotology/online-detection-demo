@@ -858,7 +858,7 @@ while state ~= "quit" and not interrupting do
             is_unfeasible_command = cmd_rx == "home" or cmd_rx == "quit" or cmd_rx == "closest-to" or cmd_rx == "where-is" or cmd_rx == "train" or cmd_rx == "forget" or cmd_rx == "hello" or cmd_rx == "listen" or cmd_rx == "track" or cmd_rx == "what-is"
             if state == "refine_interact" and is_unfeasible_command then
                 print("Command " .. cmd_rx .. " received while interacting. Doing nothing")
-            elseif
+            else
                 state = cmd_rx
             end
 

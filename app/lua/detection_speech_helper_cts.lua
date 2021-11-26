@@ -147,7 +147,6 @@ while state ~= "quit" and not interrupting do
         instruction:addString("train")
         local object = result:get(11):asString()
         instruction:addString(object)
-        end
     elseif speechcmd == "Explore" then
         instruction:addString("interact")
         instruction:addString("start")
