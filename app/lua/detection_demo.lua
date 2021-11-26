@@ -140,6 +140,7 @@ end
 if isAL then
     port_cmd_exploration:open("/manager/exploration/cmd:o")
     port_cmd_annotation:open("/manager/blobAnnotation/cmd:o")
+    port_cmd_karma:open("/manager/karma/cmd:o")
 end
 if isShow then
     port_cmd_detection_show:open("/manager/detection/showSup/cmd:o")
@@ -178,6 +179,8 @@ if isAL then
     ret = ret and yarp.NetworkBase_connect("/AnnotationsPropagator/exploration/command:o", port_cmd:getName())
     ret = ret and yarp.NetworkBase_connect(port_cmd_exploration:getName(), '/exploration/command:i')
     ret = ret and yarp.NetworkBase_connect(port_cmd_annotation:getName(), '/blobAnnotation/rpc:i')
+    ret = ret and yarp.NetworkBase_connect(port_cmd_karma:getName(), '/karmaMotor/rpc')
+
 end
 if isShow then
     ret = ret and yarp.NetworkBase_connect(port_cmd_detection_show:getName(), "/detection/showSup/command:i")
@@ -766,8 +769,6 @@ end
 
 ---------------------------------------------------------------------------------------------------------------
 
-
-
 function sendForget(objName)
     local cmd = port_cmd_detection:prepare()
     cmd:clear()
@@ -786,6 +787,45 @@ function sendForget(objName)
     end
 end
 
+---------------------------------------------------------------------------------------------------------------
+
+function startup_interaction()
+    -- Send load dataset to first matlab
+    local cmd_first_det = port_cmd_detection:prepare()
+    cmd_first_det:clear()
+    cmd_first_det:addString('load')
+    cmd_first_det:addString('dataset')
+    cmd_first_det:addString('cts_dataset.mat')
+    port_cmd_detection:write()
+
+
+    -- Send load dataset to second matlab
+    local cmd_sec_det = port_cmd_detection_show:prepare()
+    cmd_sec_det:clear()
+    cmd_sec_det:addString('load')
+    cmd_sec_det:addString('dataset')
+    cmd_sec_det:addString('cts_dataset.mat')
+    port_cmd_detection_show:write()
+
+    -- Send remove tool to karma
+    local cmd_karma = port_cmd_karma:prepare()
+    cmd_karma:clear()
+    cmd_karma:addString('tool')
+    cmd_karma:addString('remove')
+    port_cmd_karma:write()
+
+    -- Send remove attach to karma
+    local cmd_karma = port_cmd_karma:prepare()
+    cmd_karma:clear()
+    cmd_karma:addString('tool')
+    cmd_karma:addString('attach')
+    cmd_karma:addString('left')
+    cmd_karma:addDouble(0.10)
+    cmd_karma:addDouble(-0.16)
+    cmd_karma:addDouble(0.2)
+    port_cmd_karma:write()
+end
+
 --might not be useful anymore. Fixed a recent bug on the gaze controller
 if whichRobot == "icub" then
     bind_roll()
@@ -798,6 +838,10 @@ end
 look_at_angle(azi, ele, ver)
 
 speak(port_ispeak, "Roger")
+
+if whichRobot == "icub" and isShow and isAL then
+    startup_interaction()
+end
 
 shouldLook = false
 shouldDraw = false
@@ -960,7 +1004,7 @@ while state ~= "quit" and not interrupting do
                         sendExplore(action)
                         state = "refine_explore"
                     else
-                        speak(port_ispeak, "refine: unknown action " .. action)
+                        print("Command received does not meet requirements to be accomplished")
                     end
                 else
                     print("cannot start refinement, please restart the demo with al option")
@@ -969,11 +1013,10 @@ while state ~= "quit" and not interrupting do
             elseif state == "interact" then
                 if isAL then
                     action = cmd:get(1):asString()
-
                     if action == 'start' then
-                        speak(port_ispeak, "ok, I will start interaction ")
-                        speak(port_ispeak, "I am not sure about what I see, can you help me?")
-                        print("start interction")
+                        speak(port_ispeak, "Ok, I will start exploration ")
+--                         speak(port_ispeak, "I am not sure about what I see, can you help me?")
+                        print("start interaction")
                         sendInteract("torso")
                         yarp.delay(1.8)
                         sendRefine(action)
@@ -982,7 +1025,7 @@ while state ~= "quit" and not interrupting do
                     elseif action == 'stop' then
                         if refinement_action == "interaction_stick" then
                             print("Stop interaction_stick")
-                            speak(port_ispeak, "ok, I will stop interaction ")
+                            speak(port_ispeak, "ok, I have explored the table. Now I will refine my model. Just wait a few seconds and I will be ready ")
                             sendRefine(action)
                             sendInteract(action)
                             state = "home"
@@ -995,7 +1038,7 @@ while state ~= "quit" and not interrupting do
                         end
                     elseif action == 'fail' and refinement_action == "interaction_stick" then
                         print("Failed interaction_stick")
-                        speak(port_ispeak, "The interaction failed. Can you move the objects please?")
+                        speak(port_ispeak, "The interaction failed. Can you move the objects please? In the meanwhile, I will refine my model. Just wait a few seconds")
                         sendRefine('stop')
                         sendInteract('stop')
                         state = "home"
@@ -1011,7 +1054,7 @@ while state ~= "quit" and not interrupting do
 --                        sendInteract(action)
 --                        state = "refine"
                     else
-                        speak(port_ispeak, "interact: unknown action " .. action)
+--                        speak(port_ispeak, "interact: unknown action " .. action)
                         print("interact else with:" .. action .. refinement_action)
                     end
                 else

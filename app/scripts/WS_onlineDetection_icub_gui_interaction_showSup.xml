@@ -328,6 +328,12 @@
 
     <!--connections for AnnotationsPropagator -->
 
+    <connection>
+        <from>/WSModule/tracker_cmd:o</from>
+        <to>/AnnotationsPropagator/command:i</to>
+        <protocol> fast_tcp </protocol>
+    </connection>
+
      <connection>
         <from>/WSModule/ask/image:o</from>
         <to>/AnnotationsPropagator/image:i</to>

@@ -49,6 +49,11 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
         self.manager_cmd.open('/' + self.module_name + '/manager_cmd:o')
         print('{:s} opened'.format('/' + self.module_name + '/manager_cmd:o'))
 
+        # Ports to send commands to the annotations tracker
+        self.tracker_cmd = yarp.BufferedPortBottle()
+        self.tracker_cmd.open('/' + self.module_name + '/tracker_cmd:o')
+        print('{:s} opened'.format('/' + self.module_name + '/tracker_cmd:o'))
+
         print('Preparing image to ask annotation...')
         self._ask_buf_image = yarp.ImageRgb()
         self._ask_buf_image.resize(self.image_w, self.image_h)
@@ -190,6 +195,14 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
                 self.state = 'do_nothing'
         else:
             print('Not sending interaction failure')
+
+    def send_command_to_tracker(self, action):
+            print('sending command to tracker')
+            to_send = self.tracker_cmd.prepare()
+            to_send.clear()
+            to_send.addString('hri')
+            to_send.addString(action)
+            self.tracker_cmd.write()
 
     def ask_for_annotations(self):
         # Send image and doubtful predictions to the annotator
@@ -438,11 +451,15 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
           want to propagate image to the tracker
         '''
         if not self.exploring and self.state == 'refine' and self.interaction_modality == 'stick':
+            self.send_command_to_tracker('enable')
             self.ask_for_annotations()
+            self.send_command_to_tracker('disable')
             self.pick_target()
             self.send_exploration_target()
         elif not self.exploring and self.state == 'refine' and self.interaction_modality == 'torso':
+            self.send_command_to_tracker('enable')
             self.ask_for_annotations()
+            self.send_command_to_tracker('disable')
             self.pick_fixation_point()
             self.send_exploration_target()
         elif self.exploring and self.state == 'refine':

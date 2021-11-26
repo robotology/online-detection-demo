@@ -41,9 +41,10 @@ class AnnotationsPropagator(yarp.RFModule):
         self.image_w = 320
         self.image_h = 240
         # self.max_time = rf.find("max_propagation").asInt()
-        self.max_time = 2000
+        self.max_time = 200000
         self.can_HRI = False
         self.module_name = 'AnnotationsPropagator'
+        self.should_speak = True
 
         self.cmd_port = yarp.Port()
         self.cmd_port.open('/' + self.module_name + '/command:i')
@@ -110,6 +111,12 @@ class AnnotationsPropagator(yarp.RFModule):
         self._reply_buf_image = yarp.ImageRgb()
         self._reply_buf_image.resize(self.image_w, self.image_h)
         self._reply_buf_image.setExternal(self._reply_buf_array, self._reply_buf_array.shape[1], self._reply_buf_array.shape[0])
+
+        if self.should_speak:
+            self.speak_port = yarp.BufferedPortBottle()
+            self.speak_port.open('/' + self.module_name + '/exploration/speak:o')
+            print('{:s} opened'.format('/' + self.module_name + '/exploration/speak:o'))
+            print(yarp.NetworkBase.connect('/' + self.module_name + '/exploration/speak:o', '/iSpeak'))
 
         self.state = 'propagate'
         self.time = time.time()
@@ -331,15 +338,23 @@ class AnnotationsPropagator(yarp.RFModule):
                 print('annotations_list is empty')
                 self.annotations.addList()
 
+    def speak(self):
+        to_send = self.speak_port.prepare()
+        to_send.clear()
+        to_send.addString('I am not sure about what I see. Can you help me, please?')
+        self.speak_port.write()
+
     def sendExplorationCommand(self, action):
-                to_send = self.cmd_exploration_port.prepare()
-                to_send.clear()
-                to_send.addString('explore')
-                to_send.addString(action)
-                self.cmd_exploration_port.write()
+        to_send = self.cmd_exploration_port.prepare()
+        to_send.clear()
+        to_send.addString('explore')
+        to_send.addString(action)
+        self.cmd_exploration_port.write()
 
     def do_HRI(self, detections):
         self.sendExplorationCommand('pause')
+        if self.should_speak:
+            self.speak()
         self.predictions = detections
         self.ask_for_annotations()
         self.initialize_tracker()

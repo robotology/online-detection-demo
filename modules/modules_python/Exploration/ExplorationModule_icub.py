@@ -385,7 +385,9 @@ class ExplorationModule (yarp.RFModule):
             new_target_np[0] = -0.30
 
         # Check y coordinate
-        check_y = -0.20 <= target_np[1] - delta + dimension <= -0.10  # TO CHECK
+        # check_y = -0.20 <= target_np[1] - delta + dimension <= -0.10  # TO CHECK
+        check_y = -0.25 <= target_np[1] - delta + dimension <= -0.05  # TO CHECK
+
 
         # Check z coordinate and adjust it
 #        check_z = target_np[2] >= -0.08
