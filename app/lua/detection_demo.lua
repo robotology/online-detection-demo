@@ -853,7 +853,15 @@ while state ~= "quit" and not interrupting do
             clearDraw()
             multipleDraw:clear()
             multipleName:clear()
-            state = cmd_rx
+
+            -- Check feasibility of the command
+            is_unfeasible_command = cmd_rx == "home" or cmd_rx == "quit" or cmd_rx == "closest-to" or cmd_rx == "where-is" or cmd_rx == "train" or cmd_rx == "forget" or cmd_rx == "hello" or cmd_rx == "listen" or cmd_rx == "track" or cmd_rx == "what-is"
+            if state == "refine_interact" and is_unfeasible_command then
+                print("Command " .. cmd_rx .. " received while interacting. Doing nothing")
+            elseif
+                state = cmd_rx
+            end
+
 
            -- if cmd_rx ~= "track" then
             --    yarp.NetworkBase_disconnect("/faceLandmarks/target:o", "/onTheFlyRec/gaze/face")
@@ -1238,6 +1246,8 @@ while state ~= "quit" and not interrupting do
         end
     elseif state == "refine_interact" then
         yarp.delay(0.1)
+    elseif state == "annotation" then
+        state = "refine_interact"
     elseif state == "refine_explore" then
         yarp.delay(0.1)
     elseif state == "forget" then

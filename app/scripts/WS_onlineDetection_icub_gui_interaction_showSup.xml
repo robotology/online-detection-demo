@@ -1,7 +1,8 @@
 <application>
-<name>Weakly Supervised Online Detection</name>
+<name>Weakly Supervised Online Detection show</name>
 
     <!--MODULES -->
+
     <module>
         <name>yarpdev</name>
         <parameters>--context realsense --from realsense2Conf.ini</parameters>
@@ -19,7 +20,7 @@
         <parameters>--package speech-dev</parameters>
         <node>iiticublap235</node>
     </module>
-    
+
     <module>
         <name>yarp-blob</name>
         <node>docker-manager</node>
@@ -30,26 +31,20 @@
         <parameters>--imW 320 --imH 240 --bufferSize 1 --minBlobSize 300 --maxBlobSize 5000 --backgroundThresh 100 --imageThreshRatioLow 10 --imageThreshRatioHigh 100 --margin 1</parameters>
         <node>docker-manager</node>
     </module>
-<!--
-    <module>
-        <name>actionsRenderingEngine</name>
-        <parameters></parameters>
-        <node>TODOicub21</node>
-    </module>
--->
-    <module>
+
+        <module>
         <name>speechRecognizer</name>
         <parameters></parameters>
         <node>r1-vm-windows</node>
     </module>
-    
+
      <module>
         <name>detection_image.lua</name>
         <parameters>icub</parameters>
         <deployer>lua</deployer>
         <node>docker-manager</node>
     </module>
-    
+
     <module>
         <name>detection_speech_helper.lua</name>
         <parameters></parameters>
@@ -64,7 +59,7 @@
 
     <module>
         <name>detection_demo.lua</name>
-        <parameters>icub al</parameters>
+        <parameters>icub al showsup</parameters>
         <deployer>lua</deployer>
         <node>docker-manager</node>
         <dependencies>
@@ -73,45 +68,32 @@
     </module>
 
     <module>
-        <name>detections_handler.py</name>
-        <parameters>--image_w 320 --image_h 240</parameters>
-        <deployer>python3.5</deployer>
-        <node>docker-ws</node>
-    </module>
-<!--    
-    <module>
-        <name>OODRemote.py</name>
-        <parameters></parameters>
-        <deployer>python3.6</deployer>
-        <node>docker-gui</node>
-    </module>
--->
-    <module>
         <name>AnnotationsPropagator.py</name>
         <parameters>--from contexts/online-detection-demo/annotations_propagator_conf.ini</parameters>
         <deployer>python3.5</deployer>
         <node>docker-ws</node>
     </module>
-<!--
-    <module>
-        <name>ExplorationModule_icub.py</name>
-        <parameters>--from contexts/online-detection-demo/exploration_conf_icub.ini</parameters>
-        <deployer>python3.5</deployer>
-        <node>docker-manager</node>
-    </module>
 
-    <module>
-        <name>StreamUncertaintyBasedMethod.py</name>
-        <parameters>--from contexts/online-detection-demo/ws_module_conf.ini</parameters>
-        <deployer>python3.5</deployer>
-        <node>docker-ws</node>
-    </module>
--->
     <module>
         <name>blobAnnotation</name>
         <node>docker-manager</node>
         <parameters></parameters>
     </module>
+
+    <module>
+        <name>detections_handler.py</name>
+        <parameters>--image_w 320 --image_h 240</parameters>
+        <deployer>python3.5</deployer>
+        <node>docker-ws</node>
+    </module>
+
+    <module>
+        <name>detections_handler.py</name>
+        <parameters>--image_w 320 --image_h 240 --name /showSup</parameters>
+        <deployer>python3.5</deployer>
+        <node>docker-ws</node>
+    </module>
+
 
     <module>
         <name>BoxesVisualizer.py</name>
@@ -127,9 +109,17 @@
         <node>docker-ws</node>
     </module> 
 
+<!--    <module>-->
+<!--        <name>BoxesVisualizer.py</name>-->
+<!--        <parameters>&#45;&#45;from contexts/online-detection-demo/showSup_conf.ini</parameters>-->
+<!--        <deployer>python3.5</deployer>-->
+<!--        <node>docker-ws</node>-->
+<!--    </module>-->
+
 
     <!-- Yarpview for visualization -->
-    <module>
+
+   <module>
         <name>yarpview</name>
         <node>localhost</node>
         <parameters>--name /viewer/detection --x 600 --y 0 --w 500 --h 480 --RefreshTime 33 --compact</parameters>
@@ -160,31 +150,37 @@
     </module>
 
     <module>
+        <name>yarpview</name>
+        <node>localhost</node>
+        <parameters>--name /viewer/DetectionShowSup --x 0 --y 0 --w 500 --h 480 --RefreshTime 33</parameters>
+    </module>
+
+    <module>
         <name>actionsRenderingEngine</name>
         <parameters></parameters>
         <deployer></deployer>
         <node>iiticublap235</node>
-    </module> 
-    
+    </module>
+
     <module>
         <name>karmaMotor</name>
         <parameters></parameters>
         <deployer></deployer>
         <node>iiticublap235</node>
-    </module> 
+    </module>
 
     <!--CONNECTIONS -->
-    
+
      <!--connections between WeaklySupervised Module and Exploration Module -->
-    
+
     <connection>
         <from>/WSModule/exploration/targets:o</from>
         <to>/exploration/target:i</to>
         <protocol>fast_tcp</protocol>
     </connection>
-    
+
     <!--connections for Exploration Module -->
-    
+
     <connection>
         <from>/WSModule/manager_cmd:o</from>
         <to>/manager/cmd:i</to>
@@ -208,36 +204,14 @@
         <to>/karmaMotor/rpc</to>
         <protocol> fast_tcp </protocol>
     </connection>
-    
+
     <connection>
         <from>/exploration/are_commands:o</from>
         <to>/actionsRenderingEngine/cmd:io</to>
         <protocol> fast_tcp </protocol>
     </connection>
 
-    <!--connections for speech -->
-
-     <connection>
-        <from>/iSpeak/speech-dev/rpc</from>
-        <to>/icub/speech:rpc</to>
-        <protocol>tcp</protocol>
-    </connection>
-
-    <!--connections for detection image -->
-
-    <connection>
-        <from>/depthCamera/rgbImage:o</from>
-        <to>/detection/img:i</to>
-        <protocol> mjpeg </protocol>
-    </connection>
-
-    <connection>
-        <from>/detection/img:o </from>
-        <to>/detection-image/image:i</to>
-        <protocol> mjpeg </protocol>
-    </connection>
-
-   <!--connections for the manager -->
+    <!--connections for detection -->
 
     <connection>
         <from> /detection/dets:o </from>
@@ -251,22 +225,16 @@
         <protocol> tcp </protocol>
     </connection>
 
-	<connection>
-        <from>/manager/ispeak:o</from>
-        <to>/iSpeak</to>
-        <protocol>tcp</protocol>
+    <connection>
+        <from>/depthCamera/rgbImage:o</from>
+        <to>/detection/img:i</to>
+        <protocol> mjpeg </protocol>
     </connection>
 
     <connection>
-        <from>/manager/draw:o</from>
-        <to>/detection-image/cmd:i</to>
-        <protocol>tcp</protocol>
-    </connection>
-
-    <connection>
-        <from>/manager/detection/cmd:o</from>
-        <to>/detection/command:i</to>
-        <protocol>tcp</protocol>
+        <from>/depthCamera/rgbImage:o</from>
+        <to>/detection/showSup/img:i</to>
+        <protocol> mjpeg </protocol>
     </connection>
 
     <connection>
@@ -274,13 +242,13 @@
         <to>/detection/annotations:i</to>
         <protocol>tcp</protocol>
     </connection>
-<!--
+
     <connection>
-        <from>/detection/img:o</from>
-        <to>/detHandler/image:i</to>
-        <protocol>mjpeg</protocol>
+        <from>/dispBlobber/roi/left:o</from>
+        <to>/detection/showSup/annotations:i</to>
+        <protocol>tcp</protocol>
     </connection>
--->
+
 
     <!--connections for closest blob -->
 
@@ -294,6 +262,36 @@
         <from>/yarp-blob/depth:o</from>
         <to>/dispBlobber/img:i</to>
         <protocol>mjpeg</protocol>
+    </connection>
+    
+    <!--connections for robot control -->
+
+    <!--connections for speech -->
+
+     <connection>
+        <from>/iSpeak/speech-dev/rpc</from>
+        <to>/icub/speech:rpc</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <!--connections for the manager -->
+    
+	<connection>
+        <from>/manager/ispeak:o</from>
+        <to>/iSpeak</to>
+        <protocol>tcp</protocol>
+    </connection>
+    
+    <connection>
+        <from>/manager/draw:o</from>
+        <to>/detection-image/cmd:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+    
+    <connection>
+        <from>/manager/detection/cmd:o</from>
+        <to>/detection/command:i</to>
+        <protocol>tcp</protocol>
     </connection>
 
     <!--connections for WeaklySupervised Module -->
@@ -316,7 +314,13 @@
         <protocol>tcp</protocol>
     </connection>
 
-   <!--connections for AnnotationsPropagator -->
+    <connection>
+        <from>/WSModule/exploration/command:o</from>
+        <to>/iCWTPlayer/cmd:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <!--connections for AnnotationsPropagator -->
 
      <connection>
         <from>/WSModule/ask/image:o</from>
@@ -363,13 +367,7 @@
         <to>/AnnotationsPropagator/reply/annotations:i</to>
         <protocol>tcp</protocol>
     </connection>
-<!--    
-   <connection>
-        <from>/HRIgui/cmd:o</from>
-        <to>/manager/cmd:i</to>
-        <protocol>tcp</protocol>
-    </connection>
--->
+
     <!--connections for visualization -->
 
     <connection>
@@ -399,6 +397,24 @@
     <connection>
         <from>/detHandler/image:o</from>
         <to>/viewer/detection</to>
+        <protocol> mjpeg </protocol>
+    </connection>
+
+    <connection>
+        <from>/depthCamera/rgbImage:o</from>
+        <to>/detHandler/showSup/image:i</to>
+        <protocol>mjpeg</protocol>
+    </connection>
+
+    <connection>
+        <from>/detection/showSup/dets:o</from>
+        <to>/detHandler/showSup/detections:i</to>
+        <protocol>tcp</protocol>
+    </connection>
+
+    <connection>
+        <from>/detHandler/showSup/image:o</from>
+        <to>/viewer/DetectionShowSup</to>
         <protocol> mjpeg </protocol>
     </connection>
 
@@ -451,3 +467,4 @@
     </connection>
 
 </application>
+
