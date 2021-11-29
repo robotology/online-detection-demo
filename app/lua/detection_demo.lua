@@ -114,6 +114,8 @@ end
 if isAL then
     port_cmd_exploration = yarp.BufferedPortBottle()
     port_cmd_annotation = yarp.BufferedPortBottle()
+    port_cmd_karma = yarp.RpcClient()
+
 end
 if isShow then
     port_cmd_detection_show = yarp.BufferedPortBottle()
@@ -151,7 +153,7 @@ ret = true
 ret = ret and yarp.NetworkBase_connect(port_ispeak:getName(), "/iSpeak")
 --ret = ret and yarp.NetworkBase_connect(port_augmented_rpc:getName(), "/yarp-augmented/rpc")
 --ret = ret and yarp.NetworkBase_connect(port_draw_image:getName(), "/detection-image/cmd:i")
---ret = ret and yarp.NetworkBase_connect(port_cmd_detection:getName(), "/detection/command:i")
+ret = ret and yarp.NetworkBase_connect(port_cmd_detection:getName(), "/detection/command:i")
 --ret = ret and yarp.NetworkBase_connect("/dispBlobber/roi/left:o", "/onTheFlyRec/gaze/blob" )
 
 
@@ -808,22 +810,25 @@ function startup_interaction()
     port_cmd_detection_show:write()
 
     -- Send remove tool to karma
-    local cmd_karma = port_cmd_karma:prepare()
-    cmd_karma:clear()
-    cmd_karma:addString('tool')
-    cmd_karma:addString('remove')
-    port_cmd_karma:write()
+    local cmd_karma1 = yarp.Bottle()
+    local reply = yarp.Bottle()           
+    cmd_karma1:clear()
+    cmd_karma1:addString("tool")
+    cmd_karma1:addString("remove")
+    port_cmd_karma:write(cmd_karma1, reply)
 
     -- Send remove attach to karma
-    local cmd_karma = port_cmd_karma:prepare()
-    cmd_karma:clear()
-    cmd_karma:addString('tool')
-    cmd_karma:addString('attach')
-    cmd_karma:addString('left')
-    cmd_karma:addDouble(0.10)
-    cmd_karma:addDouble(-0.16)
-    cmd_karma:addDouble(0.2)
-    port_cmd_karma:write()
+    local cmd_karma2 = yarp.Bottle()
+    local reply = yarp.Bottle() 
+    cmd_karma2:clear()
+    cmd_karma2:addString("tool")
+    cmd_karma2:addString("attach")
+    cmd_karma2:addString("left")
+--    t = cmd_karma2:addList()
+    cmd_karma2:addDouble(0.10)
+    cmd_karma2:addDouble(-0.16)
+    cmd_karma2:addDouble(0.02)
+    port_cmd_karma:write(cmd_karma2, reply)
 end
 
 --might not be useful anymore. Fixed a recent bug on the gaze controller
