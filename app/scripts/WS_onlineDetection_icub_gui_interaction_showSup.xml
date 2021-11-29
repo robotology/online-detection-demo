@@ -122,21 +122,21 @@
    <module>
         <name>yarpview</name>
         <node>localhost</node>
-        <parameters>--name /viewer/detection --x 600 --y 0 --w 500 --h 480 --RefreshTime 33 --compact</parameters>
+        <parameters>--name /viewer/detection --x 600 --y 600 --w 1000 --h 960 --RefreshTime 33 --compact</parameters>
     </module>
-
+<!--
     <module>
         <name>yarpview</name>
         <parameters>--name /viewer/crop --x 10 --y 550 --p 50 --compact</parameters>
         <node>localhost</node>
     </module>
-
+-->
     <module>
         <name>yarpview</name>
         <parameters>--name /viewer/depth --x 400 --y 550 --p 50 --compact</parameters>
         <node>localhost</node>
     </module>
-
+<!--
     <module>
         <name>yarpview</name>
         <node>localhost</node>
@@ -148,11 +148,11 @@
         <node>localhost</node>
         <parameters>--name /viewer/WSModule --x 0 --y 0 --w 500 --h 480 --RefreshTime 33</parameters>
     </module>
-
+-->
     <module>
         <name>yarpview</name>
         <node>localhost</node>
-        <parameters>--name /viewer/DetectionShowSup --x 0 --y 0 --w 500 --h 480 --RefreshTime 33</parameters>
+        <parameters>--name /viewer/DetectionShowSup --x 600 --y 1600 --w 1000 --h 960 --RefreshTime 33 --compact</parameters>
     </module>
     
     <module>
