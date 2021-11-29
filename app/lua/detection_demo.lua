@@ -827,7 +827,7 @@ function startup_interaction()
 --    t = cmd_karma2:addList()
     cmd_karma2:addDouble(0.10)
     cmd_karma2:addDouble(-0.16)
-    cmd_karma2:addDouble(0.2)
+    cmd_karma2:addDouble(0.02)
     port_cmd_karma:write(cmd_karma2, reply)
 end
 
