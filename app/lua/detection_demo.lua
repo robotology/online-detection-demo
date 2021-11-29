@@ -114,7 +114,7 @@ end
 if isAL then
     port_cmd_exploration = yarp.BufferedPortBottle()
     port_cmd_annotation = yarp.BufferedPortBottle()
-    port_cmd_karma = yarp.BufferedPortBottle()
+    port_cmd_karma = yarp.RpcClient()
 
 end
 if isShow then
@@ -810,22 +810,25 @@ function startup_interaction()
     port_cmd_detection_show:write()
 
     -- Send remove tool to karma
-    local cmd_karma = port_cmd_karma:prepare()
-    cmd_karma:clear()
-    cmd_karma:addString('tool')
-    cmd_karma:addString('remove')
-    port_cmd_karma:write()
+    local cmd_karma1 = yarp.Bottle()
+    local reply = yarp.Bottle()           
+    cmd_karma1:clear()
+    cmd_karma1:addString("tool")
+    cmd_karma1:addString("remove")
+    port_cmd_karma:write(cmd_karma1, reply)
 
     -- Send remove attach to karma
-    local cmd_karma = port_cmd_karma:prepare()
-    cmd_karma:clear()
-    cmd_karma:addString('tool')
-    cmd_karma:addString('attach')
-    cmd_karma:addString('left')
-    cmd_karma:addDouble(0.10)
-    cmd_karma:addDouble(-0.16)
-    cmd_karma:addDouble(0.2)
-    port_cmd_karma:write()
+    local cmd_karma2 = yarp.Bottle()
+    local reply = yarp.Bottle() 
+    cmd_karma2:clear()
+    cmd_karma2:addString("tool")
+    cmd_karma2:addString("attach")
+    cmd_karma2:addString("left")
+--    t = cmd_karma2:addList()
+    cmd_karma2:addDouble(0.10)
+    cmd_karma2:addDouble(-0.16)
+    cmd_karma2:addDouble(0.2)
+    port_cmd_karma:write(cmd_karma2, reply)
 end
 
 --might not be useful anymore. Fixed a recent bug on the gaze controller
