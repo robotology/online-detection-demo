@@ -50,7 +50,7 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
         print('{:s} opened'.format('/' + self.module_name + '/manager_cmd:o'))
 
         # Ports to send commands to the annotations tracker
-        self.tracker_cmd = yarp.BufferedPortBottle()
+        self.tracker_cmd = yarp.RpcClient()
         self.tracker_cmd.open('/' + self.module_name + '/tracker_cmd:o')
         print('{:s} opened'.format('/' + self.module_name + '/tracker_cmd:o'))
 
@@ -198,11 +198,12 @@ class InteractionBasedMethod(wsT.WeakSupervisionTemplate):
 
     def send_command_to_tracker(self, action):
             print('sending command to tracker')
-            to_send = self.tracker_cmd.prepare()
+            to_send = yarp.Bottle()
+            reply = yarp.Bottle()
             to_send.clear()
             to_send.addString('hri')
             to_send.addString(action)
-            self.tracker_cmd.write()
+            self.tracker_cmd.write(to_send, reply)
 
     def ask_for_annotations(self):
         # Send image and doubtful predictions to the annotator
