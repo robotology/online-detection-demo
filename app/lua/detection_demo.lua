@@ -114,6 +114,8 @@ end
 if isAL then
     port_cmd_exploration = yarp.BufferedPortBottle()
     port_cmd_annotation = yarp.BufferedPortBottle()
+    port_cmd_karma = yarp.BufferedPortBottle()
+
 end
 if isShow then
     port_cmd_detection_show = yarp.BufferedPortBottle()
@@ -151,7 +153,7 @@ ret = true
 ret = ret and yarp.NetworkBase_connect(port_ispeak:getName(), "/iSpeak")
 --ret = ret and yarp.NetworkBase_connect(port_augmented_rpc:getName(), "/yarp-augmented/rpc")
 --ret = ret and yarp.NetworkBase_connect(port_draw_image:getName(), "/detection-image/cmd:i")
---ret = ret and yarp.NetworkBase_connect(port_cmd_detection:getName(), "/detection/command:i")
+ret = ret and yarp.NetworkBase_connect(port_cmd_detection:getName(), "/detection/command:i")
 --ret = ret and yarp.NetworkBase_connect("/dispBlobber/roi/left:o", "/onTheFlyRec/gaze/blob" )
 
 
