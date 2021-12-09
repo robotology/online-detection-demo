@@ -42,6 +42,12 @@
         <deployer>lua</deployer>
         <node>docker-manager</node>
     </module>
+
+    <module>
+        <name>realsense-holder-publisher</name>
+        <node>localhost</node>
+        <parameters>--from config_half_tilted.ini</parameters>
+    </module>
     
     <module>
         <name>track_blob.py</name>
