@@ -10,13 +10,13 @@
     <module>
         <name>yarpdev</name>
         <parameters>--device speech --lingware-context speech --default-language en-GB --robot icub --pitch 80 --speed 100</parameters>
-        <node>localhost</node>
+        <node>iiticublap235</node>
     </module>
 
      <module>
         <name>iSpeak</name>
         <parameters>--package speech-dev</parameters>
-        <node>localhost</node>
+        <node>iiticublap235</node>
     </module>
     
     <module>
@@ -106,7 +106,7 @@
 
      <connection>
         <from>/iSpeak/speech-dev/rpc</from>
-        <to>/r1/speech:rpc</to>
+        <to>/icub/speech:rpc</to>
         <protocol>tcp</protocol>
     </connection>
 
