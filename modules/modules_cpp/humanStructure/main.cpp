@@ -116,17 +116,7 @@ public:
         camPort.open("/" + moduleName + "/cam:rpc");
 
         followSkeletonIndex = -1;
-
-        yarp::os::Network::connect("/leftrightestimator/pred:o", "/humanStructure/skeleton:i");
-        yarp::os::Network::connect("/depthCamera/depthImage:o", "/humanStructure/float:i");
-        yarp::os::Network::connect("/leftrightestimator/propag:o", "/humanStructure/image:i");
-
-        yarp::os::Network::connect("/leftrightestimator/propag:o", "/original");
-        
-        yarp::os::Network::connect("/humanStructure/image:o", "/output");
        
-
-
         return true;
     }
 
