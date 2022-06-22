@@ -65,9 +65,13 @@ class Processing : public yarp::os::BufferedPort<yarp::os::Bottle>
     double minVal;
     double maxVal;
 
+    std::string arm;
+
     yarp::sig::ImageOf<yarp::sig::PixelFloat> depth;
 
 public:
+   
+    bool usingGaze;
     /********************************************************/
 
     Processing( const std::string &moduleName )
@@ -112,7 +116,7 @@ public:
         camPort.open("/" + moduleName + "/cam:rpc");
 
         followSkeletonIndex = -1;
-
+       
         return true;
     }
 
@@ -173,38 +177,38 @@ public:
                         {
                             if ( std::strcmp (propFieldPos->get(0).asString().c_str(),"RElbow") == 0)
                             {
-                                point.x = (int)propFieldPos->get(1).asDouble();
-                                point.y = (int)propFieldPos->get(2).asDouble();
+                                point.x = (int)propFieldPos->get(1).asFloat64();
+                                point.y = (int)propFieldPos->get(2).asFloat64();
                                 relbow.push_back(point);
                             }
                             if ( std::strcmp (propFieldPos->get(0).asString().c_str(),"RWrist") == 0)
                             {
-                                point.x = (int)propFieldPos->get(1).asDouble();
-                                point.y = (int)propFieldPos->get(2).asDouble();
+                                point.x = (int)propFieldPos->get(1).asFloat64();
+                                point.y = (int)propFieldPos->get(2).asFloat64();
                                 rwrist.push_back(point);
                             }
                             if ( std::strcmp (propFieldPos->get(0).asString().c_str(),"LElbow") == 0)
                             {
-                                point.x = (int)propFieldPos->get(1).asDouble();
-                                point.y = (int)propFieldPos->get(2).asDouble();
+                                point.x = (int)propFieldPos->get(1).asFloat64();
+                                point.y = (int)propFieldPos->get(2).asFloat64();
                                 lelbow.push_back(point);
                             }
                             if ( std::strcmp (propFieldPos->get(0).asString().c_str(),"LWrist") == 0)
                             {
-                                point.x = (int)propFieldPos->get(1).asDouble();
-                                point.y = (int)propFieldPos->get(2).asDouble();
+                                point.x = (int)propFieldPos->get(1).asFloat64();
+                                point.y = (int)propFieldPos->get(2).asFloat64();
                                 lwrist.push_back(point);
                             }
                             if ( std::strcmp (propFieldPos->get(0).asString().c_str(),"Neck") == 0)
                             {
-                                point.x = (int)propFieldPos->get(1).asDouble();
-                                point.y = (int)propFieldPos->get(2).asDouble();
+                                point.x = (int)propFieldPos->get(1).asFloat64();
+                                point.y = (int)propFieldPos->get(2).asFloat64();
                                 neck.push_back(point);
                             }
                             if ( std::strcmp (propFieldPos->get(0).asString().c_str(),"MidHip") == 0)
                             {
-                                point.x = (int)propFieldPos->get(1).asDouble();
-                                point.y = (int)propFieldPos->get(2).asDouble();
+                                point.x = (int)propFieldPos->get(1).asFloat64();
+                                point.y = (int)propFieldPos->get(2).asFloat64();
                                 midHip.push_back(point);
                             }
                         }
@@ -234,7 +238,7 @@ public:
                     {
                         yarp::os::Bottle *item=blobs.get(i).asList();
 
-                        int cog = item->get(0).asInt();//item->get(2).asInt() - ( (item->get(2).asInt() -item->get(0).asInt()) / 2);
+                        int cog = item->get(0).asInt32();//item->get(2).asInt() - ( (item->get(2).asInt() -item->get(0).asInt()) / 2);
 
                         if ( abs(cog - neck[getIndex].x) < 20)
                             index = i;
@@ -294,7 +298,7 @@ public:
     }
 
     /********************************************************/
-    void onRead( yarp::os::Bottle &data )
+    void onRead( yarp::os::Bottle &portdata )
     {
         if (!camera_configured)
             camera_configured=getCameraOptions();
@@ -310,12 +314,10 @@ public:
         }
         yDebug()<< "setting up system";
 
-
         yarp::sig::ImageOf<yarp::sig::PixelRgb> *inImage = imageInPort.read();
-        yDebug()<< __LINE__;
+        
         yarp::sig::ImageOf<yarp::sig::PixelFloat> *float_yarp = imageInFloat.read();
 
-        yDebug()<< __LINE__;
         depth = *float_yarp;
         cv::Mat float_cv = yarp::cv::toCvMat(*float_yarp);
         cv::Mat mono_cv = cv::Mat::ones(float_yarp->height(), float_yarp->width(), CV_8UC1);
@@ -331,6 +333,34 @@ public:
         yarp::os::Stamp stamp;
         imageInPort.getEnvelope(stamp);
         yarp::os::Bottle &target  = targetPort.prepare();
+        
+        yarp::os::Bottle data;
+        
+        if (usingGaze)
+        {
+            yarp::os::Bottle &tmp = data.addList();
+            tmp = *portdata.get(0).asList()->get(4).asList()->get(1).asList();
+
+            int internalSize = portdata.get(0).asList()->size();
+
+            if (yarp::os::Bottle *propField = portdata.get(0).asList())
+            {
+                for (int i = 0; i < internalSize; i++)
+                {
+                    if ( std::strcmp (propField->get(i).asList()->get(0).asString().c_str(),"hand") == 0)
+                    {
+                        yInfo("GOT THE HAND %s", propField->get(i).asList()->get(1).asString().c_str());
+
+                        arm = propField->get(i).asList()->get(1).asString().c_str();
+                    }
+                }
+            }
+        }
+        else
+            data = portdata;
+
+       // yInfo("keypoints \n", data.get(0).asList()->get(i).asList() ) ;
+
         size_t skeletonSize = data.get(0).asList()->size();
         size_t internalElements = 0;
 
@@ -378,94 +408,98 @@ public:
                     {
                         if ( std::strcmp (propFieldPos->get(0).asString().c_str(),"REye") == 0)
                         {
-                            point.x = (int)propFieldPos->get(1).asDouble();
-                            point.y = (int)propFieldPos->get(2).asDouble();
+                            point.x = (int)propFieldPos->get(1).asFloat64();
+                            point.y = (int)propFieldPos->get(2).asFloat64();
                             rightEye2D.push_back(point);
                         }
                         if ( std::strcmp (propFieldPos->get(0).asString().c_str(),"LEye") == 0)
                         {
-                            point.x = (int)propFieldPos->get(1).asDouble();
-                            point.y = (int)propFieldPos->get(2).asDouble();
+                            point.x = (int)propFieldPos->get(1).asFloat64();
+                            point.y = (int)propFieldPos->get(2).asFloat64();
                             leftEye2D.push_back(point);
                         }
                         if ( std::strcmp (propFieldPos->get(0).asString().c_str(),"REar") == 0)
                         {
-                            point.x = (int)propFieldPos->get(1).asDouble();
-                            point.y = (int)propFieldPos->get(2).asDouble();
+                            point.x = (int)propFieldPos->get(1).asFloat64();
+                            point.y = (int)propFieldPos->get(2).asFloat64();
                             rightEar2D.push_back(point);
                         }
                         if ( std::strcmp (propFieldPos->get(0).asString().c_str(),"LEar") == 0)
                         {
-                            point.x = (int)propFieldPos->get(1).asDouble();
-                            point.y = (int)propFieldPos->get(2).asDouble();
+                            point.x = (int)propFieldPos->get(1).asFloat64();
+                            point.y = (int)propFieldPos->get(2).asFloat64();
                             leftEar2D.push_back(point);
                         }
                         if ( std::strcmp (propFieldPos->get(0).asString().c_str(),"Neck") == 0)
                         {
-                            point.x = (int)propFieldPos->get(1).asDouble();
-                            point.y = (int)propFieldPos->get(2).asDouble();
+                            point.x = (int)propFieldPos->get(1).asFloat64();
+                            point.y = (int)propFieldPos->get(2).asFloat64();
                             neck2D.push_back(point);
 
                         }
                         if ( std::strcmp (propFieldPos->get(0).asString().c_str(),"Nose") == 0)
                         {
-                            point.x = (int)propFieldPos->get(1).asDouble();
-                            point.y = (int)propFieldPos->get(2).asDouble();
+                            point.x = (int)propFieldPos->get(1).asFloat64();
+                            point.y = (int)propFieldPos->get(2).asFloat64();
                             nose2D.push_back(point);
                         }
                         if ( std::strcmp (propFieldPos->get(0).asString().c_str(),"LShoulder") == 0)
                         {
-                            point.x = (int)propFieldPos->get(1).asDouble();
-                            point.y = (int)propFieldPos->get(2).asDouble();
+                            point.x = (int)propFieldPos->get(1).asFloat64();
+                            point.y = (int)propFieldPos->get(2).asFloat64();
                             leftShoulder2D.push_back(point);
                         }
                         if ( std::strcmp (propFieldPos->get(0).asString().c_str(),"RShoulder") == 0)
                         {
-                            point.x = (int)propFieldPos->get(1).asDouble();
-                            point.y = (int)propFieldPos->get(2).asDouble();
+                            point.x = (int)propFieldPos->get(1).asFloat64();
+                            point.y = (int)propFieldPos->get(2).asFloat64();
                             rightShoulder2D.push_back(point);
                         }
                         if ( std::strcmp (propFieldPos->get(0).asString().c_str(),"RWrist") == 0)
                         {
-                            point.x = (int)propFieldPos->get(1).asDouble();
-                            point.y = (int)propFieldPos->get(2).asDouble();
+                            point.x = (int)propFieldPos->get(1).asFloat64();
+                            point.y = (int)propFieldPos->get(2).asFloat64();
                             rightWrist2D.push_back(point);
                         }
                         if ( std::strcmp (propFieldPos->get(0).asString().c_str(),"LWrist") == 0)
                         {
-                            point.x = (int)propFieldPos->get(1).asDouble();
-                            point.y = (int)propFieldPos->get(2).asDouble();
+                            point.x = (int)propFieldPos->get(1).asFloat64();
+                            point.y = (int)propFieldPos->get(2).asFloat64();
                             leftWrist2D.push_back(point);
                         }
 
                         if ( std::strcmp (propFieldPos->get(0).asString().c_str(),"RElbow") == 0)
                         {
-                            point.x = (int)propFieldPos->get(1).asDouble();
-                            point.y = (int)propFieldPos->get(2).asDouble();
+                            point.x = (int)propFieldPos->get(1).asFloat64();
+                            point.y = (int)propFieldPos->get(2).asFloat64();
                             rightElbow2D.push_back(point);
                         }
                         if ( std::strcmp (propFieldPos->get(0).asString().c_str(),"LElbow") == 0)
                         {
-                            point.x = (int)propFieldPos->get(1).asDouble();
-                            point.y = (int)propFieldPos->get(2).asDouble();
+                            point.x = (int)propFieldPos->get(1).asFloat64();
+                            point.y = (int)propFieldPos->get(2).asFloat64();
                             leftElbow2D.push_back(point);
                         }
                         if ( std::strcmp (propFieldPos->get(0).asString().c_str(),"MidHip") == 0)
                         {
-                            point.x = (int)propFieldPos->get(1).asDouble();
-                            point.y = (int)propFieldPos->get(2).asDouble();
+                            point.x = (int)propFieldPos->get(1).asFloat64();
+                            point.y = (int)propFieldPos->get(2).asFloat64();
                             MidHip2D.push_back(point);
+                        }
+                        else
+                        {
+                             MidHip2D.push_back(cv::Point(-1,-1));
                         }
                         if ( std::strcmp (propFieldPos->get(0).asString().c_str(),"LHip") == 0)
                         {
-                            point.x = (int)propFieldPos->get(1).asDouble();
-                            point.y = (int)propFieldPos->get(2).asDouble();
+                            point.x = (int)propFieldPos->get(1).asFloat64();
+                            point.y = (int)propFieldPos->get(2).asFloat64();
                             LHip2D.push_back(point);
                         }
                         if ( std::strcmp (propFieldPos->get(0).asString().c_str(),"RHip") == 0)
                         {
-                            point.x = (int)propFieldPos->get(1).asDouble();
-                            point.y = (int)propFieldPos->get(2).asDouble();
+                            point.x = (int)propFieldPos->get(1).asFloat64();
+                            point.y = (int)propFieldPos->get(2).asFloat64();
                             RHip2D.push_back(point);
                         }
                     }
@@ -487,14 +521,17 @@ public:
             int length = 0;
             int shift = 10;
             yInfo() << "###########";
+           
+           // yInfo("DATA \n %s", data.toString().c_str());
+
             yInfo() << "MidHip2D " << MidHip2D[i].x << MidHip2D[i].y << "NecK2D " << neck2D[i].x << neck2D[i].y;
             yarp::os::Bottle tmp;
             tmp.clear();
             if (MidHip2D[i].x > 0)
             {
                 yInfo() << "in midHip";
-                tmp.addInt(MidHip2D[i].x);
-                tmp.addInt(MidHip2D[i].y);
+                tmp.addInt32(MidHip2D[i].x);
+                tmp.addInt32(MidHip2D[i].y);
 
                 elements.push_back(std::make_pair(MidHip2D[i].x,increment));
                 shapes.push_back(tmp);
@@ -503,8 +540,8 @@ public:
             else if (neck2D[i].x > 0)
             {
                 yInfo() << "in neck";
-                tmp.addInt(neck2D[i].x);
-                tmp.addInt(neck2D[i].y);
+                tmp.addInt32(neck2D[i].x);
+                tmp.addInt32(neck2D[i].y);
                 elements.push_back(std::make_pair(neck2D[i].x,increment));
                 shapes.push_back(tmp);
                 increment++;
@@ -536,8 +573,8 @@ public:
                 {
                     yInfo() << "**************** shapes elements" << shapes[elements[i].second].toString();
                     yarp::os::Bottle &tmp = blobs.addList();
-                    tmp.addInt(shapes[elements[i].second].get(0).asInt());
-                    tmp.addInt(shapes[elements[i].second].get(1).asInt());
+                    tmp.addInt32(shapes[elements[i].second].get(0).asInt32());
+                    tmp.addInt32(shapes[elements[i].second].get(1).asInt32());
                 }
 
                 list = blobs;
@@ -548,9 +585,16 @@ public:
 
         if ( shapes.size() > 0)
         {
-            int index = findArmLift(list, data);
+            int index = -1;
+            if (usingGaze)
+                index = 0;
+            else
+                index = findArmLift(list, data);
+
             out_cv.copyTo(overlayFrame);
             out_cv.copyTo(overlayObject);
+
+
 
             if (index > -1 )
                 followSkeletonIndex = index;
@@ -562,7 +606,7 @@ public:
             {
                 yarp::os::Bottle *item=list.get(i).asList();
 
-                int cog = item->get(0).asInt(); //item->get(2).asInt() - ( (item->get(2).asInt() -item->get(0).asInt()) / 2);
+                int cog = item->get(0).asInt32(); //item->get(2).asInt() - ( (item->get(2).asInt() -item->get(0).asInt()) / 2);
 
                 if ( abs(cog - neck2D[followSkeletonIndex].x) < 30)
                     finalIndex = i;
@@ -655,14 +699,31 @@ public:
 
                 double max = 0.0;
                 cv::Point maxPoint;
-                while(it != valueVector.end())
+
+                if (usingGaze)
                 {
-                    if (it->first>max)
+                    if ( std::strcmp(arm.c_str(),"r") == 0)
                     {
-                        max = it->first;
-                        maxPoint = it->second;
+                        max = rightWristValue;
+                        maxPoint = rightWrist2D[finalIndex];
                     }
-                    it++;
+                    else
+                    {
+                        max = leftWristValue;
+                        maxPoint = leftWrist2D[finalIndex];
+                    }
+                }
+                else
+                {
+                    while(it != valueVector.end())
+                    {
+                        if (it->first > max)
+                        {
+                            max = it->first;
+                            maxPoint = it->second;
+                        }
+                        it++;
+                    }
                 }
 
                 yDebug() << "Max value: " << max << " max Point " << maxPoint.x << maxPoint.y;
@@ -693,63 +754,70 @@ public:
 
                 for( size_t i = 0; i< cnt.size(); i++ )
                 {
-					mu[i] = moments( cnt[i], false );
+                    mu[i] = moments( cnt[i], false );
                     mc[i] = cv::Point2f( mu[i].m10/mu[i].m00 , mu[i].m01/mu[i].m00 );
-					double res = cv::norm(cv::Point(mc[i].x, mc[i].y) - maxPoint);
+                    double res = cv::norm(cv::Point(mc[i].x, mc[i].y) - maxPoint);
 
-					yDebug() << "res" << res;
-					if (res<minValue)
-					{
-					    minValue = res;
-					    minValueIndex = i;
-					}
-				}
-				yDebug() << "res minValue " << minValue << "index" << minValueIndex;
+                    yDebug() << "res" << res;
+                    if (res<minValue)
+                    {
+                        minValue = res;
+                        minValueIndex = i;
+                    }
+                }
+                yDebug() << "res minValue " << minValue << "index" << minValueIndex;
 
-				double checkValueOne = 0.0;
-				double checkValueTwo = 0.0;
+                double checkValueOne = 0.0;
+                double checkValueTwo = 0.0;
 
-				if (neckValue > 0 && noseValue > 0)
-				{
-					yError() << "USING NECK";
-					checkValueOne = fabs(max-neckValue);
-					checkValueTwo = fabs(max-noseValue);
-				}
-				else
-				{
-					yError() << "USING HIP ";
-					checkValueOne = fabs(max-rightHipValue);
-					checkValueTwo = fabs(max-leftHipValue);
-				}
+                if (neckValue > 0 && noseValue > 0)
+                {
+                    yError() << "USING NECK";
+                    checkValueOne = fabs(max-neckValue);
+                    checkValueTwo = fabs(max-noseValue);
+                }
+                else
+                {
+                    yError() << "USING HIP ";
+                    checkValueOne = fabs(max-rightHipValue);
+                    checkValueTwo = fabs(max-leftHipValue);
+                }
 
-				yError() << mc[minValueIndex].x << mc[minValueIndex].y;
-				yError() << maxPoint.x << maxPoint.y;
-				yError() << "Distance from " << minValueIndex << " is " << minValue;
-				yError() << "checkValueOne vs max " << checkValueOne;
-				yError() << "checkvalueTwo vs max " << checkValueTwo;
+                yError() << mc[minValueIndex].x << mc[minValueIndex].y;
+                yError() << maxPoint.x << maxPoint.y;
+                yError() << "Distance from " << minValueIndex << " is " << minValue;
+                yError() << "checkValueOne vs max " << checkValueOne;
+                yError() << "checkvalueTwo vs max " << checkValueTwo;
 
-				if ( checkValueOne >= 15 || checkValueTwo >= 15 )
-				{
-					approxPolyDP( cv::Mat(cnt[minValueIndex]), contours_poly[minValueIndex], 3, true );
-					boundRect[minValueIndex] = boundingRect( cv::Mat(contours_poly[minValueIndex]) );
+                if ( checkValueOne >= 0 || checkValueTwo >= 0 )
+                {
+                    yError() << "INSIDE CHECK VALUE " << checkValueTwo;
+                    approxPolyDP( cv::Mat(cnt[minValueIndex]), contours_poly[minValueIndex], 3, true );
+                    boundRect[minValueIndex] = boundingRect( cv::Mat(contours_poly[minValueIndex]) );
 
-					drawContours(depth_cv, cnt, minValueIndex, cv::Scalar(255), 8);
-					drawContours(overlayObject, cnt, minValueIndex, cv::Scalar(216, 102 , 44), -1);
+                    drawContours(depth_cv, cnt, minValueIndex, cv::Scalar(255), 8);
+                    drawContours(overlayObject, cnt, minValueIndex, cv::Scalar(216, 102 , 44), -1);
                     drawContours(segment_cv, cnt, minValueIndex, cv::Scalar(255), -1);
-					rectangle( out_cv, boundRect[minValueIndex].tl(), boundRect[minValueIndex].br(), cv::Scalar(216, 102 , 44), 2, 8, 0 );
+                    rectangle( out_cv, boundRect[minValueIndex].tl(), boundRect[minValueIndex].br(), cv::Scalar(216, 102 , 44), 2, 8, 0 );
 
-					yarp::os::Bottle &tmp = blobs.addList();
-					tmp.addInt( boundRect[minValueIndex].tl().x );
-					tmp.addInt( boundRect[minValueIndex].tl().y );
-					tmp.addInt( boundRect[minValueIndex].br().x );
-					tmp.addInt( boundRect[minValueIndex].br().y );
+                    //imwrite("NEW_overlayFrame.jpg", overlayFrame);
+                    //imwrite("NEW_out_cv.jpg", out_cv);
 
-					blobPort.setEnvelope(stamp);
-					blobPort.write();
+                    yarp::os::Bottle &tmp = blobs.addList();
+                    tmp.addInt32( boundRect[minValueIndex].tl().x );
+                    tmp.addInt32( boundRect[minValueIndex].tl().y );
+                    tmp.addInt32( boundRect[minValueIndex].br().x );
+                    tmp.addInt32( boundRect[minValueIndex].br().y );
 
-					double opacity = 0.4;
-					cv::addWeighted(overlayObject, opacity, out_cv, 1 - opacity, 0, out_cv);
-				}
+                    blobPort.setEnvelope(stamp);
+                    blobPort.write();
+
+                    double opacity = 0.4;
+                    cv::addWeighted(overlayObject, opacity, out_cv, 1 - opacity, 0, out_cv);
+
+                    //imwrite("addWeighted_overlayFrame.jpg", overlayFrame);
+                    //imwrite("addWeighted_out_cv.jpg", out_cv);
+                }
             }
             else
                 followSkeletonIndex = -1;
@@ -786,6 +854,8 @@ class Module : public yarp::os::RFModule
     double minVal;
     double maxVal;
 
+    bool usingGaze;
+
 public:
 
     /********************************************************/
@@ -793,8 +863,16 @@ public:
     {
         this->rf=&rf;
         std::string moduleName = rf.check("name", yarp::os::Value("humanStructure"), "module name (string)").asString();
-        minVal = rf.check("minVal", yarp::os::Value(0.5), "minimum value for depth (double)").asDouble();
-        maxVal = rf.check("maxVal", yarp::os::Value(3.5), "maximum value for depth (double)").asDouble();
+        minVal = rf.check("minVal", yarp::os::Value(0.1), "minimum value for depth (double)").asFloat64();
+        maxVal = rf.check("maxVal", yarp::os::Value(5.0), "maximum value for depth (double)").asFloat64();
+
+        usingGaze = rf.check("with_gaze");
+
+        if (usingGaze)
+            yInfo("with gaze value ");
+        else
+             yInfo("without gaze value ");
+
         setName(moduleName.c_str());
 
         rpcPort.open(("/"+getName("/rpc")).c_str());
@@ -806,6 +884,8 @@ public:
         processing->open();
 
         processing->setDepthValues(minVal, maxVal);
+
+        processing->usingGaze = usingGaze;
 
         attach(rpcPort);
 
